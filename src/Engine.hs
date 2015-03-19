@@ -110,14 +110,14 @@ data GameState = GameState {
 
 
 data HandCard :: * where
-    HandMinionCard :: HandMinion -> HandCard
-    HandSpellCard :: Spell -> HandCard
+    HandCardMinion :: HandMinion -> HandCard
+    HandCardSpell :: Spell -> HandCard
     deriving (Show, Eq, Ord)
 
 
 data DeckCard :: * where
-    DeckMinionCard :: DeckMinion -> DeckCard
-    DeckSpellCard :: Spell -> DeckCard
+    DeckCardMinion :: DeckMinion -> DeckCard
+    DeckCardSpell :: Spell -> DeckCard
     deriving (Show, Eq, Ord)
 
 
