@@ -8,11 +8,10 @@ module Engine where
 --------------------------------------------------------------------------------
 
 
-data Base = Base
-    deriving (Show, Eq, Ord)
+type Name = String
 
 
-newtype TurnNumber = TurnNumber Int
+newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Enum, Num, Real, Integral)
 
 
@@ -37,27 +36,45 @@ data Effect :: * where
     deriving (Show, Eq, Ord)
 
 
-data Enchantment :: * where
-    FrozenUntil :: TurnNumber -> Enchantment
+data Ability :: * where
+    Charge :: Ability
     deriving (Show, Eq, Ord)
 
 
-data Minion z = Minion {
-    _minionAttack :: Attack,
-    _minionHealth :: Health,
-    _minionZoneData :: z
+data Enchantment :: * where
+    FrozenUntil :: Turn -> Enchantment
+    deriving (Show, Eq, Ord)
+
+
+data Spell = Spell {
+    --_spellEffects :: [SpellEffect],
+    _spellName :: Name
 } deriving (Show, Eq, Ord)
 
 
-type BaseMinion = Minion Base
-type BoardMinion = Minion MinionBoardData
+data Minion = Minion {
+    _minionAttack :: Attack,
+    _minionHealth :: Health,
+    _minionName :: Name
+} deriving (Show, Eq, Ord)
 
 
-data MinionBoardData = MinionBoardData {
-    _minionCurrAttack :: Attack,
-    _minionCurrHealth :: Health,
-    _minionEnchantments :: [Enchantment],
-    _minionBase :: Minion ()
+data BoardMinion = BoardMinion {
+    _boardMinionCurrAttack :: Attack,
+    _boardMinionCurrHealth :: Health,
+    _boardMinionEnchantments :: [Enchantment],
+    _boardMinion :: Minion
+} deriving (Show, Eq, Ord)
+
+
+data DeckMinion = DeckMinion {
+    _deckMinion :: Minion
+} deriving (Show, Eq, Ord)
+
+
+data HandMinion = HandMinion {
+    --_handMinionEffects :: [HandEffect]  -- Think Bolivar
+    _handMinion :: Minion
 } deriving (Show, Eq, Ord)
 
 
@@ -67,23 +84,73 @@ data HeroPower = HeroPower {
 } deriving (Show, Eq, Ord)
 
 
-data Hero z = Hero {
+data Hero = Hero {
     _heroAttack :: Attack,
     _heroArmor :: Armor,
     _heroHealth :: Health,
     _heroPower :: HeroPower,
-    _heroZoneData :: z
+    _heroName :: Name
 } deriving (Show, Eq, Ord)
 
 
-type BaseHero = Hero Base
-type BoardHero = Hero HeroBoardData
-
-
-data HeroBoardData = HeroBoardData {
-    _heroCurrHealth :: Health,
-    _heroBase :: BaseHero
+data BoardHero = BoardHero {
+    _boardHeroCurrHealth :: Health,
+    _boardHero :: Hero
 } deriving (Show, Eq, Ord)
+
+
+data GameState = GameState {
+    _turn :: Turn,
+    _players :: [Player]
+} deriving (Show, Eq, Ord)
+
+
+data HandCard :: * where
+    HandMinionCard :: HandMinion -> HandCard
+    HandSpellCard :: Spell -> HandCard
+    deriving (Show, Eq, Ord)
+
+
+data DeckCard :: * where
+    DeckMinionCard :: DeckMinion -> DeckCard
+    DeckSpellCard :: Spell -> DeckCard
+    deriving (Show, Eq, Ord)
+
+
+data Hand = Hand {
+    _handCards :: [HandCard]
+} deriving (Show, Eq, Ord)
+
+
+data Deck = Deck {
+    _deckCards :: [DeckCard]
+} deriving (Show, Eq, Ord)
+
+
+data Player = Player {
+    _playerDeck :: Deck,
+    _playerHand :: Hand,
+    _playerMinions :: BoardMinion,
+    _playerHero :: BoardHero
+} deriving (Show, Eq, Ord)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
