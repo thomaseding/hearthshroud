@@ -2,13 +2,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 
+
 module Engine where
 
 
 --------------------------------------------------------------------------------
 
 
-type Name = String
+import Names
+
+
+--------------------------------------------------------------------------------
 
 
 newtype Turn = Turn Int
@@ -48,14 +52,14 @@ data Enchantment :: * where
 
 data Spell = Spell {
     --_spellEffects :: [SpellEffect],
-    _spellName :: Name
+    _spellName :: CardName
 } deriving (Show, Eq, Ord)
 
 
 data Minion = Minion {
     _minionAttack :: Attack,
     _minionHealth :: Health,
-    _minionName :: Name
+    _minionName :: CardName
 } deriving (Show, Eq, Ord)
 
 
@@ -89,7 +93,7 @@ data Hero = Hero {
     _heroArmor :: Armor,
     _heroHealth :: Health,
     _heroPower :: HeroPower,
-    _heroName :: Name
+    _heroName :: HeroName
 } deriving (Show, Eq, Ord)
 
 
