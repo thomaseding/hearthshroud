@@ -134,7 +134,7 @@ data Deck = Deck {
 data Player = Player {
     _playerDeck :: Deck,
     _playerHand :: Hand,
-    _playerMinions :: BoardMinion,
+    _playerMinions :: [BoardMinion],
     _playerHero :: BoardHero
 } deriving (Show, Eq, Ord)
 
