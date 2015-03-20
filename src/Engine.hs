@@ -168,7 +168,7 @@ data GameState = GameState {
 
 
 data HearthPrompt :: * -> * where
-    PromptShuffle :: a -> HearthPrompt a
+    PromptShuffle :: [a] -> HearthPrompt [a]
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
 deriving instance (Show a) => Show (HearthPrompt a)
 deriving instance (Eq a) => Eq (HearthPrompt a)
