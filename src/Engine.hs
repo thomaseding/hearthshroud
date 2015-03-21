@@ -1,8 +1,10 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -185,7 +187,14 @@ data GameState = GameState {
 makeLenses ''GameState
 
 
+data LogEvent :: * where
+    LogFunctionEntered :: String -> LogEvent
+    LogFunctionExited :: String -> LogEvent
+    deriving (Show, Eq, Ord)
+
+
 data HearthPrompt :: * -> * where
+    PromptLogEvent :: LogEvent -> HearthPrompt ()
     PromptShuffle :: a -> HearthPrompt a
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
     PromptMulligan :: PlayerHandle -> HearthPrompt [HandCard]
@@ -204,6 +213,29 @@ type HearthMonad m = MonadPrompt HearthPrompt m
 
 instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth m) where
     prompt = lift . prompt
+
+
+class LogCall a where
+    logCall :: String -> a -> a
+
+
+instance (HearthMonad m) => LogCall (Hearth m a) where
+    logCall :: String -> Hearth m a -> Hearth m a
+    logCall funcName m = do
+        prompt $ PromptLogEvent $ LogFunctionEntered funcName
+        x <- m
+        prompt $ PromptLogEvent $ LogFunctionExited funcName
+        return x
+
+
+instance (HearthMonad m) => LogCall (a -> Hearth m b) where
+    logCall :: String -> (a -> Hearth m b) -> (a -> Hearth m b)
+    logCall msg f = logCall msg . f
+
+
+instance (HearthMonad m) => LogCall (a -> b -> Hearth m c) where
+    logCall :: String -> (a -> b -> Hearth m c) -> (a -> b -> Hearth m c)
+    logCall msg f = logCall msg . f
 
 
 data GameResult :: * where
@@ -261,7 +293,7 @@ mkBoardHero hero = BoardHero {
 
 
 runGame :: (HearthMonad m) => Hearth m GameResult
-runGame = do
+runGame = logCall "runGame" $ do
     initGame
     return GameResult
 
@@ -283,20 +315,20 @@ getPlayer handle f st = fmap put' get'
 
 
 initGame :: (HearthMonad m) => Hearth m ()
-initGame = do
+initGame = logCall "initGame" $ do
     flipCoin
     zipWithM_ initHand (4 : repeat 3) =<< getPlayerHandles
 
 
 flipCoin :: (HearthMonad m) => Hearth m ()
-flipCoin = getPlayerHandles >>= \handles -> do
+flipCoin = logCall "flipCoin" $ getPlayerHandles >>= \handles -> do
     handle <- prompt $ PromptPickRandom $ listToNonEmpty handles
     let handles' = dropWhile (/= handle) $ cycle handles
     gamePlayerTurnOrder .= handles'
 
 
 initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
-initHand numCards handle = do
+initHand numCards handle = logCall "initHand" $ do
     shuffle handle
     handCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
@@ -336,11 +368,11 @@ instance HandToDeck HandMinion DeckMinion where
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
-drawCards handle = liftM catMaybes . flip replicateM (drawCard handle)
+drawCards handle = logCall "drawCards" $ liftM catMaybes . flip replicateM (drawCard handle)
 
 
 drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
-drawCard handle = do
+drawCard handle = logCall "drawCard" $ do
     player <- viewM $ getPlayer handle
     case player^.playerDeck of
         Deck [] -> return Nothing -- TODO: Take damage
