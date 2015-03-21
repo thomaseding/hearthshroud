@@ -29,8 +29,15 @@ import Names
 --------------------------------------------------------------------------------
 
 
+data LogState = LogState {
+    _callDepth :: Int,
+    _useShortTag :: Bool
+} deriving (Show, Eq, Ord)
+makeLenses ''LogState
+
+
 data DriverState = DriverState {
-    _callDepth :: Int
+    _logState :: LogState
 } deriving (Show, Eq, Ord)
 makeLenses ''DriverState
 
@@ -43,16 +50,25 @@ newtype Driver a = Driver {
 logEvent :: LogEvent -> Driver ()
 logEvent = \case
     LogFunctionEntered name -> do
+        gets (view $ logState.useShortTag) >>= \case
+            True -> liftIO $ putStrLn ">"
+            False -> return ()
         tabby
-        callDepth += 1
-        liftIO $ putStrLn $ "<" ++ name ++ ">"
+        logState.callDepth += 1
+        logState.useShortTag .= True
+        liftIO $ putStr $ "<" ++ name
     LogFunctionExited name -> do
-        callDepth -= 1
-        tabby
-        liftIO $ putStrLn $ "</" ++ name ++ ">"
+        logState.callDepth -= 1
+        gets (view $ logState.useShortTag) >>= \case
+            True -> do
+                liftIO $ putStrLn "/>"
+            False -> do
+                tabby
+                liftIO $ putStrLn $ "</" ++ name ++ ">"
+        logState.useShortTag .= False
     where
         tabby = do
-            n <- gets $ view callDepth
+            n <- gets $ view $ logState.callDepth
             liftIO $ putStr $ concat $ replicate n "    "
 
 
@@ -67,7 +83,10 @@ instance MonadPrompt HearthPrompt Driver where
 runDriver :: IO GameResult
 runDriver = flip evalStateT st $ unDriver $ runHearth (NonEmpty player [player])
     where
-        st = DriverState { _callDepth = 0 }
+        st = DriverState {
+            _logState = LogState {
+                _callDepth = 0,
+                _useShortTag = False } }
         power = HeroPower {
             _heroPowerCost = 0,
             _heroPowerEffects = [] }

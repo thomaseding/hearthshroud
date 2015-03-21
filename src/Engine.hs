@@ -329,7 +329,7 @@ flipCoin = logCall "flipCoin" $ getPlayerHandles >>= \handles -> do
 
 initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
 initHand numCards handle = logCall "initHand" $ do
-    shuffle handle
+    shuffleDeck handle
     handCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
     let tossedCards = handCards \\ keptCards
@@ -338,7 +338,7 @@ initHand numCards handle = logCall "initHand" $ do
         [] -> return ()
         _ -> do
             getPlayer handle.playerDeck <>= Deck tossedCards'
-            shuffle handle
+            shuffleDeck handle
 
 
 class DeckToHand d h | d -> h where
@@ -386,8 +386,8 @@ drawCard handle = logCall "drawCard" $ do
                     return $ Just c'
 
 
-shuffle :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-shuffle handle = do
+shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
+shuffleDeck handle = logCall "shuffleDeck" $ do
     deck <- viewM $ getPlayer handle.playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
     getPlayer handle.playerDeck .= deck'
