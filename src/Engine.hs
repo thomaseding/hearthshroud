@@ -21,6 +21,7 @@ import Control.Lens
 import Control.Monad.Prompt
 import Control.Monad.State
 import Data.List
+import Data.Maybe
 import Data.Monoid
 import Names
 
@@ -153,26 +154,16 @@ data DeckCard :: * where
     deriving (Show, Eq, Ord)
 
 
-data Hand = Hand {
+newtype Hand = Hand {
     _handCards :: [HandCard]
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Monoid)
 makeLenses ''Hand
 
 
-instance Monoid Hand where
-    mempty = Hand []
-    Hand cs `mappend` Hand cs' = Hand $ cs ++ cs'
-
-
-data Deck = Deck {
+newtype Deck = Deck {
     _deckCards :: [DeckCard]
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Monoid)
 makeLenses ''Deck
-
-
-instance Monoid Deck where
-    mempty = Deck []
-    Deck cs `mappend` Deck cs' = Deck $ cs ++ cs'
 
 
 data Player = Player {
@@ -229,6 +220,14 @@ guardedPrompt p f = prompt p >>= \x -> case f x of
     False -> guardedPrompt p f
 
 
+viewM :: (MonadState s m) => Getting a s a -> m a
+viewM ln = gets $ view ln
+
+
+toListOfM :: (MonadState s m) => Getting (Endo [a]) s a -> m [a]
+toListOfM ln = gets $ toListOf ln
+
+
 isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
 isSubsetOf = undefined
 
@@ -267,13 +266,19 @@ runGame = do
 
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
-getPlayerHandles = gets $ map _playerHandle . _gamePlayers
+getPlayerHandles = toListOfM $ gamePlayers.traversed.playerHandle
 
 
-playerByHandle :: PlayerHandle -> Traversal' GameState Player
-playerByHandle handle = gamePlayers.traversed.f
+getPlayer :: PlayerHandle -> Lens' GameState Player
+getPlayer handle f st = fmap put' get'
     where
-        f = filtered $ \player -> player^.playerHandle == handle
+        players = st^.gamePlayers
+        put' player = let
+            g p = case p^.playerHandle == handle of
+                True -> player
+                False -> p
+            in set gamePlayers (map g players) st
+        get' = f $ fromJust $ find (\p -> p^.playerHandle == handle) players
 
 
 initGame :: (HearthMonad m) => Hearth m ()
@@ -299,20 +304,35 @@ initHand numCards handle = do
     drawCards handle (length tossedCards) >>= \case
         [] -> return ()
         _ -> do
-            playerByHandle handle.playerDeck <>= Deck tossedCards'
+            getPlayer handle.playerDeck <>= Deck tossedCards'
             shuffle handle
-    
+
+
+toHandCard :: DeckCard -> HandCard
+toHandCard = undefined
+
 
 toDeckCard :: HandCard -> DeckCard
 toDeckCard = undefined
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
-drawCards handle = flip replicateM $ drawCard handle
+drawCards handle = liftM catMaybes . flip replicateM (drawCard handle)
 
 
-drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m HandCard
-drawCard handle = undefined
+drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
+drawCard handle = do
+    player <- viewM $ getPlayer handle
+    case player^.playerDeck of
+        Deck [] -> return Nothing -- TODO: Take damage
+        Deck (c:cs) -> do
+            case player^.playerHand.handCards.to length of
+                10 -> return Nothing
+                _ -> do
+                    let c' = toHandCard c
+                    getPlayer handle.playerDeck .= Deck cs
+                    getPlayer handle.playerHand <>= Hand [c']
+                    return $ Just c'
 
 
 shuffle :: (HearthMonad m) => PlayerHandle -> Hearth m ()
@@ -320,7 +340,6 @@ shuffle handle = do
     let deck = Deck undefined
     deck'@Deck{} <- prompt $ PromptShuffle deck
     error $ show deck'
-
 
 
 
