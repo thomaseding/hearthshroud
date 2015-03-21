@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
@@ -20,7 +21,9 @@ import Control.Applicative
 import Control.Lens
 import Control.Monad.Prompt
 import Control.Monad.State
+import Data.Function
 import Data.List
+import Data.List.Ordered
 import Data.Maybe
 import Data.Monoid
 import Names
@@ -144,13 +147,11 @@ makeLenses ''BoardHero
 
 data HandCard :: * where
     HandCardMinion :: HandMinion -> HandCard
-    HandCardSpell :: Spell -> HandCard
     deriving (Show, Eq, Ord)
 
 
 data DeckCard :: * where
     DeckCardMinion :: DeckMinion -> DeckCard
-    DeckCardSpell :: Spell -> DeckCard
     deriving (Show, Eq, Ord)
 
 
@@ -229,7 +230,7 @@ toListOfM ln = gets $ toListOf ln
 
 
 isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
-isSubsetOf = undefined
+isSubsetOf = subset `on` sort
 
 
 runHearth :: (HearthMonad m) => NonEmpty PlayerData -> m GameResult
@@ -300,7 +301,7 @@ initHand numCards handle = do
     handCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
     let tossedCards = handCards \\ keptCards
-        tossedCards' = map toDeckCard tossedCards
+        tossedCards' = map handToDeck tossedCards
     drawCards handle (length tossedCards) >>= \case
         [] -> return ()
         _ -> do
@@ -308,12 +309,30 @@ initHand numCards handle = do
             shuffle handle
 
 
-toHandCard :: DeckCard -> HandCard
-toHandCard = undefined
+class DeckToHand d h | d -> h where
+    deckToHand :: d -> h
 
 
-toDeckCard :: HandCard -> DeckCard
-toDeckCard = undefined
+instance DeckToHand DeckCard HandCard where
+    deckToHand = \case
+        DeckCardMinion m -> HandCardMinion $ deckToHand m
+
+
+instance DeckToHand DeckMinion HandMinion where
+    deckToHand = HandMinion . _deckMinion
+
+
+class HandToDeck h d | h -> d where
+    handToDeck :: h -> d
+
+
+instance HandToDeck HandCard DeckCard where
+    handToDeck = \case
+        HandCardMinion m -> DeckCardMinion $ handToDeck m
+
+
+instance HandToDeck HandMinion DeckMinion where
+    handToDeck = DeckMinion . _handMinion
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
@@ -329,7 +348,7 @@ drawCard handle = do
             case player^.playerHand.handCards.to length of
                 10 -> return Nothing
                 _ -> do
-                    let c' = toHandCard c
+                    let c' = deckToHand c
                     getPlayer handle.playerDeck .= Deck cs
                     getPlayer handle.playerHand <>= Hand [c']
                     return $ Just c'
@@ -337,9 +356,9 @@ drawCard handle = do
 
 shuffle :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 shuffle handle = do
-    let deck = Deck undefined
-    deck'@Deck{} <- prompt $ PromptShuffle deck
-    error $ show deck'
+    deck <- viewM $ getPlayer handle.playerDeck
+    deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
+    getPlayer handle.playerDeck .= deck'
 
 
 
