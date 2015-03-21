@@ -3,8 +3,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 
 module Engine where
@@ -14,10 +17,11 @@ module Engine where
 
 
 import Control.Applicative
+import Control.Lens
 import Control.Monad.Prompt
-import Control.Monad.Random
 import Control.Monad.State
-import Data.Word
+import Data.List
+import Data.Monoid
 import Names
 
 
@@ -36,7 +40,7 @@ listToNonEmpty :: [a] -> NonEmpty a
 listToNonEmpty (x : xs) = NonEmpty x xs
 
 
-newtype Turn = Turn Word
+newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Enum, Num, Real, Integral)
 
 
@@ -56,7 +60,7 @@ newtype Health = Health Int
     deriving (Show, Eq, Ord, Enum, Num, Real, Integral)
 
 
-newtype PlayerHandle = PlayerHandle Word
+newtype PlayerHandle = PlayerHandle Int
     deriving (Show, Eq, Ord, Enum, Num, Real, Integral)
 
 
@@ -80,6 +84,7 @@ data Spell = Spell {
     --_spellEffects :: [SpellEffect],
     _spellName :: CardName
 } deriving (Show, Eq, Ord)
+makeLenses ''Spell
 
 
 data Minion = Minion {
@@ -87,6 +92,7 @@ data Minion = Minion {
     _minionHealth :: Health,
     _minionName :: CardName
 } deriving (Show, Eq, Ord)
+makeLenses ''Minion
 
 
 data BoardMinion = BoardMinion {
@@ -95,23 +101,27 @@ data BoardMinion = BoardMinion {
     _boardMinionEnchantments :: [Enchantment],
     _boardMinion :: Minion
 } deriving (Show, Eq, Ord)
+makeLenses ''BoardMinion
 
 
 data DeckMinion = DeckMinion {
     _deckMinion :: Minion
 } deriving (Show, Eq, Ord)
+makeLenses ''DeckMinion
 
 
 data HandMinion = HandMinion {
     --_handMinionEffects :: [HandEffect]  -- Think Bolvar
     _handMinion :: Minion
 } deriving (Show, Eq, Ord)
+makeLenses ''HandMinion
 
 
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffects :: [Effect]
 } deriving (Show, Eq, Ord)
+makeLenses ''HeroPower
 
 
 data Hero = Hero {
@@ -120,6 +130,7 @@ data Hero = Hero {
     _heroPower :: HeroPower,
     _heroName :: HeroName
 } deriving (Show, Eq, Ord)
+makeLenses ''Hero
 
 
 data BoardHero = BoardHero {
@@ -127,6 +138,7 @@ data BoardHero = BoardHero {
     _boardHeroArmor :: Armor,
     _boardHero :: Hero
 } deriving (Show, Eq, Ord)
+makeLenses ''BoardHero
 
 
 data HandCard :: * where
@@ -144,11 +156,23 @@ data DeckCard :: * where
 data Hand = Hand {
     _handCards :: [HandCard]
 } deriving (Show, Eq, Ord)
+makeLenses ''Hand
+
+
+instance Monoid Hand where
+    mempty = Hand []
+    Hand cs `mappend` Hand cs' = Hand $ cs ++ cs'
 
 
 data Deck = Deck {
     _deckCards :: [DeckCard]
 } deriving (Show, Eq, Ord)
+makeLenses ''Deck
+
+
+instance Monoid Deck where
+    mempty = Deck []
+    Deck cs `mappend` Deck cs' = Deck $ cs ++ cs'
 
 
 data Player = Player {
@@ -158,6 +182,7 @@ data Player = Player {
     _playerMinions :: [BoardMinion],
     _playerHero :: BoardHero
 } deriving (Show, Eq, Ord)
+makeLenses ''Player
 
 
 data GameState = GameState {
@@ -165,11 +190,13 @@ data GameState = GameState {
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
 } deriving (Show, Eq, Ord)
+makeLenses ''GameState
 
 
 data HearthPrompt :: * -> * where
-    PromptShuffle :: [a] -> HearthPrompt [a]
+    PromptShuffle :: a -> HearthPrompt a
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
+    PromptMulligan :: PlayerHandle -> HearthPrompt [HandCard]
 deriving instance (Show a) => Show (HearthPrompt a)
 deriving instance (Eq a) => Eq (HearthPrompt a)
 deriving instance (Ord a) => Ord (HearthPrompt a)
@@ -194,6 +221,16 @@ data GameResult :: * where
 
 data PlayerData = PlayerData Hero Deck
     deriving (Show, Eq, Ord)
+
+
+guardedPrompt :: (MonadPrompt p m) => p a -> (a -> Bool) -> m a
+guardedPrompt p f = prompt p >>= \x -> case f x of
+    True -> return x
+    False -> guardedPrompt p f
+
+
+isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
+isSubsetOf = undefined
 
 
 runHearth :: (HearthMonad m) => NonEmpty PlayerData -> m GameResult
@@ -230,36 +267,52 @@ runGame = do
 
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
-getPlayerHandles = liftM (map _playerHandle) $ gets _gamePlayers
+getPlayerHandles = gets $ map _playerHandle . _gamePlayers
+
+
+playerByHandle :: PlayerHandle -> Traversal' GameState Player
+playerByHandle handle = gamePlayers.traversed.f
+    where
+        f = filtered $ \player -> player^.playerHandle == handle
 
 
 initGame :: (HearthMonad m) => Hearth m ()
 initGame = do
     flipCoin
-    mapM_ initHand =<< getPlayerHandles
+    zipWithM_ initHand (4 : repeat 3) =<< getPlayerHandles
 
 
 flipCoin :: (HearthMonad m) => Hearth m ()
 flipCoin = getPlayerHandles >>= \handles -> do
     handle <- prompt $ PromptPickRandom $ listToNonEmpty handles
     let handles' = dropWhile (/= handle) $ cycle handles
-    error $ show handles'  -- TODO
-    modify $ \st -> st { _gamePlayerTurnOrder = handles' }
+    gamePlayerTurnOrder .= handles'
 
 
-initHand :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-initHand handle = do
+initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
+initHand numCards handle = do
     shuffle handle
-    drawCards handle 666
-    error "TODO"
+    handCards <- drawCards handle numCards
+    keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
+    let tossedCards = handCards \\ keptCards
+        tossedCards' = map toDeckCard tossedCards
+    drawCards handle (length tossedCards) >>= \case
+        [] -> return ()
+        _ -> do
+            playerByHandle handle.playerDeck <>= Deck tossedCards'
+            shuffle handle
+    
+
+toDeckCard :: HandCard -> DeckCard
+toDeckCard = undefined
 
 
-drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m ()
-drawCards playerHandle = flip replicateM_ $ drawCard playerHandle
+drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
+drawCards handle = flip replicateM $ drawCard handle
 
 
-drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-drawCard playerHandle = undefined
+drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m HandCard
+drawCard handle = undefined
 
 
 shuffle :: (HearthMonad m) => PlayerHandle -> Hearth m ()
