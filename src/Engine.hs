@@ -260,17 +260,13 @@ guardedPrompt p f = prompt p >>= \x -> case f x of
     False -> guardedPrompt p f
 
 
-viewM :: (MonadState s m) => Getting a s a -> m a
-viewM lens = gets $ view lens
-
-
 toListOfM :: (MonadState s m) => Getting (Endo [a]) s a -> m [a]
 toListOfM lens = gets $ toListOf lens
 
 
 infixl 1 >>=.
 (>>=.) :: MonadState s m => Getting a s a -> (a -> m b) -> m b
-lens >>=. f = viewM lens >>= f
+lens >>=. f = use lens >>= f
 
 
 isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
@@ -403,7 +399,7 @@ drawCard handle = logCall "drawCard" $ zoomPlayer handle $ do
 
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 shuffleDeck handle = logCall "shuffleDeck" $ zoomPlayer handle $ do
-    deck <- viewM playerDeck
+    deck <- use playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
     playerDeck .= deck'
 

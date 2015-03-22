@@ -82,7 +82,7 @@ logEvent e = zoom logState $ case e of
         useShortTag .= False
     where
         tabby = do
-            n <- viewM $ callDepth
+            n <- use callDepth
             liftIO $ putStr $ concat $ replicate n "    "
 
 
