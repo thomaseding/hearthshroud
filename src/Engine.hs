@@ -30,6 +30,7 @@ import Data.List
 import Data.List.Ordered
 import Data.Maybe
 import Data.Monoid
+import Language.Haskell.TH.Syntax (Name)
 import Names
 
 
@@ -190,8 +191,8 @@ makeLenses ''GameState
 
 
 data LogEvent :: * where
-    LogFunctionEntered :: String -> LogEvent
-    LogFunctionExited :: String -> LogEvent
+    LogFunctionEntered :: Name -> LogEvent
+    LogFunctionExited :: Name -> LogEvent
     deriving (Show, Eq, Ord)
 
 
@@ -226,7 +227,7 @@ instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where
 
 
 class LogCall a where
-    logCall :: String -> a -> a
+    logCall :: Name -> a -> a
 
 
 instance (HearthMonad m) => LogCall (Hearth' st m a) where
@@ -301,7 +302,7 @@ mkBoardHero hero = BoardHero {
 
 
 runGame :: (HearthMonad m) => Hearth m GameResult
-runGame = logCall "runGame" $ do
+runGame = logCall 'runGame $ do
     initGame
     return GameResult
 
@@ -327,20 +328,20 @@ zoomPlayer = zoom . getPlayer
 
 
 initGame :: (HearthMonad m) => Hearth m ()
-initGame = logCall "initGame" $ do
+initGame = logCall 'initGame $ do
     flipCoin
     zipWithM_ initHand (4 : repeat 3) =<< getPlayerHandles
 
 
 flipCoin :: (HearthMonad m) => Hearth m ()
-flipCoin = logCall "flipCoin" $ getPlayerHandles >>= \handles -> do
+flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     handle <- prompt $ PromptPickRandom $ listToNonEmpty handles
     let handles' = dropWhile (/= handle) $ cycle handles
     gamePlayerTurnOrder .= handles'
 
 
 initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
-initHand numCards handle = logCall "initHand" $ do
+initHand numCards handle = logCall 'initHand $ do
     shuffleDeck handle
     handCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
@@ -380,11 +381,11 @@ instance HandToDeck HandMinion DeckMinion where
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
-drawCards handle = logCall "drawCards" $ liftM catMaybes . flip replicateM (drawCard handle)
+drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawCard handle)
 
 
 drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
-drawCard handle = logCall "drawCard" $ zoomPlayer handle $ do
+drawCard handle = logCall 'drawCard $ zoomPlayer handle $ do
     playerDeck >>=. \case
         Deck [] -> return Nothing -- TODO: Take damage
         Deck (c:cs) -> do
@@ -398,7 +399,7 @@ drawCard handle = logCall "drawCard" $ zoomPlayer handle $ do
 
 
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-shuffleDeck handle = logCall "shuffleDeck" $ zoomPlayer handle $ do
+shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
     deck <- use playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
     playerDeck .= deck'

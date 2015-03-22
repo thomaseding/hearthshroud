@@ -27,6 +27,7 @@ import Control.Monad.Prompt
 import Control.Monad.State
 import Control.Monad.Trans
 import Engine
+import Language.Haskell.TH.Syntax (nameBase)
 import Names
 
 
@@ -62,7 +63,7 @@ instance Zoom (Driver' st) (Driver' st') st st' where
 
 
 logEvent :: LogEvent -> Driver ()
-logEvent e = zoom logState $ case e of
+logEvent = zoom logState . \case
     LogFunctionEntered name -> do
         useShortTag >>=. \case
             True -> liftIO $ putStrLn ">"
@@ -70,7 +71,7 @@ logEvent e = zoom logState $ case e of
         tabby
         callDepth += 1
         useShortTag .= True
-        liftIO $ putStr $ "<" ++ name
+        liftIO $ putStr $ "<" ++ (showName name)
     LogFunctionExited name -> do
         callDepth -= 1
         useShortTag >>=. \case
@@ -78,9 +79,10 @@ logEvent e = zoom logState $ case e of
                 liftIO $ putStrLn "/>"
             False -> do
                 tabby
-                liftIO $ putStrLn $ "</" ++ name ++ ">"
+                liftIO $ putStrLn $ "</" ++ (showName name) ++ ">"
         useShortTag .= False
     where
+        showName = nameBase
         tabby = do
             n <- use callDepth
             liftIO $ putStr $ concat $ replicate n "    "
