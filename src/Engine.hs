@@ -214,9 +214,11 @@ type Hearth = Hearth' GameState
 type HearthMonad m = MonadPrompt HearthPrompt m
 
 
-type instance Zoomed (Hearth' s m) = Focusing m
-instance Monad z => Zoom (Hearth' s z) (Hearth' t z) s t where
-    zoom l (Hearth m) = Hearth $ zoom l m
+type instance Zoomed (Hearth' st m) = Focusing m
+
+
+instance Monad m => Zoom (Hearth' st m) (Hearth' st' m) st st' where
+    zoom lens = Hearth . zoom lens . unHearth
 
 
 instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where

@@ -3,12 +3,15 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 
 module Driver where
@@ -19,6 +22,7 @@ module Driver where
 
 import Control.Applicative
 import Control.Lens
+import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
 import Control.Monad.State
 import Control.Monad.Trans
@@ -42,33 +46,43 @@ data DriverState = DriverState {
 makeLenses ''DriverState
 
 
-newtype Driver a = Driver {
-    unDriver :: StateT DriverState IO a
-} deriving (Functor, Applicative, Monad, MonadIO, MonadState DriverState)
+newtype Driver' st a = Driver {
+    unDriver :: StateT st IO a
+} deriving (Functor, Applicative, Monad, MonadIO, MonadState st)
+
+
+type Driver = Driver' DriverState
+
+
+type instance Zoomed (Driver' st) = Focusing IO
+
+
+instance Zoom (Driver' st) (Driver' st') st st' where
+    zoom lens = Driver . zoom lens . unDriver
 
 
 logEvent :: LogEvent -> Driver ()
-logEvent = \case
+logEvent e = zoom logState $ case e of
     LogFunctionEntered name -> do
-        logState.useShortTag >>=. \case
+        useShortTag >>=. \case
             True -> liftIO $ putStrLn ">"
             False -> return ()
         tabby
-        logState.callDepth += 1
-        logState.useShortTag .= True
+        callDepth += 1
+        useShortTag .= True
         liftIO $ putStr $ "<" ++ name
     LogFunctionExited name -> do
-        logState.callDepth -= 1
-        logState.useShortTag >>=. \case
+        callDepth -= 1
+        useShortTag >>=. \case
             True -> do
                 liftIO $ putStrLn "/>"
             False -> do
                 tabby
                 liftIO $ putStrLn $ "</" ++ name ++ ">"
-        logState.useShortTag .= False
+        useShortTag .= False
     where
         tabby = do
-            n <- viewM $ logState.callDepth
+            n <- viewM $ callDepth
             liftIO $ putStr $ concat $ replicate n "    "
 
 
