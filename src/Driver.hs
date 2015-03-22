@@ -50,7 +50,7 @@ newtype Driver a = Driver {
 logEvent :: LogEvent -> Driver ()
 logEvent = \case
     LogFunctionEntered name -> do
-        viewM (logState.useShortTag) >>= \case
+        logState.useShortTag >>=. \case
             True -> liftIO $ putStrLn ">"
             False -> return ()
         tabby
@@ -59,7 +59,7 @@ logEvent = \case
         liftIO $ putStr $ "<" ++ name
     LogFunctionExited name -> do
         logState.callDepth -= 1
-        viewM (logState.useShortTag) >>= \case
+        logState.useShortTag >>=. \case
             True -> do
                 liftIO $ putStrLn "/>"
             False -> do

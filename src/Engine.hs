@@ -11,6 +11,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 
 
 module Engine where
@@ -21,6 +22,7 @@ module Engine where
 
 import Control.Applicative
 import Control.Lens
+import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
 import Control.Monad.State
 import Data.Function
@@ -203,15 +205,21 @@ deriving instance (Eq a) => Eq (HearthPrompt a)
 deriving instance (Ord a) => Ord (HearthPrompt a)
 
 
-newtype Hearth m a = Hearth {
-    unHearth :: StateT GameState m a
-} deriving (Functor, Applicative, Monad, MonadState GameState, MonadIO, MonadTrans)
+newtype Hearth' st m a = Hearth {
+    unHearth :: StateT st m a
+} deriving (Functor, Applicative, Monad, MonadState st, MonadIO, MonadTrans)
 
 
+type Hearth = Hearth' GameState
 type HearthMonad m = MonadPrompt HearthPrompt m
 
 
-instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth m) where
+type instance Zoomed (Hearth' s m) = Focusing m
+instance Monad z => Zoom (Hearth' s z) (Hearth' t z) s t where
+    zoom l (Hearth m) = Hearth $ zoom l m
+
+
+instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where
     prompt = lift . prompt
 
 
@@ -219,8 +227,7 @@ class LogCall a where
     logCall :: String -> a -> a
 
 
-instance (HearthMonad m) => LogCall (Hearth m a) where
-    logCall :: String -> Hearth m a -> Hearth m a
+instance (HearthMonad m) => LogCall (Hearth' st m a) where
     logCall funcName m = do
         prompt $ PromptLogEvent $ LogFunctionEntered funcName
         x <- m
@@ -228,13 +235,11 @@ instance (HearthMonad m) => LogCall (Hearth m a) where
         return x
 
 
-instance (HearthMonad m) => LogCall (a -> Hearth m b) where
-    logCall :: String -> (a -> Hearth m b) -> (a -> Hearth m b)
+instance (HearthMonad m) => LogCall (a -> Hearth' st m b) where
     logCall msg f = logCall msg . f
 
 
-instance (HearthMonad m) => LogCall (a -> b -> Hearth m c) where
-    logCall :: String -> (a -> b -> Hearth m c) -> (a -> b -> Hearth m c)
+instance (HearthMonad m) => LogCall (a -> b -> Hearth' st m c) where
     logCall msg f = logCall msg . f
 
 
@@ -254,11 +259,16 @@ guardedPrompt p f = prompt p >>= \x -> case f x of
 
 
 viewM :: (MonadState s m) => Getting a s a -> m a
-viewM ln = gets $ view ln
+viewM lens = gets $ view lens
 
 
 toListOfM :: (MonadState s m) => Getting (Endo [a]) s a -> m [a]
-toListOfM ln = gets $ toListOf ln
+toListOfM lens = gets $ toListOf lens
+
+
+infixl 1 >>=.
+(>>=.) :: MonadState s m => Getting a s a -> (a -> m b) -> m b
+lens >>=. f = viewM lens >>= f
 
 
 isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
@@ -312,6 +322,10 @@ getPlayer handle f st = fmap put' get'
                 False -> p
             in set gamePlayers (map g players) st
         get' = f $ fromJust $ find (\p -> p^.playerHandle == handle) players
+
+
+zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
+zoomPlayer = zoom . getPlayer
 
 
 initGame :: (HearthMonad m) => Hearth m ()
@@ -372,25 +386,24 @@ drawCards handle = logCall "drawCards" $ liftM catMaybes . flip replicateM (draw
 
 
 drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
-drawCard handle = logCall "drawCard" $ do
-    player <- viewM $ getPlayer handle
-    case player^.playerDeck of
+drawCard handle = logCall "drawCard" $ zoomPlayer handle $ do
+    playerDeck >>=. \case
         Deck [] -> return Nothing -- TODO: Take damage
         Deck (c:cs) -> do
-            case player^.playerHand.handCards.to length of
+            playerHand.handCards.to length >>=. \case
                 10 -> return Nothing
                 _ -> do
                     let c' = deckToHand c
-                    getPlayer handle.playerDeck .= Deck cs
-                    getPlayer handle.playerHand <>= Hand [c']
+                    playerDeck .= Deck cs
+                    playerHand <>= Hand [c']
                     return $ Just c'
 
 
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-shuffleDeck handle = logCall "shuffleDeck" $ do
-    deck <- viewM $ getPlayer handle.playerDeck
+shuffleDeck handle = logCall "shuffleDeck" $ zoomPlayer handle $ do
+    deck <- viewM playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
-    getPlayer handle.playerDeck .= deck'
+    playerDeck .= deck'
 
 
 
