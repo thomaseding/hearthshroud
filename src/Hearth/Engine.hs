@@ -191,11 +191,11 @@ drawCard handle = logCall 'drawCard $ zoomPlayer handle $ do
     playerDeck >>=. \case
         Deck [] -> return Nothing -- TODO: Take damage
         Deck (c:cs) -> do
+            playerDeck .= Deck cs
             playerHand.handCards.to length >>=. \case
                 10 -> return Nothing
                 _ -> do
                     let c' = deckToHand c
-                    playerDeck .= Deck cs
                     playerHand <>= Hand [c']
                     return $ Just c'
 
