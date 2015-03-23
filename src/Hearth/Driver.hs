@@ -14,7 +14,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 
-module Driver where
+module Hearth.Driver where
 
 
 --------------------------------------------------------------------------------
@@ -22,13 +22,18 @@ module Driver where
 
 import Control.Applicative
 import Control.Lens
+import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
 import Control.Monad.State
 import Control.Monad.Trans
-import Engine
+import Data.NonEmpty
+import Hearth.Engine
+import Hearth.LogEvent
+import Hearth.Model
+import Hearth.Names
+import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
-import Names
 
 
 --------------------------------------------------------------------------------

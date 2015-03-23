@@ -2,7 +2,7 @@
 {-# LANGUAGE KindSignatures #-}
 
 
-module Names where
+module Hearth.Names where
 
 
 --------------------------------------------------------------------------------
