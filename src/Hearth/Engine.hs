@@ -209,9 +209,9 @@ drawCard playerLens = logCall 'drawCard $ zoom playerLens $ do
 
 shuffleDeck :: (HearthMonad m) => PlayerLens -> Hearth m ()
 shuffleDeck playerLens = logCall 'shuffleDeck $ zoom playerLens $ do
-    deck <- view playerDeck
-    deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
-    playerDeck .= deck'
+    Deck deck <- view playerDeck
+    deck' <- guardedPrompt (PromptShuffle deck) $ on (==) sort deck
+    playerDeck .= Deck deck'
 
 
 

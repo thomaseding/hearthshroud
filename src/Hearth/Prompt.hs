@@ -19,13 +19,11 @@ import Hearth.Model
 
 data HearthPrompt :: * -> * where
     PromptLogEvent :: LogEvent -> HearthPrompt ()
-    PromptShuffle :: a -> HearthPrompt a
+    PromptShuffle :: [a] -> HearthPrompt [a]
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
     PromptMulligan :: PlayerHandle -> HearthPrompt [HandCard]
 
 deriving instance (Show a) => Show (HearthPrompt a)
-deriving instance (Eq a) => Eq (HearthPrompt a)
-deriving instance (Ord a) => Ord (HearthPrompt a)
 
 
 
