@@ -38,7 +38,7 @@ import Language.Haskell.TH.Syntax (Name)
 
 
 newtype Turn = Turn Int
-    deriving (Show, Eq, Ord, Enum, Num, Real, Integral)
+    deriving (Show, Eq, Ord)
 
 
 newtype Cost = Cost Int

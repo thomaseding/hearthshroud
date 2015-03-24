@@ -119,7 +119,7 @@ runHearth = evalStateT (unHearth runGame) . mkGameState
 
 mkGameState :: NonEmpty PlayerData -> GameState
 mkGameState playerDatas = GameState {
-    _gameTurn = 1,
+    _gameTurn = Turn 1,
     _gamePlayerTurnOrder = [],
     _gamePlayers = zipWith mkPlayer [0..] $ NonEmpty.toList playerDatas }
 
