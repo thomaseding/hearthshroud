@@ -20,18 +20,9 @@ module Hearth.Model where
 --------------------------------------------------------------------------------
 
 
-import Control.Applicative
 import Control.Lens
-import Control.Lens.Internal.Zoom (Zoomed, Focusing)
-import Control.Monad.Prompt
-import Control.Monad.State
-import Data.Function
-import Data.List
-import Data.List.Ordered
-import Data.Maybe
 import Data.Monoid
 import Hearth.Names
-import Language.Haskell.TH.Syntax (Name)
 
 
 --------------------------------------------------------------------------------

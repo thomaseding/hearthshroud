@@ -1,3 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+
 module Data.NonEmpty where
 
 
@@ -13,7 +17,9 @@ toList (NonEmpty x xs) = x : xs
 
 
 fromList :: [a] -> NonEmpty a
-fromList (x : xs) = NonEmpty x xs
+fromList = \case
+    x : xs -> NonEmpty x xs
+    [] -> error $ show 'fromList
 
 
 

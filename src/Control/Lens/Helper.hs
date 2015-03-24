@@ -13,12 +13,12 @@ import Data.Monoid
 
 
 viewListOf :: (MonadReader s m) => Getting (Endo [a]) s a -> m [a]
-viewListOf lens = asks $ toListOf lens
+viewListOf = asks . toListOf
 
 
 infixl 1 >>=.
 (>>=.) :: (MonadReader s m) => Getting a s a -> (a -> m b) -> m b
-lens >>=. f = view lens >>= f
+(>>=.) = (>>=) . view
 
 
 

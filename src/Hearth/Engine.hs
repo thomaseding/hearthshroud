@@ -30,14 +30,12 @@ import Data.Function
 import Data.List
 import Data.List.Ordered
 import Data.Maybe
-import Data.Monoid
 import Data.NonEmpty (NonEmpty(..))
 import qualified Data.NonEmpty as NonEmpty
 import Hearth.DeckToHand
 import Hearth.HandToDeck
 import Hearth.LogEvent
 import Hearth.Model
-import Hearth.Names
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (Name)
 
@@ -63,7 +61,7 @@ type instance Zoomed (Hearth' st m) = Focusing m
 
 
 instance Monad m => Zoom (Hearth' st m) (Hearth' st' m) st st' where
-    zoom lens = Hearth . zoom lens . unHearth
+    zoom l = Hearth . zoom l . unHearth
 
 
 instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where
@@ -177,10 +175,10 @@ flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
 initHand :: (HearthMonad m) => Int -> PlayerLens -> Hearth m ()
 initHand numCards playerLens = logCall 'initHand $ do
     shuffleDeck playerLens
-    handCards <- drawCards playerLens numCards
+    drawnCards <- drawCards playerLens numCards
     handle <- view $ playerLens.playerHandle
-    keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
-    let tossedCards = handCards \\ keptCards
+    keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` drawnCards)
+    let tossedCards = drawnCards \\ keptCards
         tossedCards' = map handToDeck tossedCards
     drawCards playerLens (length tossedCards) >>= \case
         [] -> return ()

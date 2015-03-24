@@ -28,7 +28,6 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
-import Control.Monad.Trans
 import Data.NonEmpty
 import Hearth.Engine
 import Hearth.LogEvent
@@ -71,7 +70,7 @@ type instance Zoomed (Driver' st) = Focusing IO
 
 
 instance Zoom (Driver' st) (Driver' st') st st' where
-    zoom lens = Driver . zoom lens . unDriver
+    zoom l = Driver . zoom l . unDriver
 
 
 logEvent :: LogEvent -> Driver ()
