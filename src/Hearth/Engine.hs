@@ -26,6 +26,7 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
+import qualified Control.Newtype as N
 import Data.Function
 import Data.List
 import Data.List.Ordered
@@ -201,7 +202,7 @@ drawCard playerLens = logCall 'drawCard $ zoom playerLens $ do
                 10 -> return Nothing
                 _ -> do
                     let c' = deckToHand c
-                    playerHand <>= Hand [c']
+                    playerHand %= N.over Hand (c' :)
                     return $ Just c'
 
 

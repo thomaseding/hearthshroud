@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -21,8 +22,10 @@ module Hearth.Model where
 
 
 import Control.Lens
+import Control.Newtype
 import Data.Monoid
 import Hearth.Names
+import GHC.Generics
 
 
 --------------------------------------------------------------------------------
@@ -141,8 +144,9 @@ data DeckCard :: * where
 
 newtype Hand = Hand {
     _handCards :: [HandCard]
-} deriving (Show, Eq, Ord, Monoid)
+} deriving (Show, Eq, Ord, Monoid, Generic)
 makeLenses ''Hand
+instance Newtype Hand
 
 
 newtype Deck = Deck {
