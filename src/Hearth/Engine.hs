@@ -143,7 +143,7 @@ runGame = logCall 'runGame $ do
 
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
-getPlayerHandles = toListOfM $ gamePlayers.traversed.playerHandle
+getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
 
 
 type PlayerLens = Lens' GameState Player

@@ -12,8 +12,8 @@ import Data.Monoid
 --------------------------------------------------------------------------------
 
 
-toListOfM :: (MonadReader s m) => Getting (Endo [a]) s a -> m [a]
-toListOfM lens = asks $ toListOf lens
+viewListOf :: (MonadReader s m) => Getting (Endo [a]) s a -> m [a]
+viewListOf lens = asks $ toListOf lens
 
 
 infixl 1 >>=.
