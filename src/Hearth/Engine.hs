@@ -23,6 +23,7 @@ import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
+import Control.Monad.Reader
 import Control.Monad.State
 import Data.Function
 import Data.List
@@ -46,6 +47,16 @@ import Language.Haskell.TH.Syntax (Name)
 newtype Hearth' st m a = Hearth {
     unHearth :: StateT st m a
 } deriving (Functor, Applicative, Monad, MonadState st, MonadIO, MonadTrans)
+
+
+instance (Monad m) => MonadReader st (Hearth' st m) where
+    ask = get
+    local f m = do
+        st <- get
+        modify f
+        x <- m
+        put st
+        return x
 
 
 type Hearth = Hearth' GameState
@@ -171,7 +182,7 @@ initHand :: (HearthMonad m) => Int -> PlayerLens -> Hearth m ()
 initHand numCards playerLens = logCall 'initHand $ do
     shuffleDeck playerLens
     handCards <- drawCards playerLens numCards
-    handle <- use $ playerLens.playerHandle
+    handle <- view $ playerLens.playerHandle
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` handCards)
     let tossedCards = handCards \\ keptCards
         tossedCards' = map handToDeck tossedCards
@@ -202,7 +213,7 @@ drawCard playerLens = logCall 'drawCard $ zoom playerLens $ do
 
 shuffleDeck :: (HearthMonad m) => PlayerLens -> Hearth m ()
 shuffleDeck playerLens = logCall 'shuffleDeck $ zoom playerLens $ do
-    deck <- use playerDeck
+    deck <- view playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) (sort . _deckCards) deck
     playerDeck .= deck'
 

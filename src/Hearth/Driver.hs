@@ -25,6 +25,7 @@ import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
+import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans
 import Data.NonEmpty
@@ -55,6 +56,16 @@ makeLenses ''DriverState
 newtype Driver' st a = Driver {
     unDriver :: StateT st IO a
 } deriving (Functor, Applicative, Monad, MonadIO, MonadState st)
+
+
+instance MonadReader st (Driver' st) where
+    ask = get
+    local f m = do
+        st <- get
+        modify f
+        x <- m
+        put st
+        return x
 
 
 type Driver = Driver' DriverState
@@ -89,7 +100,7 @@ logEvent = zoom logState . \case
     where
         showName = nameBase
         tabby = do
-            n <- use callDepth
+            n <- view callDepth
             liftIO $ putStr $ concat $ replicate n "    "
 
 
