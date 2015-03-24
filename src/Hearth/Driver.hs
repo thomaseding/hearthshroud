@@ -27,6 +27,7 @@ import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.State.Local
 import Control.Monad.Trans
 import Data.NonEmpty
 import Hearth.Engine
@@ -60,12 +61,7 @@ newtype Driver' st a = Driver {
 
 instance MonadReader st (Driver' st) where
     ask = get
-    local f m = do
-        st <- get
-        modify f
-        x <- m
-        put st
-        return x
+    local = stateLocal
 
 
 type Driver = Driver' DriverState

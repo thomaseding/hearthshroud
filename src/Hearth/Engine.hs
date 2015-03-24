@@ -25,6 +25,7 @@ import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.State.Local
 import Data.Function
 import Data.List
 import Data.List.Ordered
@@ -51,12 +52,7 @@ newtype Hearth' st m a = Hearth {
 
 instance (Monad m) => MonadReader st (Hearth' st m) where
     ask = get
-    local f m = do
-        st <- get
-        modify f
-        x <- m
-        put st
-        return x
+    local = stateLocal
 
 
 type Hearth = Hearth' GameState
