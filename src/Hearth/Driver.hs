@@ -28,6 +28,7 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
+import Data.Generics.Uniplate.Data
 import Data.NonEmpty
 import Hearth.Engine
 import Hearth.LogEvent
@@ -108,7 +109,7 @@ instance MonadPrompt HearthPrompt Driver where
 
 
 runDriver :: IO GameResult
-runDriver = flip evalStateT st $ unDriver $ runHearth (NonEmpty player [player])
+runDriver = flip evalStateT st $ unDriver $ runHearth (NonEmpty player1 [player2])
     where
         st = DriverState {
             _logState = LogState {
@@ -123,7 +124,8 @@ runDriver = flip evalStateT st $ unDriver $ runHearth (NonEmpty player [player])
             _heroPower = power,
             _heroName = BasicHeroName Thrall }
         deck = Deck $ replicate 30 murlocRaider
-        player = PlayerData hero deck
+        player1 = PlayerData hero deck
+        player2 = transformBi (const Rexxar) player1
 
 
 murlocRaider :: DeckCard

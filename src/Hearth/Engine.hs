@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -28,12 +29,14 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import qualified Control.Newtype as N
+import Data.Data
 import Data.Function
 import Data.List
 import Data.List.Ordered
 import Data.Maybe
 import Data.NonEmpty (NonEmpty(..))
 import qualified Data.NonEmpty as NonEmpty
+import Data.Typeable
 import Hearth.Action
 import Hearth.DeckToHand
 import Hearth.HandToDeck
@@ -97,7 +100,7 @@ data GameResult :: * where
 
 
 data PlayerData = PlayerData Hero Deck
-    deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> Bool) -> m a
