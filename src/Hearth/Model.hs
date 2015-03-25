@@ -151,8 +151,9 @@ instance Newtype Hand
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
-} deriving (Show, Eq, Ord, Monoid)
+} deriving (Show, Eq, Ord, Monoid, Generic)
 makeLenses ''Deck
+instance Newtype Deck
 
 
 data Player = Player {

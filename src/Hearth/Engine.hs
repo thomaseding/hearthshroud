@@ -145,11 +145,8 @@ getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
 getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
 
 
-type PlayerLens = Lens' GameState Player
-
-
-getPlayerLens :: PlayerHandle -> PlayerLens
-getPlayerLens handle f st = fmap put' get'
+getPlayer :: PlayerHandle -> Lens' GameState Player
+getPlayer handle f st = fmap put' get'
     where
         players = st^.gamePlayers
         put' player = let
@@ -160,10 +157,14 @@ getPlayerLens handle f st = fmap put' get'
         get' = f $ fromJust $ find (\p -> p^.playerHandle == handle) players
 
 
+zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
+zoomPlayer = zoom . getPlayer
+
+
 initGame :: (HearthMonad m) => Hearth m ()
 initGame = logCall 'initGame $ do
     flipCoin
-    zipWithM_ (\n h -> initHand n $ getPlayerLens h) (4 : repeat 3) =<< getPlayerHandles
+    zipWithM_ initHand (4 : repeat 3) =<< getPlayerHandles
 
 
 flipCoin :: (HearthMonad m) => Hearth m ()
@@ -173,27 +174,26 @@ flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     gamePlayerTurnOrder .= handles'
 
 
-initHand :: (HearthMonad m) => Int -> PlayerLens -> Hearth m ()
-initHand numCards playerLens = logCall 'initHand $ do
-    shuffleDeck playerLens
-    drawnCards <- drawCards playerLens numCards
-    handle <- view $ playerLens.playerHandle
+initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
+initHand numCards handle = logCall 'initHand $ do
+    shuffleDeck handle
+    drawnCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` drawnCards)
     let tossedCards = drawnCards \\ keptCards
         tossedCards' = map handToDeck tossedCards
-    drawCards playerLens (length tossedCards) >>= \case
+    drawCards handle (length tossedCards) >>= \case
         [] -> return ()
         _ -> do
-            playerLens.playerDeck <>= Deck tossedCards'
-            shuffleDeck playerLens
+            getPlayer handle.playerDeck %= N.over Deck (tossedCards' ++)
+            shuffleDeck handle
 
 
-drawCards :: (HearthMonad m) => PlayerLens -> Int -> Hearth m [HandCard]
-drawCards playerLens = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawCard playerLens)
+drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
+drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawCard handle)
 
 
-drawCard :: (HearthMonad m) => PlayerLens -> Hearth m (Maybe HandCard)
-drawCard playerLens = logCall 'drawCard $ zoom playerLens $ do
+drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
+drawCard handle = logCall 'drawCard $ zoomPlayer handle $ do
     playerDeck >>=. \case
         Deck [] -> return Nothing -- TODO: Take damage
         Deck (c:cs) -> do
@@ -206,8 +206,8 @@ drawCard playerLens = logCall 'drawCard $ zoom playerLens $ do
                     return $ Just c'
 
 
-shuffleDeck :: (HearthMonad m) => PlayerLens -> Hearth m ()
-shuffleDeck playerLens = logCall 'shuffleDeck $ zoom playerLens $ do
+shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
+shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
     Deck deck <- view playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) sort deck
     playerDeck .= Deck deck'
