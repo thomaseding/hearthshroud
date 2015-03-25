@@ -19,6 +19,7 @@ module Hearth.Engine where
 
 
 import Control.Applicative
+import Control.Error
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
@@ -33,6 +34,7 @@ import Data.List.Ordered
 import Data.Maybe
 import Data.NonEmpty (NonEmpty(..))
 import qualified Data.NonEmpty as NonEmpty
+import Hearth.Action
 import Hearth.DeckToHand
 import Hearth.HandToDeck
 import Hearth.LogEvent
@@ -135,16 +137,6 @@ mkBoardHero hero = BoardHero {
     _boardHero = hero }
 
 
-runGame :: (HearthMonad m) => Hearth m GameResult
-runGame = logCall 'runGame $ do
-    initGame
-    return GameResult
-
-
-getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
-getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
-
-
 getPlayer :: PlayerHandle -> Lens' GameState Player
 getPlayer handle f st = fmap put' get'
     where
@@ -157,8 +149,23 @@ getPlayer handle f st = fmap put' get'
         get' = f $ fromJust $ find (\p -> p^.playerHandle == handle) players
 
 
+getActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
+getActivePlayerHandle = $todo
+
+
 zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
 zoomPlayer = zoom . getPlayer
+
+
+getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
+getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
+
+
+runGame :: (HearthMonad m) => Hearth m GameResult
+runGame = logCall 'runGame $ do
+    initGame
+    tickTurn
+    return GameResult
 
 
 initGame :: (HearthMonad m) => Hearth m ()
@@ -195,7 +202,7 @@ drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawC
 drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
 drawCard handle = logCall 'drawCard $ zoomPlayer handle $ do
     playerDeck >>=. \case
-        Deck [] -> return Nothing -- TODO: Take damage
+        Deck [] -> $todo
         Deck (c:cs) -> do
             playerDeck .= Deck cs
             playerHand.handCards.to length >>=. \case
@@ -211,6 +218,38 @@ shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
     Deck deck <- view playerDeck
     deck' <- guardedPrompt (PromptShuffle deck) $ on (==) sort deck
     playerDeck .= Deck deck'
+
+
+tickTurn :: (HearthMonad m) => Hearth m ()
+tickTurn = logCall 'tickTurn $ do
+    beginTurn
+    pumpTurn
+    endTurn
+
+
+beginTurn :: (HearthMonad m) => Hearth m ()
+beginTurn = logCall 'beginTurn $ do
+    handle <- getActivePlayerHandle
+    drawCard handle
+    return ()
+
+
+endTurn :: (HearthMonad m) => Hearth m ()
+endTurn = logCall 'endTurn $ return ()
+
+
+data TurnEvolution = ContinueTurn | EndTurn
+
+
+pumpTurn :: (HearthMonad m) => Hearth m ()
+pumpTurn = logCall 'pumpTurn $ do
+    evolution <- prompt PromptAction >>= \case
+        ActionPlayerConceded _ -> $todo
+        ActionEndTurn -> return EndTurn
+    case evolution of
+        ContinueTurn -> pumpTurn
+        EndTurn -> return ()
+
 
 
 

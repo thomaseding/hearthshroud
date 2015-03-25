@@ -10,6 +10,7 @@ module Hearth.Prompt where
 
 
 import Data.NonEmpty
+import Hearth.Action
 import Hearth.LogEvent
 import Hearth.Model
 
@@ -19,6 +20,8 @@ import Hearth.Model
 
 data HearthPrompt :: * -> * where
     PromptLogEvent :: LogEvent -> HearthPrompt ()
+    PromptAction :: HearthPrompt Action
+    --PromptQuery :: HearthPrompt Query
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
     PromptMulligan :: PlayerHandle -> HearthPrompt [HandCard]
