@@ -150,7 +150,7 @@ getPlayer handle f st = fmap put' get'
 
 
 getActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
-getActivePlayerHandle = $todo
+getActivePlayerHandle = $todo 'getActivePlayerHandle
 
 
 zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
@@ -202,7 +202,7 @@ drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawC
 drawCard :: (HearthMonad m) => PlayerHandle -> Hearth m (Maybe HandCard)
 drawCard handle = logCall 'drawCard $ zoomPlayer handle $ do
     playerDeck >>=. \case
-        Deck [] -> $todo
+        Deck [] -> $todo "take mill damage"
         Deck (c:cs) -> do
             playerDeck .= Deck cs
             playerHand.handCards.to length >>=. \case
@@ -244,7 +244,7 @@ data TurnEvolution = ContinueTurn | EndTurn
 pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
     evolution <- prompt PromptAction >>= \case
-        ActionPlayerConceded _ -> $todo
+        ActionPlayerConceded _ -> $todo "concede"
         ActionEndTurn -> return EndTurn
     case evolution of
         ContinueTurn -> pumpTurn

@@ -1,4 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 
 module Control.Error (
@@ -30,12 +32,28 @@ formatLoc loc = let
     in concat [file, ":", show line, ":", show col]
 
 
+class Stringy a where
+    stringy :: a -> String
+
+
+instance Stringy String where
+    stringy = id
+
+
+instance Stringy Name where
+    stringy = nameBase
+
+
+forceStringy :: (Stringy a) => a -> a
+forceStringy = id
+
+
 todo :: Q Exp
-todo = withLocatedError [| \e -> e "TODO" |]
+todo = withLocatedError [| \e msg -> e $ "TODO " ++ show (stringy msg) |]
 
 
 logicError :: Q Exp
-logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ msg |]
+logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ (forceStringy msg) |]
 
 
 debugShow :: Q Exp
