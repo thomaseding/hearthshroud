@@ -185,7 +185,7 @@ initHand :: (HearthMonad m) => Int -> PlayerHandle -> Hearth m ()
 initHand numCards handle = logCall 'initHand $ do
     shuffleDeck handle
     drawnCards <- drawCards handle numCards
-    keptCards <- guardedPrompt (PromptMulligan handle) (`isSubsetOf` drawnCards)
+    keptCards <- guardedPrompt (PromptMulligan handle drawnCards) (`isSubsetOf` drawnCards)
     let tossedCards = drawnCards \\ keptCards
         tossedCards' = map handToDeck tossedCards
     drawCards handle (length tossedCards) >>= \case

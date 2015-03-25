@@ -102,9 +102,9 @@ logEvent = zoom logState . \case
 instance MonadPrompt HearthPrompt Driver where
     prompt = \case
         PromptLogEvent e -> logEvent e
-        PromptShuffle x -> return x
+        PromptShuffle xs -> return xs
         PromptPickRandom (NonEmpty x _) -> return x
-        PromptMulligan _ -> return []
+        PromptMulligan _ xs -> return xs
 
 
 runDriver :: IO GameResult
@@ -122,10 +122,17 @@ runDriver = flip evalStateT st $ unDriver $ runHearth (NonEmpty player [player])
             _heroHealth = 30,
             _heroPower = power,
             _heroName = BasicHeroName Thrall }
-        deck = Deck []
+        deck = Deck $ replicate 30 murlocRaider
         player = PlayerData hero deck
 
 
+murlocRaider :: DeckCard
+murlocRaider = DeckCardMinion $ DeckMinion minion
+    where
+        minion = Minion {
+            _minionAttack = 2,
+            _minionHealth = 1,
+            _minionName = BasicCardName MurlocRaider }
 
 
 

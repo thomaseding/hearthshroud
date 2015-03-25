@@ -24,7 +24,7 @@ data HearthPrompt :: * -> * where
     --PromptQuery :: HearthPrompt Query
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
-    PromptMulligan :: PlayerHandle -> HearthPrompt [HandCard]
+    PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
 
 deriving instance (Show a) => Show (HearthPrompt a)
 
