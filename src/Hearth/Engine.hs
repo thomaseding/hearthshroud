@@ -336,8 +336,6 @@ placeOnBoard handle minion = logCall 'placeOnBoard $ zoom (getPlayer handle.play
     to length >>=. \case
         7 -> return Failure
         _ -> do
-            x <- view id
-            let _ = x :: [BoardMinion]
             id %= (minion' :)
             return Success
     where
