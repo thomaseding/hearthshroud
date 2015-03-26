@@ -153,8 +153,8 @@ instance MonadPrompt HearthPrompt Driver where
         PromptMulligan _ xs -> return xs
 
 
-runDriver :: IO GameResult
-runDriver = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2)
+runTestGame :: IO GameResult
+runTestGame = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2)
     where
         st = DriverState {
             _logState = LogState {
