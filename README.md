@@ -1,4 +1,4 @@
-HearthShroud is a game library and engine for Hearthstone.
+Hearthshroud is a game library and engine for Hearthstone.
 
 Monadic API runs game engine for any `HearthMonad`:
 ```haskell
