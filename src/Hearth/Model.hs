@@ -26,7 +26,6 @@ import Control.Lens
 import Control.Newtype
 import Data.Data
 import Data.Monoid
-import Data.Typeable
 import Hearth.Names
 import GHC.Generics
 
@@ -54,8 +53,12 @@ newtype Health = Health Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype PlayerHandle = PlayerHandle Int
+newtype Damage = Damage Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
+
+
+newtype PlayerHandle = PlayerHandle Int
+    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data Effect :: * where
@@ -162,6 +165,7 @@ instance Newtype Deck
 data Player = Player {
     _playerHandle :: PlayerHandle,
     _playerDeck :: Deck,
+    _playerExcessDrawCount :: Int,
     _playerHand :: Hand,
     _playerMinions :: [BoardMinion],
     _playerHero :: BoardHero

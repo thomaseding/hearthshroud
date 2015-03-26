@@ -10,7 +10,6 @@ module Hearth.Names where
 
 
 import Data.Data
-import Data.Typeable
 
 
 --------------------------------------------------------------------------------
@@ -40,7 +39,15 @@ data CardName :: * where
 
 
 data BasicCardName
-    = MurlocRaider
+    = BloodfenRaptor
+    | BoulderfistOgre
+    | ChillwindYeti
+    | CoreHound
+    | MagmaRager
+    | MurlocRaider
+    | OasisSnapjaw
+    | RiverCrocolisk
+    | WarGolem
     deriving (Show, Eq, Ord, Data, Typeable)
 
 

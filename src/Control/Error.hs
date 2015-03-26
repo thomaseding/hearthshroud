@@ -44,16 +44,12 @@ instance Stringy Name where
     stringy = nameBase
 
 
-forceStringy :: (Stringy a) => a -> a
-forceStringy = id
-
-
 todo :: Q Exp
 todo = withLocatedError [| \e msg -> e $ "TODO " ++ show (stringy msg) |]
 
 
 logicError :: Q Exp
-logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ (forceStringy msg) |]
+logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ show (stringy msg) |]
 
 
 debugShow :: Q Exp

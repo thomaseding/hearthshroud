@@ -1,0 +1,27 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
+
+module Hearth.DebugEvent where
+
+
+--------------------------------------------------------------------------------
+
+
+import Language.Haskell.TH.Syntax (Name)
+
+
+--------------------------------------------------------------------------------
+
+
+data DebugEvent :: * where
+    FunctionEntered :: Name -> DebugEvent
+    FunctionExited :: Name -> DebugEvent
+    deriving (Show, Eq, Ord)
+
+
+
+
+
+

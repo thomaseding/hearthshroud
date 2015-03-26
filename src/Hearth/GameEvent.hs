@@ -3,21 +3,20 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module Hearth.LogEvent where
+module Hearth.GameEvent where
 
 
 --------------------------------------------------------------------------------
 
 
-import Language.Haskell.TH.Syntax (Name)
+import Hearth.Model
 
 
 --------------------------------------------------------------------------------
 
 
-data LogEvent :: * where
-    LogFunctionEntered :: Name -> LogEvent
-    LogFunctionExited :: Name -> LogEvent
+data GameEvent :: * where
+    CardDrawn :: PlayerHandle -> HandCard -> GameEvent
     deriving (Show, Eq, Ord)
 
 
