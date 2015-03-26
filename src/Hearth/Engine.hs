@@ -203,8 +203,8 @@ initHand :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 initHand handle = logCall 'initHand $ do
     shuffleDeck handle
     numCards <- isActivePlayer handle >>= return . \case
-        True -> 4
-        False -> 3
+        True -> 3
+        False -> 4
     drawnCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle drawnCards) (`isSubsetOf` drawnCards)
     let tossedCards = drawnCards \\ keptCards
