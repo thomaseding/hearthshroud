@@ -152,14 +152,18 @@ newtype Hand = Hand {
     _handCards :: [HandCard]
 } deriving (Show, Eq, Ord, Monoid, Generic, Data, Typeable)
 makeLenses ''Hand
-instance Newtype Hand
+instance Newtype Hand [HandCard] where
+    pack = Hand
+    unpack = _handCards
 
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
 } deriving (Show, Eq, Ord, Monoid, Generic, Data, Typeable)
 makeLenses ''Deck
-instance Newtype Deck
+instance Newtype Deck [DeckCard] where
+    pack = Deck
+    unpack = _deckCards
 
 
 data Player = Player {
