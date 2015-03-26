@@ -170,6 +170,10 @@ zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoome
 zoomPlayer = zoom . getPlayer
 
 
+zoomHero :: (Zoom m n BoardHero GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
+zoomHero handle = zoom (getPlayer handle.playerHero)
+
+
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
 getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
 
@@ -241,19 +245,24 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
         damagePlayerHero handle $ Damage excess
         return Nothing
     Deck (c:cs) -> do
-        getPlayer handle.playerDeck .= Deck cs
         let c' = deckToHand c
+            deck = Deck cs
+            promptDraw mCard = do
+                prompt $ PromptGameEvent $ CardDrawn handle mCard deck
+                return mCard
+        getPlayer handle.playerDeck .= deck
         putInHand handle c' >>= \case
-            False -> return Nothing
-            True -> do
-                prompt $ PromptGameEvent $ CardDrawn handle c'
-                return $ Just c'
+            False -> promptDraw Nothing
+            True -> promptDraw $ Just c'
 
 
 damagePlayerHero :: (HearthMonad m) => PlayerHandle -> Damage -> Hearth m ()
-damagePlayerHero handle (Damage amount) = logCall 'damagePlayerHero $ do
-    let amount' = Health amount
-    getPlayer handle.playerHero.boardHeroCurrHealth -= amount'
+damagePlayerHero handle damage = logCall 'damagePlayerHero $ zoomHero handle $ do
+    let Damage amount = damage
+        delta = Health amount
+    oldHealth <- view boardHeroCurrHealth
+    boardHeroCurrHealth -= delta
+    prompt $ PromptGameEvent $ HeroTakesDamage handle oldHealth damage
 
 
 isPlayerHeroDead :: (HearthMonad m) => PlayerHandle -> Hearth m Bool

@@ -26,6 +26,7 @@ import Control.Error
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
+import Control.Monad.LessIO
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
@@ -97,8 +98,7 @@ debugEvent = \case
     FunctionExited name -> do
         logState.callDepth -= 1
         logState.useShortTag >>=. \case
-            True -> do
-                liftIO $ putStrLn "/>"
+            True -> liftIO $ putStrLn "/>"
             False -> do
                 lead <- logIndentation
                 liftIO $ putStrLn $ lead ++ "</:" ++ (showName name) ++ ">"
@@ -108,10 +108,31 @@ debugEvent = \case
 
 
 gameEvent :: GameEvent -> Driver ()
-gameEvent = \case
-    CardDrawn (PlayerHandle who) card -> do
-        lead <- logIndentation
-        liftIO $ putStrLn $ lead ++ "<cardDrawn handle=" ++ quote who ++ " card=" ++ quote (cardName card) ++ " />"
+gameEvent e = do
+    logState.useShortTag >>=. \case
+        True -> liftIO $ putStrLn "/>"
+        False -> return ()
+    logState.useShortTag .= False
+    txt <- return $ case e of
+        CardDrawn (PlayerHandle who) (mCard) (Deck deck) -> let
+            cardAttr = case mCard of
+                Nothing -> ""
+                Just card -> " card=" ++ quote (cardName card)
+            in "<cardDrawn"
+                ++ " handle=" ++ quote who
+                ++ cardAttr
+                ++ " deck=" ++ quote (length deck)
+                ++ " />"
+        HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
+            newHealth = oldHealth - damage
+            in "<heroTakesDamage"
+                ++ " handle=" ++ quote who
+                ++ " old=" ++ quote oldHealth
+                ++ " new=" ++ quote newHealth
+                ++ " dmg=" ++ quote damage
+                ++ " />"
+    lead <- logIndentation
+    liftIO $ putStrLn $ lead ++ txt
     where
         quote = show . show
 
@@ -133,7 +154,7 @@ instance MonadPrompt HearthPrompt Driver where
 
 
 runDriver :: IO GameResult
-runDriver = flip evalStateT st $ unDriver $ runHearth (player1, player2)
+runDriver = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2)
     where
         st = DriverState {
             _logState = LogState {
