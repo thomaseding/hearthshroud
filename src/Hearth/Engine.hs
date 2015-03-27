@@ -134,6 +134,8 @@ mkPlayer handle (PlayerData hero deck) = Player {
     _playerExcessDrawCount = 0,
     _playerHand = Hand [],
     _playerMinions = [],
+    _playerTotalManaCrystals = 0,
+    _playerEmptyManaCrystals = 0,
     _playerHero = mkBoardHero hero }
 
 
@@ -189,7 +191,7 @@ initGame :: (HearthMonad m) => Hearth m ()
 initGame = logCall 'initGame $ do
     flipCoin
     handles <- getPlayerHandles
-    mapM_ initHand handles
+    mapM_ initPlayer handles
 
 
 flipCoin :: (HearthMonad m) => Hearth m ()
@@ -197,6 +199,10 @@ flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     handle <- prompt $ PromptPickRandom $ NonEmpty.fromList handles
     let handles' = dropWhile (/= handle) $ cycle handles
     gamePlayerTurnOrder .= handles'
+
+
+initPlayer :: (HearthMonad m) => PlayerHandle -> Hearth m ()
+initPlayer = initHand
 
 
 initHand :: (HearthMonad m) => PlayerHandle -> Hearth m ()
@@ -299,9 +305,31 @@ runTurn = logCall 'runTurn $ do
     endTurn
 
 
+gainManaCrystal :: (HearthMonad m) => CrystalState -> PlayerHandle -> Hearth m ()
+gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ zoomPlayer handle $ do
+    emptyCount <- view playerEmptyManaCrystals
+    totalCount <- view playerTotalManaCrystals
+    case totalCount of
+        10 -> do
+            prompt $ PromptGameEvent $ GainsManaCrystal handle Nothing
+            case emptyCount of
+                0 -> return ()
+                _ -> do
+                    playerEmptyManaCrystals -= 1
+                    prompt $ PromptGameEvent $ ManaCrystalsRefill handle 1
+        _ -> do
+            playerTotalManaCrystals += 1
+            case crystalState of
+                CrystalFull -> return ()
+                CrystalEmpty -> playerEmptyManaCrystals += 1
+            prompt $ PromptGameEvent $ GainsManaCrystal handle $ Just crystalState
+
+
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
+    gainManaCrystal CrystalFull handle
+    getPlayer handle.playerEmptyManaCrystals .= 0
     _ <- drawCard handle
     return ()
 

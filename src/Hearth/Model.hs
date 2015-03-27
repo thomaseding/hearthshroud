@@ -61,6 +61,12 @@ newtype PlayerHandle = PlayerHandle Int
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+data CrystalState :: * where
+    CrystalFull :: CrystalState
+    CrystalEmpty :: CrystalState
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 data Effect :: * where
     Effect :: Effect
     --WithElects :: [Elect] -> [Effect] -> Effect
@@ -172,6 +178,8 @@ data Player = Player {
     _playerExcessDrawCount :: Int,
     _playerHand :: Hand,
     _playerMinions :: [BoardMinion],
+    _playerTotalManaCrystals :: Int,
+    _playerEmptyManaCrystals :: Int,
     _playerHero :: BoardHero
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''Player

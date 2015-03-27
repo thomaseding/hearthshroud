@@ -131,6 +131,25 @@ gameEvent e = do
                 ++ " new=" ++ quote newHealth
                 ++ " dmg=" ++ quote damage
                 ++ " />"
+        GainsManaCrystal (PlayerHandle who) mCrystalState -> let
+            stateAttr = case mCrystalState of
+                Nothing -> "none"
+                Just CrystalFull -> "full"
+                Just CrystalEmpty -> "empty"
+            in "<gainsManaCrystal"
+                ++ " handle=" ++ quote who
+                ++ " crystal=" ++ show stateAttr
+                ++ " />"
+        ManaCrystalsRefill (PlayerHandle who) amount -> let
+            in "<manaCrystalsRefill"
+                ++ " handle=" ++ quote who
+                ++ " amount=" ++ quote amount
+                ++ "/>"
+        ManaCrystalsEmpty (PlayerHandle who) amount -> let
+            in "<manaCrystalsEmpty"
+                ++ " handle=" ++ quote who
+                ++ " amount=" ++ quote amount
+                ++ "/>"
     lead <- logIndentation
     liftIO $ putStrLn $ lead ++ txt
     where
