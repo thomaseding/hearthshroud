@@ -96,6 +96,7 @@ makeLenses ''Spell
 
 
 data Minion = Minion {
+    _minionCost :: Cost,
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionName :: CardName
@@ -119,7 +120,7 @@ makeLenses ''DeckMinion
 
 
 data HandMinion = HandMinion {
-    --_handMinionEffects :: [HandEffect]  -- Think Bolvar and *Gaints
+    --_handMinionEffects :: [HandEffect]  -- Think Bolvar, *Giants, Freezing Trap
     _handMinion :: Minion
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''HandMinion

@@ -375,11 +375,104 @@ placeOnBoard handle _ minion = logCall 'placeOnBoard $ zoom (getPlayer handle.pl
 
 
 playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
-playCard handle card = logCall 'playCard $ removeFromHand handle card >>= \case
+playCard handle card = logCall 'playCard $ do
+    st <- get
+    playCard' handle card >>= \case
+        Success -> return Success
+        Failure -> do
+            put st
+            return Failure
+
+
+playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
+playCard' handle card = logCall 'playCard' $ removeFromHand handle card >>= \case
     False -> return Failure
-    True -> case card of
-        HandCardMinion minion -> placeOnBoard handle BoardPos $ case minion of
-            HandMinion minion' -> minion'
+    True -> do
+        payCost handle (costOf card) >>= \case
+            Failure -> return Failure
+            Success -> case card of
+                HandCardMinion minion -> placeOnBoard handle BoardPos $ case minion of
+                    HandMinion minion' -> minion'
+
+
+costOf :: HandCard -> Cost
+costOf = \case
+    HandCardMinion minion -> minion^.handMinion.minionCost
+
+
+payCost :: (HearthMonad m) => PlayerHandle -> Cost -> Hearth m Result
+payCost who = logCall 'payCost $  \case
+    ManaCost mana -> payManaCost who mana
+
+
+payManaCost :: (HearthMonad m) => PlayerHandle -> Mana -> Hearth m Result
+payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
+    totalMana <- view playerTotalManaCrystals
+    emptyMana <- view playerEmptyManaCrystals
+    let availableMana = totalMana - emptyMana
+    case cost <= availableMana of
+        False -> return Failure
+        True -> do
+            playerEmptyManaCrystals += cost
+            return Success
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

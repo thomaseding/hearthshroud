@@ -208,9 +208,10 @@ cards = [
 
 
 mkVanilla :: BasicCardName -> Mana -> Attack -> Health -> DeckCard
-mkVanilla name _ attack health = DeckCardMinion $ DeckMinion minion
+mkVanilla name mana attack health = DeckCardMinion $ DeckMinion minion
     where
         minion = Minion {
+            _minionCost = ManaCost mana,
             _minionAttack = attack,
             _minionHealth = health,
             _minionName = BasicCardName name }
