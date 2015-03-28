@@ -119,7 +119,7 @@ makeLenses ''DeckMinion
 
 
 data HandMinion = HandMinion {
-    --_handMinionEffects :: [HandEffect]  -- Think Bolvar
+    --_handMinionEffects :: [HandEffect]  -- Think Bolvar and *Gaints
     _handMinion :: Minion
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''HandMinion
@@ -198,7 +198,8 @@ data GameState = GameState {
 makeLenses ''GameState
 
 
-
+data BoardPos :: * where
+    BoardPos :: BoardPos
 
 
 

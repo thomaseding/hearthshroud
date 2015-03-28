@@ -359,8 +359,8 @@ isCardInHand handle card = logCall 'isCardInHand $ local id $ removeFromHand han
 data Result = Success | Failure
 
 
-placeOnBoard :: (HearthMonad m) => PlayerHandle -> Minion -> Hearth m Result
-placeOnBoard handle minion = logCall 'placeOnBoard $ zoom (getPlayer handle.playerMinions) $ do
+placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m Result
+placeOnBoard handle _ minion = logCall 'placeOnBoard $ zoom (getPlayer handle.playerMinions) $ do
     to length >>=. \case
         7 -> return Failure
         _ -> do
@@ -378,7 +378,7 @@ playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
 playCard handle card = logCall 'playCard $ removeFromHand handle card >>= \case
     False -> return Failure
     True -> case card of
-        HandCardMinion minion -> placeOnBoard handle $ case minion of
+        HandCardMinion minion -> placeOnBoard handle BoardPos $ case minion of
             HandMinion minion' -> minion'
 
 
