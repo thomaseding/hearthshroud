@@ -37,7 +37,7 @@ newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-newtype Cost = Cost Int
+newtype Mana = Mana Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
@@ -64,6 +64,11 @@ newtype PlayerHandle = PlayerHandle Int
 data CrystalState :: * where
     CrystalFull :: CrystalState
     CrystalEmpty :: CrystalState
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+data Cost :: * where
+    ManaCost :: Mana -> Cost
     deriving (Show, Eq, Ord, Data, Typeable)
 
 

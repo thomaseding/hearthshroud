@@ -180,7 +180,7 @@ runTestGame = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2
                 _callDepth = 0,
                 _useShortTag = False } }
         power = HeroPower {
-            _heroPowerCost = 0,
+            _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
         hero = Hero {
             _heroAttack = 0,
@@ -207,7 +207,7 @@ cards = [
     warGolem ]
 
 
-mkVanilla :: BasicCardName -> Cost -> Attack -> Health -> DeckCard
+mkVanilla :: BasicCardName -> Mana -> Attack -> Health -> DeckCard
 mkVanilla name _ attack health = DeckCardMinion $ DeckMinion minion
     where
         minion = Minion {
