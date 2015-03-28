@@ -24,7 +24,7 @@ import Control.Error
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
-import Control.Monad.ListM
+import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
@@ -340,16 +340,22 @@ endTurn = logCall 'endTurn $ do
 
 
 data TurnEvolution = ContinueTurn | EndTurn
+    deriving (Eq)
 
 
 pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
-    evolution <- prompt PromptAction >>= \case
-        ActionPlayerConceded _ -> $todo "concede"
-        ActionEndTurn -> return EndTurn
-    case evolution of
-        ContinueTurn -> pumpTurn
-        EndTurn -> return ()
+    handle <- getActivePlayerHandle
+    _ <- iterateUntil (EndTurn ==) $ pumpTurn' handle
+    return ()
+
+
+pumpTurn' :: (HearthMonad m) => PlayerHandle -> Hearth m TurnEvolution
+pumpTurn' handle = logCall 'pumpTurn' $ prompt (PromptAction handle) >>= \case
+    ActionPlayerConceded _ -> $todo "concede"
+    ActionPlayCard card -> actionPlayCard card
+    ActionQuery -> return ContinueTurn
+    ActionEndTurn -> return EndTurn
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
@@ -372,6 +378,13 @@ placeOnBoard handle _ minion = logCall 'placeOnBoard $ zoom (getPlayer handle.pl
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
             _boardMinion = minion }
+
+
+actionPlayCard :: (HearthMonad m) => HandCard -> Hearth m TurnEvolution
+actionPlayCard card = do
+    handle <- getActivePlayerHandle
+    _ <- playCard handle card -- TODO: Notify player of success
+    return ContinueTurn
 
 
 playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result

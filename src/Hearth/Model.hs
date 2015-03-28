@@ -203,6 +203,62 @@ data BoardPos :: * where
     BoardPos :: BoardPos
 
 
+data GameSnapshot = GameSnapShot {
+    _snapshotGameState :: GameState
+} deriving (Show, Eq, Ord, Data, Typeable)
+makeLenses ''GameSnapshot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,7 +23,7 @@ module Hearth.Driver where
 
 import Control.Applicative
 import Control.Error
-import Control.Lens
+import Control.Lens hiding (Action)
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.LessIO
@@ -166,10 +166,16 @@ instance MonadPrompt HearthPrompt Driver where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
         PromptGameEvent e -> gameEvent e
-        PromptAction -> return ActionEndTurn
+        PromptAction handle -> getAction handle
         PromptShuffle xs -> return xs
         PromptPickRandom (NonEmpty x _) -> return x
         PromptMulligan _ xs -> return xs
+        PromptQuery _ -> return ()
+
+
+getAction :: PlayerHandle -> Driver Action
+getAction _ = do
+    return ActionEndTurn
 
 
 runTestGame :: IO GameResult
