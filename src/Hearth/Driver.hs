@@ -27,6 +27,7 @@ import Control.Lens hiding (Action)
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.LessIO
+import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
@@ -48,7 +49,8 @@ import Language.Haskell.TH.Syntax (nameBase)
 
 data LogState = LogState {
     _callDepth :: Int,
-    _useShortTag :: Bool
+    _useShortTag :: Bool,
+    _quiet :: Bool
 } deriving (Show, Eq, Ord)
 makeLenses ''LogState
 
@@ -79,6 +81,21 @@ instance Zoom (Driver' st) (Driver' st') st st' where
     zoom l = Driver . zoom l . unDriver
 
 
+unlessM :: (Monad m) => m Bool -> m () -> m ()
+unlessM c m = do
+    c >>= \case
+        False -> m
+        True -> return ()
+
+
+enableQuiet :: DriverState -> DriverState
+enableQuiet = set (logState.quiet) True
+
+
+isQuiet :: Driver Bool
+isQuiet = view $ logState.quiet
+
+
 logIndentation :: Driver String
 logIndentation = do
     n <- view $ logState.callDepth
@@ -86,7 +103,7 @@ logIndentation = do
 
 
 debugEvent :: DebugEvent -> Driver ()
-debugEvent = \case
+debugEvent e = unlessM isQuiet $ case e of
     FunctionEntered name -> do
         logState.useShortTag >>=. \case
             True -> liftIO $ putStrLn ">"
@@ -108,7 +125,7 @@ debugEvent = \case
 
 
 gameEvent :: GameEvent -> Driver ()
-gameEvent e = do
+gameEvent e = unlessM isQuiet $ do
     logState.useShortTag >>=. \case
         True -> liftIO $ putStrLn "/>"
         False -> return ()
@@ -122,6 +139,12 @@ gameEvent e = do
                 ++ " handle=" ++ quote who
                 ++ cardAttr
                 ++ " deck=" ++ quote (length deck)
+                ++ " />"
+        PlayedCard (PlayerHandle who) card result -> case result of
+            Failure -> ""
+            Success -> "<playedCard"
+                ++ " handle=" ++ quote who
+                ++ " card=" ++ quote (cardName card)
                 ++ " />"
         HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
             newHealth = oldHealth - damage
@@ -150,8 +173,11 @@ gameEvent e = do
                 ++ " handle=" ++ quote who
                 ++ " amount=" ++ quote amount
                 ++ "/>"
-    lead <- logIndentation
-    liftIO $ putStrLn $ lead ++ txt
+    case null txt of
+        True -> return ()
+        False -> do
+            lead <- logIndentation
+            liftIO $ putStrLn $ lead ++ txt
     where
         quote = show . show
 
@@ -166,16 +192,22 @@ instance MonadPrompt HearthPrompt Driver where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
         PromptGameEvent e -> gameEvent e
-        PromptAction handle -> getAction handle
+        PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> return xs
         PromptPickRandom (NonEmpty x _) -> return x
         PromptMulligan _ xs -> return xs
-        PromptQuery _ -> return ()
 
 
-getAction :: PlayerHandle -> Driver Action
-getAction _ = do
-    return ActionEndTurn
+getAction :: GameSnapshot -> Driver Action
+getAction snapshot = local enableQuiet $ runQuery snapshot $ do
+    handle <- getActivePlayerHandle
+    cards <- view $ getPlayer handle.playerHand.handCards
+    mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
+        Failure -> return False
+        Success -> return True
+    case mCard of
+        Nothing -> return ActionEndTurn
+        Just card -> return $ ActionPlayCard card
 
 
 runTestGame :: IO GameResult
@@ -184,7 +216,8 @@ runTestGame = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2
         st = DriverState {
             _logState = LogState {
                 _callDepth = 0,
-                _useShortTag = False } }
+                _useShortTag = False,
+                _quiet = False } }
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
@@ -193,15 +226,15 @@ runTestGame = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2
             _heroHealth = 30,
             _heroPower = power,
             _heroName = BasicHeroName Thrall }
-        deck1 = Deck $ take 30 $ cycle cards
-        deck2 = Deck $ take 30 $ cycle $ reverse cards
+        deck1 = Deck $ take 30 $ cycle cardUniverse
+        deck2 = Deck $ take 30 $ cycle $ reverse cardUniverse
         player1 = PlayerData hero deck1
         player2 = changeTo Rexxar $ changeTo deck2 player1
         changeTo = transformBi . const
 
 
-cards :: [DeckCard]
-cards = [
+cardUniverse :: [DeckCard]
+cardUniverse = [
     bloodfenRaptor,
     boulderfistOgre,
     chillwindYeti,

@@ -116,6 +116,12 @@ isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
 isSubsetOf = subset `on` sort
 
 
+runQuery :: (HearthMonad m) => GameSnapshot -> Hearth m a -> m a
+runQuery snapshot query = evalStateT (unHearth query') $ snapshot^.snapshotGameState
+    where
+        query' = logCall 'runQuery query
+
+
 runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
 runHearth = evalStateT (unHearth runGame) . mkGameState
 
@@ -345,24 +351,21 @@ data TurnEvolution = ContinueTurn | EndTurn
 
 pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
-    handle <- getActivePlayerHandle
-    _ <- iterateUntil (EndTurn ==) $ pumpTurn' handle
+    _ <- iterateUntil (EndTurn ==) pumpTurn'
     return ()
 
 
-pumpTurn' :: (HearthMonad m) => PlayerHandle -> Hearth m TurnEvolution
-pumpTurn' handle = logCall 'pumpTurn' $ prompt (PromptAction handle) >>= \case
-    ActionPlayerConceded _ -> $todo "concede"
-    ActionPlayCard card -> actionPlayCard card
-    ActionQuery -> return ContinueTurn
-    ActionEndTurn -> return EndTurn
+pumpTurn' :: (HearthMonad m) => Hearth m TurnEvolution
+pumpTurn' = logCall 'pumpTurn' $ do
+    snapshot <- gets GameSnapshot
+    prompt (PromptAction snapshot) >>= \case
+        ActionPlayerConceded _ -> $todo "concede"
+        ActionPlayCard card -> actionPlayCard card
+        ActionEndTurn -> return EndTurn
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
 isCardInHand handle card = logCall 'isCardInHand $ local id $ removeFromHand handle card
-
-
-data Result = Success | Failure
 
 
 placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m Result
@@ -383,18 +386,20 @@ placeOnBoard handle _ minion = logCall 'placeOnBoard $ zoom (getPlayer handle.pl
 actionPlayCard :: (HearthMonad m) => HandCard -> Hearth m TurnEvolution
 actionPlayCard card = do
     handle <- getActivePlayerHandle
-    _ <- playCard handle card -- TODO: Notify player of success
+    _ <- playCard handle card
     return ContinueTurn
 
 
 playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
 playCard handle card = logCall 'playCard $ do
     st <- get
-    playCard' handle card >>= \case
+    result <- playCard' handle card >>= \case
         Success -> return Success
         Failure -> do
             put st
             return Failure
+    prompt $ PromptGameEvent $ PlayedCard handle card result
+    return result
 
 
 playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result

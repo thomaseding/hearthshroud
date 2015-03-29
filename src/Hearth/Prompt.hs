@@ -22,12 +22,11 @@ import Hearth.Model
 data HearthPrompt :: * -> * where
     PromptDebugEvent :: DebugEvent -> HearthPrompt ()
     PromptGameEvent :: GameEvent -> HearthPrompt ()
-    PromptAction :: PlayerHandle -> HearthPrompt Action
+    PromptAction :: GameSnapshot -> HearthPrompt Action
     --PromptQuery :: HearthPrompt Query
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptPickRandom :: NonEmpty a -> HearthPrompt a
     PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
-    PromptQuery :: GameSnapshot -> HearthPrompt ()
 
 deriving instance (Show a) => Show (HearthPrompt a)
 

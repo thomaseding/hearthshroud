@@ -33,6 +33,10 @@ import GHC.Generics
 --------------------------------------------------------------------------------
 
 
+data Result = Success | Failure
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Data, Typeable)
 
@@ -203,7 +207,7 @@ data BoardPos :: * where
     BoardPos :: BoardPos
 
 
-data GameSnapshot = GameSnapShot {
+data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''GameSnapshot
