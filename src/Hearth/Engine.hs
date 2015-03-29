@@ -29,7 +29,6 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
-import qualified Control.Newtype as N
 import Data.Data
 import Data.Function
 import Data.List
@@ -224,7 +223,7 @@ initHand handle = logCall 'initHand $ do
     drawCards handle (length tossedCards) >>= \case
         [] -> return ()
         _ -> do
-            getPlayer handle.playerDeck %= N.over Deck (tossedCards' ++)
+            getPlayer handle.playerDeck.deckCards %= (tossedCards' ++)
             shuffleDeck handle
 
 

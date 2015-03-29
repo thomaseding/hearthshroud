@@ -26,7 +26,6 @@ import Control.Error
 import Control.Lens hiding (Action)
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
-import Control.Monad.LessIO
 import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
@@ -211,7 +210,7 @@ getAction snapshot = local enableQuiet $ runQuery snapshot $ do
 
 
 runTestGame :: IO GameResult
-runTestGame = less $ flip evalStateT st $ unDriver $ runHearth (player1, player2)
+runTestGame = flip evalStateT st $ unDriver $ runHearth (player1, player2)
     where
         st = DriverState {
             _logState = LogState {
