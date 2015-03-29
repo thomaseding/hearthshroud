@@ -102,7 +102,7 @@ data GameResult :: * where
 
 
 data PlayerData = PlayerData Hero Deck
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Eq, Ord, Typeable)
 
 
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> Bool) -> m a

@@ -22,6 +22,7 @@ module Hearth.Model where
 --------------------------------------------------------------------------------
 
 
+import Control.Error
 import Control.Lens
 import Data.Data
 import Data.Monoid
@@ -75,10 +76,25 @@ data Cost :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+data Elect :: * where
+    DummyElect :: (() -> Effect) -> Elect
+    --Self :: (PlayerHandle -> Effect) -> Elect
+    --Opponent :: (PlayerHandle -> Effect) -> Elect
+    --TargetCreature :: (CreatureHandle -> Effect) -> Elect
+
+instance Show Elect where
+    show = $todo "Show Elect"
+
+instance Eq Elect where
+    (==) = $todo "Eq Elect"
+
+instance Ord Elect where
+    compare = $todo "Ord Elect"
+
+
 data Effect :: * where
-    Effect :: Effect
-    --WithElects :: [Elect] -> [Effect] -> Effect
-    deriving (Show, Eq, Ord, Data, Typeable)
+    With :: Elect -> Effect
+    deriving (Show, Eq, Ord, Typeable)
 
 
 data Ability :: * where
@@ -132,7 +148,7 @@ makeLenses ''HandMinion
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffects :: [Effect]
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''HeroPower
 
 
@@ -141,7 +157,7 @@ data Hero = Hero {
     _heroHealth :: Health,
     _heroPower :: HeroPower,
     _heroName :: HeroName
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''Hero
 
 
@@ -149,7 +165,7 @@ data BoardHero = BoardHero {
     _boardHeroCurrHealth :: Health,
     _boardHeroArmor :: Armor,
     _boardHero :: Hero
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''BoardHero
 
 
@@ -184,7 +200,7 @@ data Player = Player {
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
     _playerHero :: BoardHero
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''Player
 
 
@@ -192,7 +208,7 @@ data GameState = GameState {
     _gameTurn :: Turn,
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''GameState
 
 
@@ -202,7 +218,7 @@ data BoardPos :: * where
 
 data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Eq, Ord, Typeable)
 makeLenses ''GameSnapshot
 
 

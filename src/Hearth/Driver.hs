@@ -23,7 +23,7 @@ module Hearth.Driver where
 
 import Control.Applicative
 import Control.Error
-import Control.Lens hiding (Action)
+import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Loops
@@ -220,16 +220,15 @@ runTestGame = flip evalStateT st $ unDriver $ runHearth (player1, player2)
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
-        hero = Hero {
+        hero name = Hero {
             _heroAttack = 0,
             _heroHealth = 30,
             _heroPower = power,
-            _heroName = BasicHeroName Thrall }
+            _heroName = BasicHeroName name }
         deck1 = Deck $ take 30 $ cycle cardUniverse
         deck2 = Deck $ take 30 $ cycle $ reverse cardUniverse
-        player1 = PlayerData hero deck1
-        player2 = changeTo Rexxar $ changeTo deck2 player1
-        changeTo = transformBi . const
+        player1 = PlayerData (hero Thrall) deck1
+        player2 = PlayerData (hero Rexxar) deck2
 
 
 cardUniverse :: [DeckCard]
