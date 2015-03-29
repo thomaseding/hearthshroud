@@ -61,7 +61,15 @@ newtype Damage = Damage Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype PlayerHandle = PlayerHandle Int
+newtype RawHandle = RawHandle Int
+    deriving (Show, Eq, Ord, Enum, Num, Real, Integral, Data, Typeable)
+
+
+newtype MinionHandle = MinionHandle RawHandle
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+newtype PlayerHandle = PlayerHandle RawHandle
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
@@ -127,6 +135,7 @@ data BoardMinion = BoardMinion {
     _boardMinionCurrAttack :: Attack,
     _boardMinionCurrHealth :: Health,
     _boardMinionEnchantments :: [Enchantment],
+    _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''BoardMinion
@@ -206,6 +215,7 @@ makeLenses ''Player
 
 data GameState = GameState {
     _gameTurn :: Turn,
+    _gameHandleSeed :: RawHandle,
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
 } deriving (Show, Eq, Ord, Typeable)

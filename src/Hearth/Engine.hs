@@ -126,10 +126,13 @@ runHearth = evalStateT (unHearth runGame) . mkGameState
 
 
 mkGameState :: Pair PlayerData -> GameState
-mkGameState (p1, p2) = GameState {
-    _gameTurn = Turn 1,
-    _gamePlayerTurnOrder = [],
-    _gamePlayers = zipWith mkPlayer (map PlayerHandle [0..]) [p1, p2] }
+mkGameState (p1, p2) = let
+    ps = [p1, p2]
+    in GameState {
+        _gameTurn = Turn 1,
+        _gameHandleSeed = RawHandle $ length ps,
+        _gamePlayerTurnOrder = [],
+        _gamePlayers = zipWith mkPlayer (map PlayerHandle [0..]) ps }
 
 
 mkPlayer :: PlayerHandle -> PlayerData -> Player
@@ -183,6 +186,20 @@ zoomHero handle = zoom (getPlayer handle.playerHero)
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
 getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
+
+
+genRawHandle :: (HearthMonad m) => Hearth m RawHandle
+genRawHandle = do
+    handle <- view $ gameHandleSeed
+    gameHandleSeed += 1
+    return handle
+
+
+class GenHandle handle where
+    genHandle :: (HearthMonad m) => Hearth m handle
+
+instance GenHandle MinionHandle where
+    genHandle = liftM MinionHandle genRawHandle
 
 
 runGame :: (HearthMonad m) => Hearth m GameResult
@@ -368,18 +385,20 @@ isCardInHand handle card = logCall 'isCardInHand $ local id $ removeFromHand han
 
 
 placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m Result
-placeOnBoard handle _ minion = logCall 'placeOnBoard $ zoom (getPlayer handle.playerMinions) $ do
-    to length >>=. \case
-        7 -> return Failure
-        _ -> do
-            id %= (minion' :)
-            return Success
-    where
-        minion' = BoardMinion {
+placeOnBoard handle _ minion = logCall 'placeOnBoard $ do
+    minionHandle <- genHandle
+    let minion' = BoardMinion {
             _boardMinionCurrAttack = minion^.minionAttack,
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
+            _boardMinionHandle = minionHandle,
             _boardMinion = minion }
+    zoom (getPlayer handle.playerMinions) $ do
+        to length >>=. \case
+            7 -> return Failure
+            _ -> do
+                id %= (minion' :)
+                return Success
 
 
 actionPlayCard :: (HearthMonad m) => HandCard -> Hearth m TurnEvolution
