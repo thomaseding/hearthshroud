@@ -31,7 +31,9 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
+import Data.Data
 import Data.Generics.Uniplate.Data
+import Data.List
 import Data.NonEmpty
 import Hearth.Action
 import Hearth.DebugEvent
@@ -133,7 +135,7 @@ gameEvent e = unlessM isQuiet $ do
         CardDrawn (PlayerHandle who) (mCard) (Deck deck) -> let
             cardAttr = case mCard of
                 Nothing -> ""
-                Just card -> " card=" ++ quote (cardName card)
+                Just card -> " card=" ++ quote (simpleName card)
             in "<cardDrawn"
                 ++ " handle=" ++ quote who
                 ++ cardAttr
@@ -143,7 +145,7 @@ gameEvent e = unlessM isQuiet $ do
             Failure -> ""
             Success -> "<playedCard"
                 ++ " handle=" ++ quote who
-                ++ " card=" ++ quote (cardName card)
+                ++ " card=" ++ quote (simpleName card)
                 ++ " />"
         HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
             newHealth = oldHealth - damage
@@ -181,10 +183,10 @@ gameEvent e = unlessM isQuiet $ do
         quote = show . show
 
 
-cardName :: HandCard -> BasicCardName
-cardName card = case universeBi card of
+simpleName :: (Data a) => a -> BasicCardName
+simpleName card = case universeBi card of
     [name] -> name
-    _ -> $logicError 'cardName
+    _ -> $logicError 'simpleName
 
 
 instance MonadPrompt HearthPrompt Driver where
@@ -199,6 +201,7 @@ instance MonadPrompt HearthPrompt Driver where
 
 getAction :: GameSnapshot -> Driver Action
 getAction snapshot = local enableQuiet $ runQuery snapshot $ do
+    showPlayers
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
     mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
@@ -229,6 +232,40 @@ runTestGame = flip evalStateT st $ unDriver $ runHearth (player1, player2)
         deck2 = Deck $ take 30 $ cycle $ reverse cardUniverse
         player1 = PlayerData (hero Thrall) deck1
         player2 = PlayerData (hero Rexxar) deck2
+
+
+showPlayers :: Hearth Driver ()
+showPlayers = do
+    ps <- mapM (view . getPlayer) =<< getPlayerHandles
+    liftIO $ do
+        forM_ ps $ \p -> do
+            putStrLn ""
+            putStrLn $ showPlayer p
+        getLine >> return ()
+
+
+showPlayer :: Player -> String
+showPlayer p = let
+    deck = showDeck $ p^.playerDeck
+    hand = showHand $ p^.playerHand
+    minions = "Board:" ++ joinList (map showMinion $ p^.playerMinions)
+    in unlines [deck, hand, minions]
+
+
+joinList :: [String] -> String
+joinList ss = "[" ++ intercalate "," ss ++ "]"
+
+
+showDeck :: Deck -> String
+showDeck (Deck cs) = "Deck:" ++ show (length cs)
+
+
+showHand :: Hand -> String
+showHand (Hand cs) = "Hand:" ++ joinList (reverse $ map (show . simpleName) cs)
+
+
+showMinion :: BoardMinion -> String
+showMinion m = show $ simpleName $ m^.boardMinion.minionName
 
 
 cardUniverse :: [DeckCard]
