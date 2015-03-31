@@ -36,6 +36,7 @@ import Data.Generics.Uniplate.Data
 import Data.List
 import Data.NonEmpty
 import Hearth.Action
+import Hearth.Cards
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
@@ -266,67 +267,6 @@ showHand (Hand cs) = "Hand:" ++ joinList (reverse $ map (show . simpleName) cs)
 
 showMinion :: BoardMinion -> String
 showMinion m = show $ simpleName $ m^.boardMinion.minionName
-
-
-cardUniverse :: [DeckCard]
-cardUniverse = [
-    bloodfenRaptor,
-    boulderfistOgre,
-    chillwindYeti,
-    coreHound,
-    magmaRager,
-    murlocRaider,
-    oasisSnapjaw,
-    riverCrocolisk,
-    warGolem ]
-
-
-mkVanilla :: BasicCardName -> Mana -> Attack -> Health -> DeckCard
-mkVanilla name mana attack health = DeckCardMinion $ DeckMinion minion
-    where
-        minion = Minion {
-            _minionCost = ManaCost mana,
-            _minionAttack = attack,
-            _minionHealth = health,
-            _minionName = BasicCardName name }
-
-
-bloodfenRaptor :: DeckCard
-bloodfenRaptor = mkVanilla BloodfenRaptor 2 3 2
-
-
-boulderfistOgre :: DeckCard
-boulderfistOgre = mkVanilla BoulderfistOgre 6 6 7
-
-
-chillwindYeti :: DeckCard
-chillwindYeti = mkVanilla MurlocRaider 1 2 1
-
-
-coreHound :: DeckCard
-coreHound = mkVanilla CoreHound 7 9 5
-
-
-magmaRager :: DeckCard
-magmaRager = mkVanilla MagmaRager 3 5 1
-
-
-murlocRaider :: DeckCard
-murlocRaider = mkVanilla MurlocRaider 1 2 1
-
-
-oasisSnapjaw :: DeckCard
-oasisSnapjaw = mkVanilla OasisSnapjaw 4 2 7
-
-
-riverCrocolisk :: DeckCard
-riverCrocolisk = mkVanilla RiverCrocolisk 2 2 3
-
-
-warGolem :: DeckCard
-warGolem = mkVanilla WarGolem 7 7 7
-
-
 
 
 
