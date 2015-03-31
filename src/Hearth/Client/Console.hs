@@ -15,7 +15,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 
-module Hearth.Driver where
+module Hearth.Client.Console where
 
 
 --------------------------------------------------------------------------------
@@ -56,30 +56,30 @@ data LogState = LogState {
 makeLenses ''LogState
 
 
-data DriverState = DriverState {
+data ConsoleState = ConsoleState {
     _logState :: LogState
 } deriving (Show, Eq, Ord)
-makeLenses ''DriverState
+makeLenses ''ConsoleState
 
 
-newtype Driver' st a = Driver {
-    unDriver :: StateT st IO a
+newtype Console' st a = Console {
+    unConsole :: StateT st IO a
 } deriving (Functor, Applicative, Monad, MonadIO, MonadState st)
 
 
-instance MonadReader st (Driver' st) where
+instance MonadReader st (Console' st) where
     ask = get
     local = stateLocal
 
 
-type Driver = Driver' DriverState
+type Console = Console' ConsoleState
 
 
-type instance Zoomed (Driver' st) = Focusing IO
+type instance Zoomed (Console' st) = Focusing IO
 
 
-instance Zoom (Driver' st) (Driver' st') st st' where
-    zoom l = Driver . zoom l . unDriver
+instance Zoom (Console' st) (Console' st') st st' where
+    zoom l = Console . zoom l . unConsole
 
 
 unlessM :: (Monad m) => m Bool -> m () -> m ()
@@ -89,21 +89,21 @@ unlessM c m = do
         True -> return ()
 
 
-enableQuiet :: DriverState -> DriverState
+enableQuiet :: ConsoleState -> ConsoleState
 enableQuiet = set (logState.quiet) True
 
 
-isQuiet :: Driver Bool
+isQuiet :: Console Bool
 isQuiet = view $ logState.quiet
 
 
-logIndentation :: Driver String
+logIndentation :: Console String
 logIndentation = do
     n <- view $ logState.callDepth
     return $ concat $ replicate n "    "
 
 
-debugEvent :: DebugEvent -> Driver ()
+debugEvent :: DebugEvent -> Console ()
 debugEvent e = unlessM isQuiet $ case e of
     FunctionEntered name -> do
         logState.useShortTag >>=. \case
@@ -125,7 +125,7 @@ debugEvent e = unlessM isQuiet $ case e of
         showName = nameBase
 
 
-gameEvent :: GameEvent -> Driver ()
+gameEvent :: GameEvent -> Console ()
 gameEvent e = unlessM isQuiet $ do
     logState.useShortTag >>=. \case
         True -> liftIO $ putStrLn "/>"
@@ -189,7 +189,7 @@ simpleName card = case universeBi card of
     _ -> $logicError 'simpleName
 
 
-instance MonadPrompt HearthPrompt Driver where
+instance MonadPrompt HearthPrompt Console where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
         PromptGameEvent e -> gameEvent e
@@ -199,7 +199,7 @@ instance MonadPrompt HearthPrompt Driver where
         PromptMulligan _ xs -> return xs
 
 
-getAction :: GameSnapshot -> Driver Action
+getAction :: GameSnapshot -> Console Action
 getAction snapshot = local enableQuiet $ runQuery snapshot $ do
     showPlayers
     handle <- getActivePlayerHandle
@@ -213,9 +213,9 @@ getAction snapshot = local enableQuiet $ runQuery snapshot $ do
 
 
 runTestGame :: IO GameResult
-runTestGame = flip evalStateT st $ unDriver $ runHearth (player1, player2)
+runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
     where
-        st = DriverState {
+        st = ConsoleState {
             _logState = LogState {
                 _callDepth = 0,
                 _useShortTag = False,
@@ -234,7 +234,7 @@ runTestGame = flip evalStateT st $ unDriver $ runHearth (player1, player2)
         player2 = PlayerData (hero Rexxar) deck2
 
 
-showPlayers :: Hearth Driver ()
+showPlayers :: Hearth Console ()
 showPlayers = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
     liftIO $ do
