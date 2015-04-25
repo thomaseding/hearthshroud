@@ -45,7 +45,7 @@ newtype Mana = Mana Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype Attack = Attack Int
+newtype Attack = Attack { unAttack :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
@@ -53,7 +53,7 @@ newtype Armor = Armor Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype Health = Health Int
+newtype Health = Health { unHealth :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 

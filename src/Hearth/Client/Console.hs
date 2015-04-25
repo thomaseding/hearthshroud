@@ -37,6 +37,7 @@ import Data.List
 import Data.NonEmpty
 import Hearth.Action
 import Hearth.Cards
+import Hearth.Client.Console.HandColumn
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
@@ -44,6 +45,7 @@ import Hearth.Model
 import Hearth.Names
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
+import System.Console.ANSI
 
 
 --------------------------------------------------------------------------------
@@ -214,13 +216,17 @@ getAction snapshot = local enableQuiet $ runQuery snapshot $ do
 
 
 runTestGame :: IO GameResult
-runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
+runTestGame = do
+    result <- flip evalStateT st $ unConsole $ runHearth (player1, player2)
+    clearScreen
+    setCursorPosition 0 0
+    return result
     where
         st = ConsoleState {
             _logState = LogState {
                 _callDepth = 0,
                 _useShortTag = False,
-                _quiet = False } }
+                _quiet = True } }
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
@@ -235,34 +241,46 @@ runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
         player2 = PlayerData (hero Rexxar) deck2
 
 
+data Who = Alice | Bob
+    deriving (Show, Eq, Ord)
+
+
 showPlayers :: Hearth Console ()
 showPlayers = do
+    liftIO clearScreen
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
     liftIO $ do
-        forM_ ps $ \p -> do
-            putStrLn ""
-            putStrLn $ showPlayer p
+        forM_ (zip ps [Alice, Bob]) $ \(p, who) -> do
+            printPlayer who p
         getLine >> return ()
 
 
-showPlayer :: Player -> String
-showPlayer p = let
-    deck = showDeck $ p^.playerDeck
-    hand = showHand $ p^.playerHand
-    minions = "Board:" ++ joinList (map showMinion $ p^.playerMinions)
-    in unlines [deck, hand, minions]
+printPlayer :: Who -> Player -> IO ()
+printPlayer who p = do
+    let deck = showDeck $ p^.playerDeck
+        hand = handColumn $ p^.playerHand
+        minions = map showMinion $ p^.playerMinions
+        (deckLoc, handLoc, minionsLoc) = let
+            (x, y, z) = (0, 25, 50)
+            width = 140
+            in case who of
+                Alice -> (x, y, z)
+                Bob -> (width - x, width - y, width - z)
+    printColumn "PLAYER" deckLoc [deck]
+    printColumn "HAND" handLoc $ hand
+    printColumn "MINIONS" minionsLoc minions
 
-
-joinList :: [String] -> String
-joinList ss = "[" ++ intercalate "," ss ++ "]"
 
 
 showDeck :: Deck -> String
 showDeck (Deck cs) = "Deck:" ++ show (length cs)
 
-
-showHand :: Hand -> String
-showHand (Hand cs) = "Hand:" ++ joinList (reverse $ map (show . simpleName) cs)
+printColumn :: String -> Int -> [String] -> IO ()
+printColumn label column = zipWithM_ f [0..] . ([label, replicate (length label) '-', ""] ++ )
+    where
+        f row str = do
+            setCursorPosition row column
+            putStr str
 
 
 showMinion :: BoardMinion -> String
