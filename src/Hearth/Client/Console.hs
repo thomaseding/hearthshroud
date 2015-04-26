@@ -56,6 +56,8 @@ import System.Console.ANSI
 
 
 data LogState = LogState {
+    _loggedLines :: [String],
+    _undisplayedLines :: Int,
     _callDepth :: Int,
     _useShortTag :: Bool,
     _quiet :: Bool
@@ -96,12 +98,29 @@ unlessM c m = do
         True -> return ()
 
 
-enableQuiet :: ConsoleState -> ConsoleState
-enableQuiet = set (logState.quiet) True
-
-
 isQuiet :: Console Bool
 isQuiet = view $ logState.quiet
+
+
+localQuiet :: Console a -> Console a
+localQuiet m = do
+    q <- view $ logState.quiet
+    logState.quiet .= True
+    x <- m
+    logState.quiet .= q
+    return x
+
+
+newLogLine :: Console ()
+newLogLine = zoom logState $ do
+    loggedLines %= ("" :)
+    undisplayedLines += 1
+
+
+appendLogLine :: String -> Console ()
+appendLogLine str = logState.loggedLines %= \case
+    s : ss -> (s ++ str) : ss
+    [] -> $logicError 'appendLogLine
 
 
 logIndentation :: Console String
@@ -114,19 +133,24 @@ debugEvent :: DebugEvent -> Console ()
 debugEvent e = unlessM isQuiet $ case e of
     FunctionEntered name -> do
         logState.useShortTag >>=. \case
-            True -> liftIO $ putStrLn ">"
+            True -> do
+                appendLogLine ">"
+                newLogLine
             False -> return ()
         lead <- logIndentation
         logState.callDepth += 1
         logState.useShortTag .= True
-        liftIO $ putStr $ lead ++ "<:" ++ (showName name)
+        appendLogLine $ lead ++ "<:" ++ (showName name)
     FunctionExited name -> do
         logState.callDepth -= 1
         logState.useShortTag >>=. \case
-            True -> liftIO $ putStrLn "/>"
+            True -> do
+                appendLogLine "/>"
+                newLogLine
             False -> do
                 lead <- logIndentation
-                liftIO $ putStrLn $ lead ++ "</:" ++ (showName name) ++ ">"
+                appendLogLine $ lead ++ "</:" ++ (showName name) ++ ">"
+                newLogLine
         logState.useShortTag .= False
     where
         showName = nameBase
@@ -135,7 +159,9 @@ debugEvent e = unlessM isQuiet $ case e of
 gameEvent :: GameEvent -> Console ()
 gameEvent e = unlessM isQuiet $ do
     logState.useShortTag >>=. \case
-        True -> liftIO $ putStrLn "/>"
+        True -> do
+            appendLogLine "/>"
+            newLogLine
         False -> return ()
     logState.useShortTag .= False
     txt <- return $ case e of
@@ -185,7 +211,8 @@ gameEvent e = unlessM isQuiet $ do
         True -> return ()
         False -> do
             lead <- logIndentation
-            liftIO $ putStrLn $ lead ++ txt
+            appendLogLine $ lead ++ txt
+            newLogLine
     where
         quote = show . show
 
@@ -207,8 +234,8 @@ instance MonadPrompt HearthPrompt Console where
 
 
 getAction :: GameSnapshot -> Console Action
-getAction snapshot = local enableQuiet $ runQuery snapshot $ do
-    showPlayers
+getAction snapshot = localQuiet $ runQuery snapshot $ do
+    refreshDisplay
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
     mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
@@ -232,9 +259,11 @@ runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
     where
         st = ConsoleState {
             _logState = LogState {
+                _loggedLines = [""],
+                _undisplayedLines = 1,
                 _callDepth = 0,
                 _useShortTag = False,
-                _quiet = True } }
+                _quiet = False } }
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
@@ -253,15 +282,29 @@ data Who = Alice | Bob
     deriving (Show, Eq, Ord)
 
 
-showPlayers :: Hearth Console ()
-showPlayers = do
-    liftIO clearScreen
+refreshDisplay :: Hearth Console ()
+refreshDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
     liftIO $ do
+        clearScreen
         forM_ (zip ps [Alice, Bob]) $ \(p, who) -> do
             printPlayer who p
-        setCursorPosition 0 0
+    lift refreshLogWindow
+    liftIO $ do
         getLine >> return ()
+
+
+refreshLogWindow :: Console ()
+refreshLogWindow = do
+    freshCount <- view $ logState.undisplayedLines
+    logState.undisplayedLines .= 0
+    (freshLines, oldLines) <- view $ logState.loggedLines.to (splitAt freshCount . take 70)
+    liftIO $ do
+        setCursorPosition 35 0
+        setSGR [SetColor Foreground Dull Cyan]
+        mapM_ putStrLn $ reverse oldLines
+        setSGR [SetColor Foreground Dull White]
+        mapM_ putStrLn $ reverse freshLines
 
 
 printPlayer :: Who -> Player -> IO ()
