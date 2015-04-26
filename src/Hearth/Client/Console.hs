@@ -23,6 +23,7 @@ module Hearth.Client.Console where
 
 import Control.Applicative
 import Control.Error
+import Control.Exception
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
@@ -216,12 +217,12 @@ getAction snapshot = local enableQuiet $ runQuery snapshot $ do
 
 
 runTestGame :: IO GameResult
-runTestGame = do
-    result <- flip evalStateT st $ unConsole $ runHearth (player1, player2)
-    clearScreen
-    setCursorPosition 0 0
-    return result
+runTestGame = flip finally cleanup $ do
+    flip evalStateT st $ unConsole $ runHearth (player1, player2)
     where
+        cleanup = do
+            clearScreen
+            setCursorPosition 0 0
         st = ConsoleState {
             _logState = LogState {
                 _callDepth = 0,
@@ -252,6 +253,7 @@ showPlayers = do
     liftIO $ do
         forM_ (zip ps [Alice, Bob]) $ \(p, who) -> do
             printPlayer who p
+        setCursorPosition 0 0
         getLine >> return ()
 
 
