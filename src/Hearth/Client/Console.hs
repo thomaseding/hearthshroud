@@ -15,7 +15,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 
-module Hearth.Client.Console where
+module Hearth.Client.Console (
+    main
+) where
 
 
 --------------------------------------------------------------------------------
@@ -32,6 +34,7 @@ import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
+import Data.Char
 import Data.Data
 import Data.Generics.Uniplate.Data
 import Data.List
@@ -216,13 +219,17 @@ getAction snapshot = local enableQuiet $ runQuery snapshot $ do
         Just card -> return $ ActionPlayCard card
 
 
+main :: IO ()
+main = do
+    result <- finally runTestGame $ do
+        clearScreen
+        setCursorPosition 0 0
+    print result
+
+
 runTestGame :: IO GameResult
-runTestGame = flip finally cleanup $ do
-    flip evalStateT st $ unConsole $ runHearth (player1, player2)
+runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
     where
-        cleanup = do
-            clearScreen
-            setCursorPosition 0 0
         st = ConsoleState {
             _logState = LogState {
                 _callDepth = 0,
@@ -268,7 +275,7 @@ printPlayer who p = do
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
-    printColumn "PLAYER" deckLoc [deck]
+    printColumn (map toUpper $ show who) deckLoc [deck]
     printColumn "HAND" handLoc $ hand
     printColumn "MINIONS" minionsLoc minions
 

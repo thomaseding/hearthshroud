@@ -20,7 +20,7 @@ import Hearth.Names
 
 handColumn :: Hand -> [String]
 handColumn (Hand cs) = let
-    cs' = map cardColumn cs
+    cs' = map cardColumn $ reverse cs
     in concat $ intersperse [""] cs'
 
 
