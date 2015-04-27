@@ -41,6 +41,7 @@ import Data.List
 import Data.NonEmpty
 import Hearth.Action
 import Hearth.Cards
+import Hearth.Client.Console.BoardMinionsColumn
 import Hearth.Client.Console.HandColumn
 import Hearth.DebugEvent
 import Hearth.Engine
@@ -311,7 +312,7 @@ printPlayer :: Who -> Player -> IO ()
 printPlayer who p = do
     let deck = showDeck $ p^.playerDeck
         hand = handColumn $ p^.playerHand
-        minions = map showMinion $ p^.playerMinions
+        boardMinions = boardMinionsColumn $ p^.playerMinions
         (deckLoc, handLoc, minionsLoc) = let
             (x, y, z) = (0, 25, 50)
             width = 140
@@ -319,8 +320,8 @@ printPlayer who p = do
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
     printColumn (map toUpper $ show who) deckLoc [deck]
-    printColumn "HAND" handLoc $ hand
-    printColumn "MINIONS" minionsLoc minions
+    printColumn "HAND" handLoc hand
+    printColumn "MINIONS" minionsLoc boardMinions
 
 
 
@@ -335,8 +336,6 @@ printColumn label column = zipWithM_ f [0..] . ([label, replicate (length label)
             putStr str
 
 
-showMinion :: BoardMinion -> String
-showMinion m = show $ simpleName $ m^.boardMinion.minionName
 
 
 
