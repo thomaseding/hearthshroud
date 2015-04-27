@@ -253,6 +253,7 @@ getAction snapshot = localQuiet $ runQuery snapshot $ do
 main :: IO ()
 main = do
     result <- finally runTestGame $ do
+        setSGR [SetColor Foreground Dull White]
         clearScreen
         setCursorPosition 0 0
     print result
@@ -290,25 +291,25 @@ data Who = Alice | Bob
 refreshDisplay :: Hearth Console ()
 refreshDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
-    liftIO $ do
+    deepestPlayer <- liftIO $ do
         clearScreen
-        forM_ (zip ps [Alice, Bob]) $ \(p, who) -> do
-            printPlayer who p
-    lift refreshLogWindow
-    liftIO $ do
-        getLine >> return ()
+        setSGR [SetColor Foreground Dull White]
+        foldM (\n -> liftM (max n) . uncurry printPlayer) 0 (zip ps [Alice, Bob])
+    lift $ refreshLogWindow $ deepestPlayer + 3
+    liftIO $ getLine >> return ()
 
 
-refreshLogWindow :: Console ()
-refreshLogWindow = do
-    let displayCount = 70
+refreshLogWindow :: Int -> Console ()
+refreshLogWindow row = do
+    let displayCount = 106 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
         pad str = replicate (lineNoLen - length str) '0' ++ str
         putWithLineNo (lineNo, str) = do
             when (totalCount < displayCount && null str) $ do
                 setSGR [SetColor Foreground Vivid Blue]
-            putStrLn $ pad (show lineNo) ++ " " ++ str
+                return ()
+            putStrLn $ pad (show (lineNo::Int)) ++ " " ++ str
     freshCount <- view $ logState.undisplayedLines
     logState.undisplayedLines .= 0
     (freshLines, oldLines) <- view $ logState.loggedLines.to (id
@@ -317,16 +318,16 @@ refreshLogWindow = do
         . (replicate (displayCount - totalCount) "" ++)
         . take displayCount)
     liftIO $ do
-        setCursorPosition 35 0
+        setCursorPosition row 0
         setSGR [SetColor Foreground Dull Cyan]
         mapM_ putWithLineNo $ reverse oldLines
         setSGR [SetColor Foreground Dull White]
         mapM_ putWithLineNo $ reverse freshLines
-        setSGR [SetColor Foreground Dull White]
 
 
-printPlayer :: Who -> Player -> IO ()
-printPlayer who p = do
+printPlayer :: Player -> Who -> IO Int
+printPlayer p who = do
+    setSGR [SetColor Foreground Vivid Green]
     let playerName = map toUpper $ show who
         player = playerColumn p
         hand = handColumn $ p^.playerHand
@@ -337,13 +338,17 @@ printPlayer who p = do
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
-    printColumn playerName deckLoc player
-    printColumn "HAND" handLoc hand
-    printColumn "MINIONS" minionsLoc boardMinions
+    n0 <- printColumn playerName deckLoc player
+    n1 <- printColumn "HAND" handLoc hand
+    n2 <- printColumn "MINIONS" minionsLoc boardMinions
+    return $ maximum [n0, n1, n2]
 
 
-printColumn :: String -> Int -> [String] -> IO ()
-printColumn label column = zipWithM_ f [0..] . ([label, replicate (length label) '-', ""] ++ )
+printColumn :: String -> Int -> [String] -> IO Int
+printColumn label column strs = do
+    let strs' = [label, replicate (length label) '-', ""] ++ strs
+    zipWithM_ f [0..] strs'
+    return $ length strs'
     where
         f row str = do
             setCursorPosition row column
