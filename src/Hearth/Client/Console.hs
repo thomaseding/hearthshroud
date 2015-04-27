@@ -354,11 +354,10 @@ renewLogWindow row = do
     where
         isDebug str = "<:" `isInfixOf` str || "</:" `isInfixOf` str
         borderColor = (Dull, Cyan)
-        lineColor = (Vivid, Red)
         oldDebugColor = (Dull, Magenta)
         oldGameColor = (Vivid, Magenta)
         newDebugColor = (Dull, Cyan)
-        newGameColor = (Dull, White)
+        newGameColor = (Dull, Green)
 
 
 printPlayer :: Player -> Who -> IO Int
