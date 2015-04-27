@@ -318,15 +318,18 @@ presentPrompt = liftIO $ do
 
 refreshLogWindow :: Int -> Console ()
 refreshLogWindow row = do
-    let displayCount = screenHeight - 15 - row
+    let displayCount = screenHeight - 13 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
         pad str = replicate (lineNoLen - length str) '0' ++ str
-        putWithLineNo (lineNo, str) = do
-            when (totalCount < displayCount && null str) $ do
-                setSGR [SetColor Foreground Vivid Blue]
-                return ()
-            putStrLn $ pad (show (lineNo::Int)) ++ " " ++ str
+        putWithLineNo intensity color (lineNo, str) = do
+            let lineNoStr = case totalCount < displayCount && null str of
+                    True -> "~"
+                    False -> pad $ show lineNo
+            setSGR [SetColor Foreground Dull Cyan]
+            putStr $ lineNoStr ++ " "
+            setSGR [SetColor Foreground intensity color]
+            putStrLn str
     freshCount <- view $ logState.undisplayedLines
     logState.undisplayedLines .= 0
     (freshLines, oldLines) <- view $ logState.loggedLines.to (id
@@ -338,12 +341,9 @@ refreshLogWindow row = do
         setSGR [SetColor Foreground Dull Cyan]
         setCursorPosition row 0
         putStrLn $ replicate screenWidth '-'
-        putStrLn ""
-        mapM_ putWithLineNo $ reverse oldLines
-        setSGR [SetColor Foreground Dull White]
-        mapM_ putWithLineNo $ reverse freshLines
+        mapM_ (putWithLineNo Dull Magenta) $ reverse oldLines
+        mapM_ (putWithLineNo Dull White) $ reverse freshLines
         setSGR [SetColor Foreground Dull Cyan]
-        putStrLn ""
         putStrLn $ replicate screenWidth '-'
         putStrLn ""
 
