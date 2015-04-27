@@ -59,10 +59,11 @@ import System.Console.ANSI
 
 data LogState = LogState {
     _loggedLines :: [String],
-    _undisplayedLines :: Int,
-    _callDepth :: Int,
-    _useShortTag :: Bool,
-    _quiet :: Bool
+    _totalLines :: !Int,
+    _undisplayedLines :: !Int,
+    _callDepth :: !Int,
+    _useShortTag :: !Bool,
+    _quiet :: !Bool
 } deriving (Show, Eq, Ord)
 makeLenses ''LogState
 
@@ -115,8 +116,9 @@ localQuiet m = do
 
 newLogLine :: Console ()
 newLogLine = zoom logState $ do
-    loggedLines %= ("" :)
+    totalLines += 1
     undisplayedLines += 1
+    loggedLines %= ("" :)
 
 
 appendLogLine :: String -> Console ()
@@ -262,6 +264,7 @@ runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
         st = ConsoleState {
             _logState = LogState {
                 _loggedLines = [""],
+                _totalLines = 1,
                 _undisplayedLines = 1,
                 _callDepth = 0,
                 _useShortTag = False,
@@ -298,20 +301,34 @@ refreshDisplay = do
 
 refreshLogWindow :: Console ()
 refreshLogWindow = do
+    let displayCount = 70
+    totalCount <- view $ logState.totalLines
+    let lineNoLen = length $ show totalCount
+        pad str = replicate (lineNoLen - length str) '0' ++ str
+        putWithLineNo (lineNo, str) = do
+            when (totalCount < displayCount && null str) $ do
+                setSGR [SetColor Foreground Vivid Blue]
+            putStrLn $ pad (show lineNo) ++ " " ++ str
     freshCount <- view $ logState.undisplayedLines
     logState.undisplayedLines .= 0
-    (freshLines, oldLines) <- view $ logState.loggedLines.to (splitAt freshCount . take 70)
+    (freshLines, oldLines) <- view $ logState.loggedLines.to (id
+        . splitAt (if totalCount < displayCount then min displayCount freshCount + displayCount - totalCount else freshCount)
+        . zip (iterate pred $ max displayCount totalCount)
+        . (replicate (displayCount - totalCount) "" ++)
+        . take displayCount)
     liftIO $ do
         setCursorPosition 35 0
         setSGR [SetColor Foreground Dull Cyan]
-        mapM_ putStrLn $ reverse oldLines
+        mapM_ putWithLineNo $ reverse oldLines
         setSGR [SetColor Foreground Dull White]
-        mapM_ putStrLn $ reverse freshLines
+        mapM_ putWithLineNo $ reverse freshLines
+        setSGR [SetColor Foreground Dull White]
 
 
 printPlayer :: Who -> Player -> IO ()
 printPlayer who p = do
-    let player = playerColumn p
+    let playerName = map toUpper $ show who
+        player = playerColumn p
         hand = handColumn $ p^.playerHand
         boardMinions = boardMinionsColumn $ p^.playerMinions
         (deckLoc, handLoc, minionsLoc) = let
@@ -320,14 +337,10 @@ printPlayer who p = do
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
-    printColumn (map toUpper $ show who) deckLoc player
+    printColumn playerName deckLoc player
     printColumn "HAND" handLoc hand
     printColumn "MINIONS" minionsLoc boardMinions
 
-
-
-showDeck :: Deck -> String
-showDeck (Deck cs) = "Deck:" ++ show (length cs)
 
 printColumn :: String -> Int -> [String] -> IO ()
 printColumn label column = zipWithM_ f [0..] . ([label, replicate (length label) '-', ""] ++ )
@@ -335,6 +348,20 @@ printColumn label column = zipWithM_ f [0..] . ([label, replicate (length label)
         f row str = do
             setCursorPosition row column
             putStr str
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
