@@ -247,7 +247,7 @@ instance MonadPrompt HearthPrompt Console where
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = localQuiet $ runQuery snapshot $ do
-    refreshDisplay
+    renewDisplay
     lift presentPrompt
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
@@ -297,15 +297,15 @@ data Who = Alice | Bob
     deriving (Show, Eq, Ord)
 
 
-refreshDisplay :: Hearth Console ()
-refreshDisplay = do
+renewDisplay :: Hearth Console ()
+renewDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
     deepestPlayer <- liftIO $ do
         clearScreen
         setSGR [SetColor Foreground Dull White]
         foldM (\n -> liftM (max n) . uncurry printPlayer) 0 (zip ps [Alice, Bob])
     lift $ do
-        refreshLogWindow $ deepestPlayer + 1
+        renewLogWindow $ deepestPlayer + 1
 
 
 presentPrompt :: Console ()
@@ -316,36 +316,49 @@ presentPrompt = liftIO $ do
     return ()
 
 
-refreshLogWindow :: Int -> Console ()
-refreshLogWindow row = do
+renewLogWindow :: Int -> Console ()
+renewLogWindow row = do
     let displayCount = screenHeight - 13 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
-        pad str = replicate (lineNoLen - length str) '0' ++ str
-        putWithLineNo intensity color (lineNo, str) = do
-            let lineNoStr = case totalCount < displayCount && null str of
-                    True -> "~"
-                    False -> pad $ show lineNo
-            setSGR [SetColor Foreground Dull Cyan]
-            putStr $ lineNoStr ++ " "
+        padWith c str = replicate (lineNoLen - length str) c ++ str
+        putWithLineNo debugConfig gameConfig (lineNo, str) = do
+            let config = case isDebug str of
+                    True -> debugConfig
+                    False -> gameConfig
+                (intensity, color) = config
+                lineNoStr = case totalCount < displayCount && null str of
+                    True -> reverse $ padWith ' ' "~"
+                    False -> padWith '0' $ show lineNo
+            setSGR [SetColor Background Dull Blue, SetColor Foreground Vivid Black ]
+            putStr $ lineNoStr
+            setSGR [SetColor Background Dull Black]
             setSGR [SetColor Foreground intensity color]
-            putStrLn str
-    freshCount <- view $ logState.undisplayedLines
+            putStrLn $ " " ++ str
+    newCount <- view $ logState.undisplayedLines
     logState.undisplayedLines .= 0
-    (freshLines, oldLines) <- view $ logState.loggedLines.to (id
-        . splitAt (if totalCount < displayCount then min displayCount freshCount + displayCount - totalCount else freshCount)
+    (newLines, oldLines) <- view $ logState.loggedLines.to (id
+        . splitAt (if totalCount < displayCount then min displayCount newCount + displayCount - totalCount else newCount)
         . zip (iterate pred $ max displayCount totalCount)
         . (replicate (displayCount - totalCount) "" ++)
         . take displayCount)
     liftIO $ do
-        setSGR [SetColor Foreground Dull Cyan]
+        setSGR [SetColor Foreground (fst borderColor) (snd borderColor)]
         setCursorPosition row 0
         putStrLn $ replicate screenWidth '-'
-        mapM_ (putWithLineNo Dull Magenta) $ reverse oldLines
-        mapM_ (putWithLineNo Dull White) $ reverse freshLines
-        setSGR [SetColor Foreground Dull Cyan]
+        mapM_ (putWithLineNo oldDebugColor oldGameColor) $ reverse oldLines
+        mapM_ (putWithLineNo newDebugColor newGameColor) $ reverse newLines
+        setSGR [SetColor Foreground (fst borderColor) (snd borderColor)]
         putStrLn $ replicate screenWidth '-'
         putStrLn ""
+    where
+        isDebug str = "<:" `isInfixOf` str || "</:" `isInfixOf` str
+        borderColor = (Dull, Cyan)
+        lineColor = (Vivid, Red)
+        oldDebugColor = (Dull, Magenta)
+        oldGameColor = (Vivid, Magenta)
+        newDebugColor = (Dull, Cyan)
+        newGameColor = (Dull, White)
 
 
 printPlayer :: Player -> Who -> IO Int
