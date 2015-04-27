@@ -61,6 +61,10 @@ screenWidth :: Int
 screenWidth = 150
 
 
+screenHeight :: Int
+screenHeight = 113
+
+
 data LogState = LogState {
     _loggedLines :: [String],
     _totalLines :: !Int,
@@ -244,6 +248,7 @@ instance MonadPrompt HearthPrompt Console where
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = localQuiet $ runQuery snapshot $ do
     refreshDisplay
+    lift presentPrompt
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
     mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
@@ -302,13 +307,10 @@ refreshDisplay = do
     lift $ do
         refreshLogWindow $ deepestPlayer + 1
 
-        presentPrompt
-
 
 presentPrompt :: Console ()
 presentPrompt = liftIO $ do
     setSGR [SetColor Foreground Dull White]
-    putStrLn ""
     putStr "> "
     _ <- getLine
     return ()
@@ -316,7 +318,7 @@ presentPrompt = liftIO $ do
 
 refreshLogWindow :: Int -> Console ()
 refreshLogWindow row = do
-    let displayCount = 106 - row
+    let displayCount = screenHeight - 15 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
         pad str = replicate (lineNoLen - length str) '0' ++ str
@@ -340,6 +342,10 @@ refreshLogWindow row = do
         mapM_ putWithLineNo $ reverse oldLines
         setSGR [SetColor Foreground Dull White]
         mapM_ putWithLineNo $ reverse freshLines
+        setSGR [SetColor Foreground Dull Cyan]
+        putStrLn ""
+        putStrLn $ replicate screenWidth '-'
+        putStrLn ""
 
 
 printPlayer :: Player -> Who -> IO Int
