@@ -49,7 +49,7 @@ newtype Attack = Attack { unAttack :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype Armor = Armor Int
+newtype Armor = Armor { unArmor :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 

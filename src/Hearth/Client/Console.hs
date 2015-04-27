@@ -43,6 +43,7 @@ import Hearth.Action
 import Hearth.Cards
 import Hearth.Client.Console.BoardMinionsColumn
 import Hearth.Client.Console.HandColumn
+import Hearth.Client.Console.PlayerColumn
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
@@ -310,7 +311,7 @@ refreshLogWindow = do
 
 printPlayer :: Who -> Player -> IO ()
 printPlayer who p = do
-    let deck = showDeck $ p^.playerDeck
+    let player = playerColumn p
         hand = handColumn $ p^.playerHand
         boardMinions = boardMinionsColumn $ p^.playerMinions
         (deckLoc, handLoc, minionsLoc) = let
@@ -319,7 +320,7 @@ printPlayer who p = do
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
-    printColumn (map toUpper $ show who) deckLoc [deck]
+    printColumn (map toUpper $ show who) deckLoc player
     printColumn "HAND" handLoc hand
     printColumn "MINIONS" minionsLoc boardMinions
 
