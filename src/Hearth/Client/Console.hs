@@ -57,6 +57,10 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
+screenWidth :: Int
+screenWidth = 150
+
+
 data LogState = LogState {
     _loggedLines :: [String],
     _totalLines :: !Int,
@@ -295,8 +299,19 @@ refreshDisplay = do
         clearScreen
         setSGR [SetColor Foreground Dull White]
         foldM (\n -> liftM (max n) . uncurry printPlayer) 0 (zip ps [Alice, Bob])
-    lift $ refreshLogWindow $ deepestPlayer + 3
-    liftIO $ getLine >> return ()
+    lift $ do
+        refreshLogWindow $ deepestPlayer + 1
+
+        presentPrompt
+
+
+presentPrompt :: Console ()
+presentPrompt = liftIO $ do
+    setSGR [SetColor Foreground Dull White]
+    putStrLn ""
+    putStr "> "
+    _ <- getLine
+    return ()
 
 
 refreshLogWindow :: Int -> Console ()
@@ -318,8 +333,10 @@ refreshLogWindow row = do
         . (replicate (displayCount - totalCount) "" ++)
         . take displayCount)
     liftIO $ do
-        setCursorPosition row 0
         setSGR [SetColor Foreground Dull Cyan]
+        setCursorPosition row 0
+        putStrLn $ replicate screenWidth '-'
+        putStrLn ""
         mapM_ putWithLineNo $ reverse oldLines
         setSGR [SetColor Foreground Dull White]
         mapM_ putWithLineNo $ reverse freshLines
@@ -334,7 +351,7 @@ printPlayer p who = do
         boardMinions = boardMinionsColumn $ p^.playerMinions
         (deckLoc, handLoc, minionsLoc) = let
             (x, y, z) = (0, 25, 50)
-            width = 140
+            width = screenWidth - 10
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
