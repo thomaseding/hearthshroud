@@ -52,17 +52,11 @@ import Hearth.Names
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
 import System.Console.ANSI
+import System.Console.Terminal.Size (Window)
+import System.Console.Terminal.Size as Window
 
 
 --------------------------------------------------------------------------------
-
-
-screenWidth :: Int
-screenWidth = 150
-
-
-screenHeight :: Int
-screenHeight = 113
 
 
 data LogState = LogState {
@@ -300,12 +294,13 @@ data Who = Alice | Bob
 renewDisplay :: Hearth Console ()
 renewDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
+    window <- liftIO $ liftM (maybe (Window 79 116) id) Window.size
     deepestPlayer <- liftIO $ do
         clearScreen
         setSGR [SetColor Foreground Dull White]
-        foldM (\n -> liftM (max n) . uncurry printPlayer) 0 (zip ps [Alice, Bob])
+        foldM (\n -> liftM (max n) . uncurry (printPlayer window)) 0 (zip ps [Alice, Bob])
     lift $ do
-        renewLogWindow $ deepestPlayer + 1
+        renewLogWindow window $ deepestPlayer + 1
 
 
 presentPrompt :: Console ()
@@ -316,9 +311,9 @@ presentPrompt = liftIO $ do
     return ()
 
 
-renewLogWindow :: Int -> Console ()
-renewLogWindow row = do
-    let displayCount = screenHeight - 13 - row
+renewLogWindow :: Window Int -> Int -> Console ()
+renewLogWindow window row = do
+    let displayCount = Window.height window - 13 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
         padWith c str = replicate (lineNoLen - length str) c ++ str
@@ -345,11 +340,11 @@ renewLogWindow row = do
     liftIO $ do
         setSGR [SetColor Foreground (fst borderColor) (snd borderColor)]
         setCursorPosition row 0
-        putStrLn $ replicate screenWidth '-'
+        putStrLn $ replicate (Window.width window) '-'
         mapM_ (putWithLineNo oldDebugColor oldGameColor) $ reverse oldLines
         mapM_ (putWithLineNo newDebugColor newGameColor) $ reverse newLines
         setSGR [SetColor Foreground (fst borderColor) (snd borderColor)]
-        putStrLn $ replicate screenWidth '-'
+        putStrLn $ replicate (Window.width window) '-'
         putStrLn ""
     where
         isDebug str = "<:" `isInfixOf` str || "</:" `isInfixOf` str
@@ -360,8 +355,8 @@ renewLogWindow row = do
         newGameColor = (Dull, Green)
 
 
-printPlayer :: Player -> Who -> IO Int
-printPlayer p who = do
+printPlayer :: Window Int -> Player -> Who -> IO Int
+printPlayer window p who = do
     setSGR [SetColor Foreground Vivid Green]
     let playerName = map toUpper $ show who
         player = playerColumn p
@@ -369,7 +364,7 @@ printPlayer p who = do
         boardMinions = boardMinionsColumn $ p^.playerMinions
         (deckLoc, handLoc, minionsLoc) = let
             (x, y, z) = (0, 25, 50)
-            width = screenWidth - 10
+            width = Window.width window - 10
             in case who of
                 Alice -> (x, y, z)
                 Bob -> (width - x, width - y, width - z)
