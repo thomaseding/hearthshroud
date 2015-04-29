@@ -376,7 +376,7 @@ pumpTurn' = logCall 'pumpTurn' $ do
     snapshot <- gets GameSnapshot
     prompt (PromptAction snapshot) >>= \case
         ActionPlayerConceded _ -> $todo "concede"
-        ActionPlayCard card -> actionPlayCard card
+        ActionPlayCard card pos -> actionPlayCard card pos
         ActionEndTurn -> return EndTurn
 
 
@@ -384,8 +384,14 @@ isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
 isCardInHand handle card = logCall 'isCardInHand $ local id $ removeFromHand handle card
 
 
+insertAt :: Int -> a -> [a] -> [a]
+insertAt n x xs = let
+    (left, right) = splitAt n xs
+    in left ++ [x] ++ right
+
+
 placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m Result
-placeOnBoard handle _ minion = logCall 'placeOnBoard $ do
+placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     let minion' = BoardMinion {
             _boardMinionCurrAttack = minion^.minionAttack,
@@ -396,22 +402,24 @@ placeOnBoard handle _ minion = logCall 'placeOnBoard $ do
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
             7 -> return Failure
-            _ -> do
-                id %= (minion' :)
-                return Success
+            len -> case 0 <= pos && pos <= len of
+                False -> return Failure
+                True -> do
+                    id %= insertAt pos minion'
+                    return Success
 
 
-actionPlayCard :: (HearthMonad m) => HandCard -> Hearth m TurnEvolution
-actionPlayCard card = do
+actionPlayCard :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m TurnEvolution
+actionPlayCard card pos = do
     handle <- getActivePlayerHandle
-    _ <- playCard handle card
+    _ <- playCard handle card pos
     return ContinueTurn
 
 
-playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
-playCard handle card = logCall 'playCard $ do
+playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
+playCard handle card pos = logCall 'playCard $ do
     st <- get
-    result <- playCard' handle card >>= \case
+    result <- playCard' handle card pos >>= \case
         Success -> return Success
         Failure -> do
             put st
@@ -420,14 +428,14 @@ playCard handle card = logCall 'playCard $ do
     return result
 
 
-playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
-playCard' handle card = logCall 'playCard' $ removeFromHand handle card >>= \case
+playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
+playCard' handle card pos = logCall 'playCard' $ removeFromHand handle card >>= \case
     False -> return Failure
     True -> do
         payCost handle (costOf card) >>= \case
             Failure -> return Failure
             Success -> case card of
-                HandCardMinion minion -> placeOnBoard handle BoardPos $ case minion of
+                HandCardMinion minion -> placeOnBoard handle pos $ case minion of
                     HandMinion minion' -> minion'
 
 

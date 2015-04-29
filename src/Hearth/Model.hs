@@ -41,6 +41,10 @@ newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+newtype BoardPos = BoardPos Int
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 newtype Mana = Mana Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
@@ -220,10 +224,6 @@ data GameState = GameState {
     _gamePlayers :: [Player]
 } deriving (Show, Eq, Ord, Typeable)
 makeLenses ''GameState
-
-
-data BoardPos :: * where
-    BoardPos :: BoardPos
 
 
 data GameSnapshot = GameSnapshot {

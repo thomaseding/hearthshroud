@@ -39,6 +39,7 @@ import Data.Char
 import Data.Data
 import Data.Generics.Uniplate.Data
 import Data.List
+import Data.Maybe
 import Data.NonEmpty
 import Data.String
 import Hearth.Action
@@ -57,6 +58,7 @@ import Language.Haskell.TH.Syntax (nameBase)
 import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import System.Console.Terminal.Size as Window
+import Text.Read (readMaybe)
 
 
 --------------------------------------------------------------------------------
@@ -183,11 +185,11 @@ gameEvent e = unlessM isQuiet $ do
                 ++ cardAttr
                 ++ " deck=" ++ quote (length deck)
                 ++ " />"
-        PlayedCard (PlayerHandle who) card result -> case result of
-            Failure -> ""
-            Success -> "<playedCard"
+        PlayedCard (PlayerHandle who) card result -> let
+            in "<playedCard"
                 ++ " handle=" ++ quote who
                 ++ " card=" ++ quote (simpleName card)
+                ++ " result=" ++ quote result
                 ++ " />"
         HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
             newHealth = oldHealth - damage
@@ -306,7 +308,7 @@ data ConsoleAction :: * -> * where
 data PromptInfo m a = PromptInfo {
     _key :: String,
     _desc :: String,
-    _action :: m (Maybe a)
+    _action :: [Int] -> m (Maybe a)
 }
 
 
@@ -314,42 +316,64 @@ presentPrompt :: (MonadIO m) => m a -> [PromptInfo m a] -> m a
 presentPrompt retry promptInfos = do
     response <- liftM (map toLower) $ liftIO $ do
         setSGR [SetColor Foreground Dull White]
-        forM_ promptInfos $ \pi -> putStrLn $ "* " ++ _key pi ++ _desc pi
+        forM_ promptInfos $ \pi -> putStrLn $ "-<" ++ _key pi ++ _desc pi
         putStrLn ""
         putStr "> "
         getLine
     let mPromptInfo = flip find promptInfos $ \pi -> map toLower (_key pi) `isPrefixOf` response
     case mPromptInfo of
         Nothing -> retry
-        Just pi -> _action pi >>= \case
-            Nothing -> retry
-            Just result -> return result
+        Just pi -> let
+            args = map readMaybe $ words $ drop (length $ _key pi) response
+            args' = catMaybes args
+            in case length args == length args' of
+                False -> retry
+                True -> _action pi args' >>= \case
+                    Nothing -> retry
+                    Just result -> return result
 
 
 actionPrompts :: [PromptInfo (Hearth Console) Action]
 actionPrompts = [
-    PromptInfo "E" " - End Turn" $ return $ Just ActionEndTurn,
-    PromptInfo "P" " - Play card" playCardAction ]
+    PromptInfo "0" ">- End Turn" endTurnAction,
+    PromptInfo "1" ">- Play Card: WHICH WHERE" playCardAction ]
 
 
-playCardAction :: Hearth Console (Maybe Action)
-playCardAction = do
-    handle <- getActivePlayerHandle
-    cards <- view $ getPlayer handle.playerHand.handCards
-    mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
-        Failure -> return False
-        Success -> return True
-    case mCard of
-        Nothing -> return Nothing
-        Just card -> return $ Just $ ActionPlayCard card
+endTurnAction :: [Int] -> Hearth Console (Maybe Action)
+endTurnAction = \case
+    [] -> return $ Just ActionEndTurn
+    _ -> return Nothing
+
+
+lookupIndex :: [a] -> Int -> Maybe a
+lookupIndex (x:xs) n = case n == 0 of
+    True -> Just x
+    False -> lookupIndex xs (n - 1)
+lookupIndex [] _ = Nothing
+
+
+playCardAction :: [Int] -> Hearth Console (Maybe Action)
+playCardAction = \case
+    [handIdx, boardIdx] -> do
+        handle <- getActivePlayerHandle
+        cards <- view $ getPlayer handle.playerHand.handCards
+        boardLen <- view $ getPlayer handle.playerMinions.to length
+        let mCard = lookupIndex cards $ length cards - handIdx
+        case mCard of
+            Nothing -> return Nothing
+            Just card -> case 0 < boardIdx && boardIdx <= boardLen + 1 of
+                False -> return Nothing
+                True -> return $ Just $ ActionPlayCard card $ BoardPos $ boardIdx - 1
+    _ -> return Nothing
 
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
-    let go = do
+    let go m = do
             renewDisplay
-            presentPrompt go actionPrompts
-    action <- localQuiet $ runQuery snapshot go
+            m
+            presentPrompt (go $ liftIO $ putStrLn "BAD PARSE") actionPrompts
+    action <- runQuery snapshot $ go $ return ()
     logState.undisplayedLines .= 0
     return action
 
