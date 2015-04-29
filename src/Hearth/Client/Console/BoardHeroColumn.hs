@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 
@@ -15,12 +16,14 @@ import Control.Lens
 import Data.List
 import Hearth.Model
 import Hearth.Cards
+import Hearth.Client.Console.SGRString
+import System.Console.ANSI
 
 
 --------------------------------------------------------------------------------
 
 
-boardHeroColumn :: BoardHero -> [String]
+boardHeroColumn :: BoardHero -> [SGRString]
 boardHeroColumn = concat . withEach [
     txt "Health",
     txt "------",
@@ -30,8 +33,8 @@ boardHeroColumn = concat . withEach [
     txt "-----",
     toTxt . unArmor . _boardHeroArmor ]
     where
-        txt str = return . const str
-        toTxt = return . show
+        txt str = return . (sgrColor (Dull, Green) ++) . const str
+        toTxt = return . (sgrColor (Vivid, Green) ++) . sgrShow
 
 
 withEach :: [a -> b] -> a -> [b]

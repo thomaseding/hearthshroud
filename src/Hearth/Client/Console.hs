@@ -409,30 +409,23 @@ printPlayer window p who = do
         (deckLoc, handLoc, minionsLoc) = case who of
                 Alice -> (0, wx, wx + wy)
                 Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
-    n0 <- printColumn (take wx playerName) deckLoc player
-    n1 <- printColumn' "HAND" handLoc hand
-    n2 <- printColumn' "MINIONS" minionsLoc boardMinions
+    n0 <- printColumn True (take wx playerName) deckLoc player
+    n1 <- printColumn True "HAND" handLoc hand
+    n2 <- printColumn False "   MINIONS" minionsLoc boardMinions
     return $ maximum [n0, n1, n2]
 
 
-printColumn :: String -> Int -> [String] -> IO Int
-printColumn label column strs = do
-    let strs' = [label, replicate (length label) '-', ""] ++ strs
+printColumn :: Bool -> String -> Int -> [SGRString] -> IO Int
+printColumn extraLine label column strs = do
+    let strs' = [
+            fromString label,
+            fromString $ replicate (length $ takeWhile isSpace label) ' ' ++ replicate (length $ dropWhile isSpace label) '-'
+            ] ++ (if extraLine then [""] else []) ++ strs
     zipWithM_ f [0..] strs'
     return $ length strs'
     where
         f row str = do
-            setCursorPosition row column
-            putStr str
-
-
-printColumn' :: SGRString -> Int -> [SGRString] -> IO Int
-printColumn' label column strs = do
-    let strs' = [label, fromString $ replicate (length label) '-', ""] ++ strs
-    zipWithM_ f [0..] strs'
-    return $ length strs'
-    where
-        f row str = do
+            setSGR [SetColor Foreground Dull Cyan]
             setCursorPosition row column
             forM_ str $ \case
                 Left sgr -> setSGR [sgr]

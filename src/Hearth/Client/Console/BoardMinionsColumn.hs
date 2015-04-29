@@ -23,7 +23,11 @@ import System.Console.ANSI
 
 
 boardMinionsColumn :: [BoardMinion] -> [SGRString]
-boardMinionsColumn = intercalate [[]] . map boardMinionColumn . zip [1..]
+boardMinionsColumn = concat . reverse . foldl' f [label 0] . zip [1..] . map boardMinionColumn . zip [1..]
+    where
+        labels = map (\c -> "<" ++ [c] ++ ">") "ABCDEFGH"
+        label idx = [sgrColor (Dull, Magenta) ++ (labels !! idx)]
+        f sss (idx, ss) = (ss ++ label idx) : sss
 
 
 boardMinionColumn :: (Int, BoardMinion) -> [SGRString]
@@ -45,7 +49,7 @@ boardMinionColumn (idx, bm) = let
         c = sgrColor (Dull, White)
         in attack ++ c ++ "/" ++ health
     pad = if idx < 10 then " " else ""
-    in [header, "    " ++ stats]
+    in map ("   " ++) [header, "    " ++ stats]
 
 
 
