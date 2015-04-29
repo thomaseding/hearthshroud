@@ -324,7 +324,10 @@ presentPrompt retry promptInfos = do
     case mPromptInfo of
         Nothing -> retry
         Just pi -> let
-            args = map readMaybe $ words $ drop (length $ _key pi) response
+            massage = \case
+                '+' -> ' '
+                c -> c
+            args = map readMaybe $ words $ map massage $ drop (length $ _key pi) response
             args' = catMaybes args
             in case length args == length args' of
                 False -> retry
