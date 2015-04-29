@@ -201,9 +201,9 @@ gameEvent e = unlessM isQuiet $ do
                 ++ " />"
         GainsManaCrystal (PlayerHandle who) mCrystalState -> let
             stateAttr = case mCrystalState of
-                Nothing -> "none"
-                Just CrystalFull -> "full"
-                Just CrystalEmpty -> "empty"
+                Nothing -> "None"
+                Just CrystalFull -> "Full"
+                Just CrystalEmpty -> "Empty"
             in "<gainsManaCrystal"
                 ++ " handle=" ++ quote who
                 ++ " crystal=" ++ show stateAttr

@@ -18,6 +18,7 @@ import Hearth.Model
 import Hearth.Cards
 import Hearth.Client.Console.BoardHeroColumn
 import Hearth.Client.Console.DeckColumn
+import Hearth.Client.Console.ManaColumn
 import Hearth.Client.Console.SGRString
 import System.Console.ANSI
 
@@ -28,6 +29,8 @@ import System.Console.ANSI
 playerColumn :: Player -> [SGRString]
 playerColumn = concat . withEach [
     deckColumn . _playerDeck,
+    txt "",
+    manaColumn,
     txt "",
     boardHeroColumn . _playerHero ]
     where
