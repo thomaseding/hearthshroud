@@ -25,8 +25,8 @@ import System.Console.ANSI
 boardMinionsColumn :: [BoardMinion] -> [SGRString]
 boardMinionsColumn = concat . reverse . foldl' f [label 0] . zip [1..] . map boardMinionColumn . zip [1..]
     where
-        labels = map (\c -> "<" ++ [c] ++ ">") "ABCDEFGH"
-        label idx = [sgrColor (Dull, Magenta) ++ (labels !! idx)]
+        label' idx = "<" ++ sgrShow (idx + 1) ++ ">"
+        label idx = [sgrColor (Dull, Magenta) ++ label' idx]
         f sss (idx, ss) = (ss ++ label idx) : sss
 
 
