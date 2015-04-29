@@ -20,11 +20,11 @@ import Hearth.Names
 
 
 boardMinionsColumn :: [BoardMinion] -> [String]
-boardMinionsColumn = intercalate [[]] . map boardMinionColumn
+boardMinionsColumn = intercalate [[]] . map boardMinionColumn . zip [1..]
 
 
-boardMinionColumn :: BoardMinion -> [String]
-boardMinionColumn bm = let
+boardMinionColumn :: (Int, BoardMinion) -> [String]
+boardMinionColumn (idx, bm) = let
     minion = _boardMinion bm
     parens s = "(" ++ s ++ ")"
     name = show $ case minion^.minionName of
@@ -35,7 +35,8 @@ boardMinionColumn bm = let
     health = show $ unHealth $ minion^.minionHealth
     header = unwords [name, mana]
     stats = attack ++ "/" ++ health
-    in [header, stats]
+    pad = if idx < 10 then " " else ""
+    in [show idx ++ "." ++ pad ++ header, "    [" ++ stats ++ "]"]
 
 
 

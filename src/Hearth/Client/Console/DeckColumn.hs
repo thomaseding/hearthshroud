@@ -20,7 +20,7 @@ import Hearth.Cards
 
 deckColumn :: Deck -> [String]
 deckColumn (Deck cs) = [
-    "DECK",
+    "Deck",
     "----",
     show $ length cs ]
 

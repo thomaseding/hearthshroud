@@ -21,17 +21,17 @@ import Hearth.Names
 
 handColumn :: Hand -> [String]
 handColumn (Hand cs) = let
-    cs' = map cardColumn $ reverse cs
+    cs' = map cardColumn $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 
 
-cardColumn :: HandCard -> [String]
+cardColumn :: (Int, HandCard) -> [String]
 cardColumn = \case
-    HandCardMinion (HandMinion minion) -> minionColumn minion
+    (idx, HandCardMinion (HandMinion minion)) -> minionColumn idx minion
 
 
-minionColumn :: Minion -> [String]
-minionColumn minion = let
+minionColumn :: Int -> Minion -> [String]
+minionColumn idx minion = let
     parens s = "(" ++ s ++ ")"
     name = show $ case minion^.minionName of
         BasicCardName name -> name
@@ -41,7 +41,8 @@ minionColumn minion = let
     health = show $ unHealth $ minion^.minionHealth
     header = unwords [name, mana]
     stats = attack ++ "/" ++ health
-    in [header, stats]
+    pad = if idx < 10 then " " else ""
+    in [show idx ++ "." ++ pad ++ header, "    [" ++ stats ++ "]"]
 
 
 

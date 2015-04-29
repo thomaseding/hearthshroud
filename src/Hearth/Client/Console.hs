@@ -401,13 +401,12 @@ printPlayer window p who = do
         player = playerColumn p
         hand = handColumn $ p^.playerHand
         boardMinions = boardMinionsColumn $ p^.playerMinions
-        (deckLoc, handLoc, minionsLoc) = let
-            (x, y, z) = (0, 25, 50)
-            width = Window.width window - 10
-            in case who of
-                Alice -> (x, y, z)
-                Bob -> (width - x, width - y, width - z)
-    n0 <- printColumn playerName deckLoc player
+        (wx, wy, wz) = (15, 30, 30)
+        width = Window.width window
+        (deckLoc, handLoc, minionsLoc) = case who of
+                Alice -> (0, wx, wx + wy)
+                Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
+    n0 <- printColumn (take wx playerName) deckLoc player
     n1 <- printColumn "HAND" handLoc hand
     n2 <- printColumn "MINIONS" minionsLoc boardMinions
     return $ maximum [n0, n1, n2]
