@@ -8,6 +8,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -39,11 +40,13 @@ import Data.Data
 import Data.Generics.Uniplate.Data
 import Data.List
 import Data.NonEmpty
+import Data.String
 import Hearth.Action
 import Hearth.Cards
 import Hearth.Client.Console.BoardMinionsColumn
 import Hearth.Client.Console.HandColumn
 import Hearth.Client.Console.PlayerColumn
+import Hearth.Client.Console.SGRString
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
@@ -407,8 +410,8 @@ printPlayer window p who = do
                 Alice -> (0, wx, wx + wy)
                 Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
     n0 <- printColumn (take wx playerName) deckLoc player
-    n1 <- printColumn "HAND" handLoc hand
-    n2 <- printColumn "MINIONS" minionsLoc boardMinions
+    n1 <- printColumn' "HAND" handLoc hand
+    n2 <- printColumn' "MINIONS" minionsLoc boardMinions
     return $ maximum [n0, n1, n2]
 
 
@@ -421,6 +424,19 @@ printColumn label column strs = do
         f row str = do
             setCursorPosition row column
             putStr str
+
+
+printColumn' :: SGRString -> Int -> [SGRString] -> IO Int
+printColumn' label column strs = do
+    let strs' = [label, fromString $ replicate (length label) '-', ""] ++ strs
+    zipWithM_ f [0..] strs'
+    return $ length strs'
+    where
+        f row str = do
+            setCursorPosition row column
+            forM_ str $ \case
+                Left sgr -> setSGR [sgr]
+                Right c -> putChar c
 
 
 
