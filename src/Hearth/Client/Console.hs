@@ -239,20 +239,6 @@ instance MonadPrompt HearthPrompt Console where
         PromptMulligan _ xs -> return xs
 
 
-getAction :: GameSnapshot -> Console Action
-getAction snapshot = localQuiet $ runQuery snapshot $ do
-    renewDisplay
-    lift presentPrompt
-    handle <- getActivePlayerHandle
-    cards <- view $ getPlayer handle.playerHand.handCards
-    mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
-        Failure -> return False
-        Success -> return True
-    case mCard of
-        Nothing -> return ActionEndTurn
-        Just card -> return $ ActionPlayCard card
-
-
 main :: IO ()
 main = do
     result <- finally runTestGame $ do
@@ -291,10 +277,16 @@ data Who = Alice | Bob
     deriving (Show, Eq, Ord)
 
 
+getWindowSize :: IO (Window Int)
+getWindowSize = Window.size >>= \case
+    Nothing -> $runtimeError 'getWindowSize "Could not get window size."
+    Just w -> return $ w { width = Window.width w - 1 }
+
+
 renewDisplay :: Hearth Console ()
 renewDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
-    window <- liftIO $ liftM (maybe (Window 79 116) id) Window.size
+    window <- liftIO getWindowSize
     deepestPlayer <- liftIO $ do
         clearScreen
         setSGR [SetColor Foreground Dull White]
@@ -303,17 +295,65 @@ renewDisplay = do
         renewLogWindow window $ deepestPlayer + 1
 
 
-presentPrompt :: Console ()
-presentPrompt = liftIO $ do
-    setSGR [SetColor Foreground Dull White]
-    putStr "> "
-    _ <- getLine
-    return ()
+data ConsoleAction :: * -> * where
+    QuitAction :: ConsoleAction ()
+    GameAction :: ConsoleAction Action
+
+
+data PromptInfo m a = PromptInfo {
+    _key :: String,
+    _desc :: String,
+    _action :: m (Maybe a)
+}
+
+
+presentPrompt :: (MonadIO m) => m a -> [PromptInfo m a] -> m a
+presentPrompt retry promptInfos = do
+    response <- liftM (map toLower) $ liftIO $ do
+        setSGR [SetColor Foreground Dull White]
+        forM_ promptInfos $ \pi -> putStrLn $ "* " ++ _key pi ++ _desc pi
+        putStrLn ""
+        putStr "> "
+        getLine
+    let mPromptInfo = flip find promptInfos $ \pi -> map toLower (_key pi) `isPrefixOf` response
+    case mPromptInfo of
+        Nothing -> retry
+        Just pi -> _action pi >>= \case
+            Nothing -> retry
+            Just result -> return result
+
+
+actionPrompts :: [PromptInfo (Hearth Console) Action]
+actionPrompts = [
+    PromptInfo "E" " - End Turn" $ return $ Just ActionEndTurn,
+    PromptInfo "P" " - Play card" playCardAction ]
+
+
+playCardAction :: Hearth Console (Maybe Action)
+playCardAction = do
+    handle <- getActivePlayerHandle
+    cards <- view $ getPlayer handle.playerHand.handCards
+    mCard <- flip firstM cards $ \card -> playCard handle card >>= \case
+        Failure -> return False
+        Success -> return True
+    case mCard of
+        Nothing -> return Nothing
+        Just card -> return $ Just $ ActionPlayCard card
+
+
+getAction :: GameSnapshot -> Console Action
+getAction snapshot = do
+    let go = do
+            renewDisplay
+            presentPrompt go actionPrompts
+    action <- localQuiet $ runQuery snapshot go
+    logState.undisplayedLines .= 0
+    return action
 
 
 renewLogWindow :: Window Int -> Int -> Console ()
 renewLogWindow window row = do
-    let displayCount = Window.height window - 13 - row
+    let displayCount = Window.height window - 20 - row
     totalCount <- view $ logState.totalLines
     let lineNoLen = length $ show totalCount
         padWith c str = replicate (lineNoLen - length str) c ++ str
@@ -331,7 +371,6 @@ renewLogWindow window row = do
             setSGR [SetColor Foreground intensity color]
             putStrLn $ " " ++ str
     newCount <- view $ logState.undisplayedLines
-    logState.undisplayedLines .= 0
     (newLines, oldLines) <- view $ logState.loggedLines.to (id
         . splitAt (if totalCount < displayCount then min displayCount newCount + displayCount - totalCount else newCount)
         . zip (iterate pred $ max displayCount totalCount)

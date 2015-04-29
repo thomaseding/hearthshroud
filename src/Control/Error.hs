@@ -7,6 +7,7 @@ module Control.Error (
     todo,
     logicError,
     debugShow,
+    runtimeError,
 ) where
 
 
@@ -37,19 +38,23 @@ class Stringy a where
 
 
 instance Stringy String where
-    stringy = id
+    stringy = show
 
 
 instance Stringy Name where
-    stringy = nameBase
+    stringy = stringy . nameBase
 
 
 todo :: Q Exp
-todo = withLocatedError [| \e msg -> e $ "TODO " ++ show (stringy msg) |]
+todo = withLocatedError [| \e msg -> e $ "TODO " ++ stringy msg |]
 
 
 logicError :: Q Exp
-logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ show (stringy msg) |]
+logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ stringy msg |]
+
+
+runtimeError :: Q Exp
+runtimeError = withLocatedError [| \e msg -> e $ "Runtime error: " ++ stringy msg |]
 
 
 debugShow :: Q Exp
