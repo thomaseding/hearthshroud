@@ -358,6 +358,7 @@ actionPrompts quietRetry complainRetry = [
 helpAction :: Hearth Console Action -> [Int] -> Hearth Console Action
 helpAction retry _ = do
     liftIO $ do
+        putStrLn ""
         putStrLn "Usage:"
         putStrLn "> COMMAND ARG1 ARG2 ARG3 ..."
         putStrLn "Spaces and pluses are used to delimit arguments."
@@ -418,8 +419,14 @@ getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
     let go complain = do
             renewDisplay
-            when complain $ liftIO $ putStrLn "BAD PARSE"
-            presentPrompt (go True) $ actionPrompts (go False) (go True)
+            case complain of
+                True -> do
+                    liftIO $ do
+                        setSGR [SetColor Foreground Dull White]
+                        putStrLn "** UNKNOWN COMMAND **"
+                        putStrLn ""
+                    helpAction (go False) []
+                False -> presentPrompt (go True) $ actionPrompts (go False) (go True)
     action <- localQuiet $ runQuery snapshot $ go False
     logState.undisplayedLines .= 0
     return action
