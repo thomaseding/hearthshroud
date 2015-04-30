@@ -110,7 +110,14 @@ data Effect :: * where
 
 
 data Ability :: * where
-    Charge :: Ability
+    KeywordAbility :: KeywordAbility -> Ability
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+data KeywordAbility :: * where
+    Charge :: KeywordAbility
+    DivineShield :: KeywordAbility
+    Taunt :: KeywordAbility
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
@@ -130,6 +137,7 @@ data Minion = Minion {
     _minionCost :: Cost,
     _minionAttack :: Attack,
     _minionHealth :: Health,
+    _minionAbilities :: [Ability],
     _minionName :: CardName
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''Minion
@@ -140,6 +148,7 @@ data BoardMinion = BoardMinion {
     _boardMinionCurrHealth :: Health,
     _boardMinionEnchantments :: [Enchantment],
     _boardMinionHandle :: MinionHandle,
+    _boardMinionAbilities :: [Ability],
     _boardMinion :: Minion
 } deriving (Show, Eq, Ord, Data, Typeable)
 makeLenses ''BoardMinion

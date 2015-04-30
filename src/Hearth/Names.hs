@@ -35,6 +35,7 @@ data BasicHeroName
 
 data CardName :: * where
     BasicCardName :: BasicCardName -> CardName
+    ClassicCardName :: ClassicCardName -> CardName
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
@@ -43,11 +44,18 @@ data BasicCardName
     | BoulderfistOgre
     | ChillwindYeti
     | CoreHound
+    | FrostwolfGrunt
     | MagmaRager
     | MurlocRaider
     | OasisSnapjaw
     | RiverCrocolisk
     | WarGolem
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+data ClassicCardName
+    = ArgentSquire
+    | Sunwalker
     deriving (Show, Eq, Ord, Data, Typeable)
 
 

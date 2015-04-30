@@ -37,6 +37,7 @@ import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Char
 import Data.Data
+import Data.Either
 import Data.Generics.Uniplate.Data
 import Data.List
 import Data.Maybe
@@ -179,7 +180,7 @@ gameEvent e = unlessM isQuiet $ do
         CardDrawn (PlayerHandle who) (mCard) (Deck deck) -> let
             cardAttr = case mCard of
                 Nothing -> ""
-                Just card -> " card=" ++ quote (simpleName card)
+                Just card -> " card=" ++ show (simpleName card)
             in "<cardDrawn"
                 ++ " handle=" ++ quote who
                 ++ cardAttr
@@ -188,7 +189,7 @@ gameEvent e = unlessM isQuiet $ do
         PlayedCard (PlayerHandle who) card result -> let
             in "<playedCard"
                 ++ " handle=" ++ quote who
-                ++ " card=" ++ quote (simpleName card)
+                ++ " card=" ++ show (simpleName card)
                 ++ " result=" ++ quote result
                 ++ " />"
         HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
@@ -228,9 +229,11 @@ gameEvent e = unlessM isQuiet $ do
         quote = show . show
 
 
-simpleName :: (Data a) => a -> BasicCardName
+simpleName :: (Data a) => a -> String
 simpleName card = case universeBi card of
-    [name] -> name
+    [cardName] -> case cardName of
+        BasicCardName name -> show name
+        ClassicCardName name -> show name
     _ -> $logicError 'simpleName
 
 
@@ -292,9 +295,10 @@ renewDisplay :: Hearth Console ()
 renewDisplay = do
     ps <- mapM (view . getPlayer) =<< getPlayerHandles
     window <- liftIO getWindowSize
-    deepestPlayer <- liftIO $ do
-        clearScreen
-        setSGR [SetColor Foreground Dull White]
+    deepestPlayer <- do
+        liftIO $ do
+            clearScreen
+            setSGR [SetColor Foreground Dull White]
         foldM (\n -> liftM (max n) . uncurry (printPlayer window)) 0 (zip ps [Alice, Bob])
     lift $ do
         renewLogWindow window $ deepestPlayer + 1
@@ -424,10 +428,13 @@ renewLogWindow window row = do
         newGameColor = (Dull, Green)
 
 
-printPlayer :: Window Int -> Player -> Who -> IO Int
+printPlayer :: Window Int -> Player -> Who -> Hearth Console Int
 printPlayer window p who = do
-    setSGR [SetColor Foreground Vivid Green]
-    let playerName = map toUpper $ show who
+    liftIO $ setSGR [SetColor Foreground Vivid Green]
+    isActive <- liftM (p^.playerHandle ==) getActivePlayerHandle
+    let playerName = fromString (map toUpper $ show who) ++ case isActive of
+            True -> sgrColor (Dull, White) ++ "*" ++ sgrColor (Dull, Cyan)
+            False -> ""
         player = playerColumn p
         hand = handColumn $ p^.playerHand
         boardMinions = boardMinionsColumn $ p^.playerMinions
@@ -436,17 +443,19 @@ printPlayer window p who = do
         (deckLoc, handLoc, minionsLoc) = case who of
                 Alice -> (0, wx, wx + wy)
                 Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
-    n0 <- printColumn True (take wx playerName) deckLoc player
-    n1 <- printColumn True "HAND" handLoc hand
-    n2 <- printColumn False "   MINIONS" minionsLoc boardMinions
-    return $ maximum [n0, n1, n2]
+    liftIO $ do
+        n0 <- printColumn True (take (wx - 1) playerName) deckLoc player
+        n1 <- printColumn True "HAND" handLoc hand
+        n2 <- printColumn False "   MINIONS" minionsLoc boardMinions
+        return $ maximum [n0, n1, n2]
 
 
-printColumn :: Bool -> String -> Int -> [SGRString] -> IO Int
+printColumn :: Bool -> SGRString -> Int -> [SGRString] -> IO Int
 printColumn extraLine label column strs = do
-    let strs' = [
-            fromString label,
-            fromString $ replicate (length $ takeWhile isSpace label) ' ' ++ replicate (length $ dropWhile isSpace label) '-'
+    let label' = filter (/= '*') $ rights label
+        strs' = [
+            label,
+            fromString $ replicate (length $ takeWhile isSpace label') ' ' ++ replicate (length $ dropWhile isSpace label') '-'
             ] ++ (if extraLine then [""] else []) ++ strs
     zipWithM_ f [0..] strs'
     return $ length strs'

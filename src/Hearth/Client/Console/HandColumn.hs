@@ -12,6 +12,7 @@ module Hearth.Client.Console.HandColumn (
 
 import Control.Lens
 import Data.List
+import Data.String
 import Hearth.Model
 import Hearth.Cards
 import Hearth.Client.Console.SGRString
@@ -36,8 +37,13 @@ cardColumn = \case
 minionColumn :: (Int, Minion) -> [SGRString]
 minionColumn (idx, minion) = let
     parens s = "(" ++ s ++ ")"
-    name = sgrColor (Vivid, Green) ++ (sgrShow $ case minion^.minionName of
-        BasicCardName name -> name)
+    nameColor = case hasDivineShield minion of
+        True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
+        False -> sgrColor (Vivid, Green)
+    (tauntL, tauntR) = case hasTaunt minion of
+        True -> ("[", ">")
+        False -> ("", "")
+    name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
     mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case minion^.minionCost of
         ManaCost (Mana mana) -> mana)
     attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
@@ -53,6 +59,23 @@ minionColumn (idx, minion) = let
     pad = if idx < 10 then " " else ""
     in [header, "    " ++ stats]
 
+
+getMinionName :: Minion -> SGRString
+getMinionName minion = fromString $ case minion^.minionName of
+    BasicCardName name -> show name
+    ClassicCardName name -> show name
+
+
+hasDivineShield :: Minion -> Bool
+hasDivineShield minion = let
+    abilities = minion^.minionAbilities
+    in any (KeywordAbility DivineShield ==) abilities
+
+
+hasTaunt :: Minion -> Bool
+hasTaunt minion = let
+    abilities = minion^.minionAbilities
+    in any (KeywordAbility Taunt ==) abilities
 
 
 

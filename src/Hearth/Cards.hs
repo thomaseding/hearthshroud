@@ -17,59 +17,83 @@ cardUniverse = map (DeckCardMinion . DeckMinion) minionUniverse
 
 minionUniverse :: [Minion]
 minionUniverse = [
+    argentSquire,
     bloodfenRaptor,
     boulderfistOgre,
     chillwindYeti,
     coreHound,
+    frostwolfGrunt,
     magmaRager,
     murlocRaider,
     oasisSnapjaw,
     riverCrocolisk,
+    sunwalker,
     warGolem ]
 
 
-mkVanilla :: BasicCardName -> Mana -> Attack -> Health -> Minion
-mkVanilla name mana attack health = Minion {
+mkMinion :: CardName -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkMinion name mana attack health abilities = Minion {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
-    _minionName = BasicCardName name }
+    _minionAbilities = abilities,
+    _minionName = name }
+
+
+mkBasicMinion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkBasicMinion name = mkMinion $ BasicCardName name
+
+
+mkClassicMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkClassicMinion name = mkMinion $ ClassicCardName name
+
+
+argentSquire :: Minion
+argentSquire = mkClassicMinion ArgentSquire 1 1 1 [KeywordAbility DivineShield]
 
 
 bloodfenRaptor :: Minion
-bloodfenRaptor = mkVanilla BloodfenRaptor 2 3 2
+bloodfenRaptor = mkBasicMinion BloodfenRaptor 2 3 2 []
 
 
 boulderfistOgre :: Minion
-boulderfistOgre = mkVanilla BoulderfistOgre 6 6 7
+boulderfistOgre = mkBasicMinion BoulderfistOgre 6 6 7 []
 
 
 chillwindYeti :: Minion
-chillwindYeti = mkVanilla MurlocRaider 1 2 1
+chillwindYeti = mkBasicMinion MurlocRaider 1 2 1 []
 
 
 coreHound :: Minion
-coreHound = mkVanilla CoreHound 7 9 5
+coreHound = mkBasicMinion CoreHound 7 9 5 []
+
+
+frostwolfGrunt :: Minion
+frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [KeywordAbility Taunt]
 
 
 magmaRager :: Minion
-magmaRager = mkVanilla MagmaRager 3 5 1
+magmaRager = mkBasicMinion MagmaRager 3 5 1 []
 
 
 murlocRaider :: Minion
-murlocRaider = mkVanilla MurlocRaider 1 2 1
+murlocRaider = mkBasicMinion MurlocRaider 1 2 1 []
 
 
 oasisSnapjaw :: Minion
-oasisSnapjaw = mkVanilla OasisSnapjaw 4 2 7
+oasisSnapjaw = mkBasicMinion OasisSnapjaw 4 2 7 []
 
 
 riverCrocolisk :: Minion
-riverCrocolisk = mkVanilla RiverCrocolisk 2 2 3
+riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
+
+
+sunwalker :: Minion
+sunwalker = mkClassicMinion Sunwalker 6 4 5 [KeywordAbility Taunt, KeywordAbility DivineShield]
 
 
 warGolem :: Minion
-warGolem = mkVanilla WarGolem 7 7 7
+warGolem = mkBasicMinion WarGolem 7 7 7 []
 
 
 

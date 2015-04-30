@@ -397,6 +397,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionCurrAttack = minion^.minionAttack,
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
+            _boardMinionAbilities = minion^.minionAbilities,
             _boardMinionHandle = minionHandle,
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
