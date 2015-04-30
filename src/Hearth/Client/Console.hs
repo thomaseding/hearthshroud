@@ -177,7 +177,7 @@ gameEvent e = unlessM isQuiet $ do
         False -> return ()
     logState.useShortTag .= False
     txt <- return $ case e of
-        CardDrawn (PlayerHandle who) (mCard) (Deck deck) -> let
+        CardDrawn (PlayerHandle (RawHandle who)) (mCard) (Deck deck) -> let
             cardAttr = case mCard of
                 Nothing -> ""
                 Just card -> " card=" ++ show (simpleName card)
@@ -192,7 +192,7 @@ gameEvent e = unlessM isQuiet $ do
                 ++ " card=" ++ show (simpleName card)
                 ++ " result=" ++ quote result
                 ++ " />"
-        HeroTakesDamage (PlayerHandle who) (Health oldHealth) (Damage damage) -> let
+        HeroTakesDamage (PlayerHandle (RawHandle who)) (Health oldHealth) (Damage damage) -> let
             newHealth = oldHealth - damage
             in "<heroTakesDamage"
                 ++ " handle=" ++ quote who
@@ -200,7 +200,7 @@ gameEvent e = unlessM isQuiet $ do
                 ++ " new=" ++ quote newHealth
                 ++ " dmg=" ++ quote damage
                 ++ " />"
-        GainsManaCrystal (PlayerHandle who) mCrystalState -> let
+        GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
             stateAttr = case mCrystalState of
                 Nothing -> "None"
                 Just CrystalFull -> "Full"
@@ -209,12 +209,12 @@ gameEvent e = unlessM isQuiet $ do
                 ++ " handle=" ++ quote who
                 ++ " crystal=" ++ show stateAttr
                 ++ " />"
-        ManaCrystalsRefill (PlayerHandle who) amount -> let
+        ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
             in "<manaCrystalsRefill"
                 ++ " handle=" ++ quote who
                 ++ " amount=" ++ quote amount
                 ++ "/>"
-        ManaCrystalsEmpty (PlayerHandle who) amount -> let
+        ManaCrystalsEmpty (PlayerHandle (RawHandle who)) amount -> let
             in "<manaCrystalsEmpty"
                 ++ " handle=" ++ quote who
                 ++ " amount=" ++ quote amount
@@ -312,15 +312,22 @@ data ConsoleAction :: * -> * where
 data PromptInfo m a = PromptInfo {
     _key :: SGRString,
     _desc :: SGRString,
-    _action :: [Int] -> m (Maybe a)
+    _action :: [Int] -> m a
 }
 
 
 presentPrompt :: (MonadIO m) => m a -> [PromptInfo m a] -> m a
 presentPrompt retry promptInfos = do
+    let descs = map (rights . _desc) promptInfos
+        descMaxTrailLen = foldl' (+) 0 $ map (length . takeWhile (/= '>')) descs
     response <- liftM (map toLower) $ liftIO $ do
         setSGR [SetColor Foreground Dull White]
-        forM_ promptInfos $ \pi -> putSGRString $ "-<" ++ _key pi ++ _desc pi ++ "\n"
+        forM_ promptInfos $ \pi -> let
+            (innerDesc, Right '>' : outerDesc) = span (/= Right '>') $ _desc pi
+            trailLen = descMaxTrailLen - length innerDesc + 1
+            trail = fromString $ '>' : replicate trailLen '-'
+            key = _key pi
+            in putSGRString $ "-<" ++ key ++ innerDesc ++ trail ++ outerDesc ++ "\n"
         putStrLn ""
         putStr "> "
         getLine
@@ -337,20 +344,35 @@ presentPrompt retry promptInfos = do
             args' = catMaybes args
             in case length args == length args' of
                 False -> retry
-                True -> _action pi args' >>= \case
-                    Nothing -> retry
-                    Just result -> return result
+                True -> _action pi args'
 
 
-actionPrompts :: [PromptInfo (Hearth Console) Action]
-actionPrompts = [
-    PromptInfo "0" ">- End Turn" endTurnAction,
-    PromptInfo "1" ">- Play Card: WHICH WHERE" playCardAction,
-    PromptInfo "" ">-- Autoplay" autoplayAction ]
+actionPrompts :: Hearth Console Action -> Hearth Console Action -> [PromptInfo (Hearth Console) Action]
+actionPrompts quietRetry complainRetry = [
+    PromptInfo "?" "> Help" $ helpAction quietRetry,
+    PromptInfo "0" "> End Turn" $ endTurnAction complainRetry,
+    PromptInfo "1" " H B> Play Card" $ playCardAction complainRetry,
+    PromptInfo "" ">- Autoplay" $ autoplayAction complainRetry ]
 
 
-autoplayAction :: [Int] -> Hearth Console (Maybe Action)
-autoplayAction = \case
+helpAction :: Hearth Console Action -> [Int] -> Hearth Console Action
+helpAction retry _ = do
+    liftIO $ do
+        putStrLn "Usage:"
+        putStrLn "> COMMAND ARG1 ARG2 ARG3 ..."
+        putStrLn "Spaces and pluses are used to delimit arguments."
+        putStrLn "Example: Summon minion 4H to board position 3B"
+        putStrLn "> 1 4 3"
+        putStrLn "> 1+4+3"
+        putStrLn ""
+        putStrLn "ENTER TO CONTINUE"
+        _ <- getLine
+        return ()
+    retry
+
+
+autoplayAction :: Hearth Console Action -> [Int] -> Hearth Console Action
+autoplayAction retry = \case
     [] -> do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
@@ -358,16 +380,16 @@ autoplayAction = \case
         mCard <- flip firstM cards $ \card -> playCard handle card pos >>= \case
             Failure -> return False
             Success -> return True
-        return $ Just $ case mCard of
+        return $ case mCard of
             Nothing -> ActionEndTurn
             Just card -> ActionPlayCard card pos
-    _ -> return Nothing
+    _ -> retry
 
 
-endTurnAction :: [Int] -> Hearth Console (Maybe Action)
-endTurnAction = \case
-    [] -> return $ Just ActionEndTurn
-    _ -> return Nothing
+endTurnAction :: Hearth Console Action -> [Int] -> Hearth Console Action
+endTurnAction retry = \case
+    [] -> return ActionEndTurn
+    _ -> retry
 
 
 lookupIndex :: [a] -> Int -> Maybe a
@@ -377,28 +399,28 @@ lookupIndex (x:xs) n = case n == 0 of
 lookupIndex [] _ = Nothing
 
 
-playCardAction :: [Int] -> Hearth Console (Maybe Action)
-playCardAction = \case
+playCardAction :: Hearth Console Action -> [Int] -> Hearth Console Action
+playCardAction retry = \case
     [handIdx, boardIdx] -> do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
         boardLen <- view $ getPlayer handle.playerMinions.to length
         let mCard = lookupIndex cards $ length cards - handIdx
         case mCard of
-            Nothing -> return Nothing
+            Nothing -> retry
             Just card -> case 0 < boardIdx && boardIdx <= boardLen + 1 of
-                False -> return Nothing
-                True -> return $ Just $ ActionPlayCard card $ BoardPos $ boardIdx - 1
-    _ -> return Nothing
+                False -> retry
+                True -> return $ ActionPlayCard card $ BoardPos $ boardIdx - 1
+    _ -> retry
 
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
-    let go m = do
+    let go complain = do
             renewDisplay
-            m
-            presentPrompt (go $ liftIO $ putStrLn "BAD PARSE") actionPrompts
-    action <- localQuiet $ runQuery snapshot $ go $ return ()
+            when complain $ liftIO $ putStrLn "BAD PARSE"
+            presentPrompt (go True) $ actionPrompts (go False) (go True)
+    action <- localQuiet $ runQuery snapshot $ go False
     logState.undisplayedLines .= 0
     return action
 
