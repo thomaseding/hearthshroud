@@ -310,8 +310,8 @@ data ConsoleAction :: * -> * where
 
 
 data PromptInfo m a = PromptInfo {
-    _key :: String,
-    _desc :: String,
+    _key :: SGRString,
+    _desc :: SGRString,
     _action :: [Int] -> m (Maybe a)
 }
 
@@ -320,18 +320,20 @@ presentPrompt :: (MonadIO m) => m a -> [PromptInfo m a] -> m a
 presentPrompt retry promptInfos = do
     response <- liftM (map toLower) $ liftIO $ do
         setSGR [SetColor Foreground Dull White]
-        forM_ promptInfos $ \pi -> putStrLn $ "-<" ++ _key pi ++ _desc pi
+        forM_ promptInfos $ \pi -> putSGRString $ "-<" ++ _key pi ++ _desc pi ++ "\n"
         putStrLn ""
         putStr "> "
         getLine
-    let mPromptInfo = flip find promptInfos $ \pi -> map toLower (_key pi) `isPrefixOf` response
+    let mPromptInfo = flip find promptInfos $ \pi -> let
+            key = map toLower $ rights $ _key pi
+            in key `isPrefixOf` response
     case mPromptInfo of
         Nothing -> retry
         Just pi -> let
             massage = \case
                 '+' -> ' '
                 c -> c
-            args = map readMaybe $ words $ map massage $ drop (length $ _key pi) response
+            args = map readMaybe $ words $ map massage $ drop (length $ rights $ _key pi) $ response
             args' = catMaybes args
             in case length args == length args' of
                 False -> retry
@@ -343,7 +345,23 @@ presentPrompt retry promptInfos = do
 actionPrompts :: [PromptInfo (Hearth Console) Action]
 actionPrompts = [
     PromptInfo "0" ">- End Turn" endTurnAction,
-    PromptInfo "1" ">- Play Card: WHICH WHERE" playCardAction ]
+    PromptInfo "1" ">- Play Card: WHICH WHERE" playCardAction,
+    PromptInfo "" ">-- Autoplay" autoplayAction ]
+
+
+autoplayAction :: [Int] -> Hearth Console (Maybe Action)
+autoplayAction = \case
+    [] -> do
+        handle <- getActivePlayerHandle
+        cards <- view $ getPlayer handle.playerHand.handCards
+        let pos = BoardPos 0
+        mCard <- flip firstM cards $ \card -> playCard handle card pos >>= \case
+            Failure -> return False
+            Success -> return True
+        return $ Just $ case mCard of
+            Nothing -> ActionEndTurn
+            Just card -> ActionPlayCard card pos
+    _ -> return Nothing
 
 
 endTurnAction :: [Int] -> Hearth Console (Maybe Action)
@@ -380,7 +398,7 @@ getAction snapshot = do
             renewDisplay
             m
             presentPrompt (go $ liftIO $ putStrLn "BAD PARSE") actionPrompts
-    action <- runQuery snapshot $ go $ return ()
+    action <- localQuiet $ runQuery snapshot $ go $ return ()
     logState.undisplayedLines .= 0
     return action
 
@@ -468,7 +486,10 @@ printColumn extraLine label column strs = do
                 Right c -> putChar c
 
 
-
+putSGRString :: SGRString -> IO ()
+putSGRString = mapM_ $ \case
+    Left sgr -> setSGR [sgr]
+    Right c -> putChar c
 
 
 
