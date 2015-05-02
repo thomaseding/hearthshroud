@@ -69,7 +69,7 @@ data LogState = LogState {
     _loggedLines :: [String],
     _totalLines :: !Int,
     _undisplayedLines :: !Int,
-    _callDepth :: !Int,
+    _tagDepth :: !Int,
     _useShortTag :: !Bool,
     _quiet :: !Bool
 } deriving (Show, Eq, Ord)
@@ -137,96 +137,83 @@ appendLogLine str = logState.loggedLines %= \case
 
 logIndentation :: Console String
 logIndentation = do
-    n <- view $ logState.callDepth
+    n <- view $ logState.tagDepth
     return $ concat $ replicate n "    "
+
+
+openTag :: String -> [(String, String)] -> Console ()
+openTag name attrs = do
+    logState.useShortTag >>=. \case
+        True -> do
+            appendLogLine ">"
+            newLogLine
+        False -> return ()
+    logState.useShortTag .= True
+    lead <- logIndentation
+    appendLogLine $ lead ++ "<" ++ unwords (name : attrs')
+    logState.tagDepth += 1
+    where
+        showAttr (k, v) = k ++ "=\"" ++ v ++ "\""
+        attrs' = map showAttr $ filter (/= ("", "")) attrs
+
+
+closeTag :: String -> Console ()
+closeTag name = do
+    logState.tagDepth -= 1
+    logState.useShortTag >>=. \case
+        True -> do
+            appendLogLine "/>"
+            newLogLine
+        False -> do
+            lead <- logIndentation
+            appendLogLine $ lead ++ "</:" ++ name ++ ">"
+            newLogLine
+    logState.useShortTag .= False
 
 
 debugEvent :: DebugEvent -> Console ()
 debugEvent e = unlessM isQuiet $ case e of
     FunctionEntered name -> do
-        logState.useShortTag >>=. \case
-            True -> do
-                appendLogLine ">"
-                newLogLine
-            False -> return ()
-        lead <- logIndentation
-        logState.callDepth += 1
-        logState.useShortTag .= True
-        appendLogLine $ lead ++ "<:" ++ (showName name)
+        openTag (showName name) []
     FunctionExited name -> do
-        logState.callDepth -= 1
-        logState.useShortTag >>=. \case
-            True -> do
-                appendLogLine "/>"
-                newLogLine
-            False -> do
-                lead <- logIndentation
-                appendLogLine $ lead ++ "</:" ++ (showName name) ++ ">"
-                newLogLine
-        logState.useShortTag .= False
+        closeTag (showName name)
     where
-        showName = nameBase
+        showName = (':' :) . nameBase
 
 
 gameEvent :: GameEvent -> Console ()
-gameEvent e = unlessM isQuiet $ do
-    logState.useShortTag >>=. \case
-        True -> do
-            appendLogLine "/>"
-            newLogLine
-        False -> return ()
-    logState.useShortTag .= False
-    txt <- return $ case e of
-        CardDrawn (PlayerHandle (RawHandle who)) (mCard) (Deck deck) -> let
-            cardAttr = case mCard of
-                Nothing -> ""
-                Just card -> " card=" ++ show (simpleName card)
-            in "<cardDrawn"
-                ++ " handle=" ++ quote who
-                ++ cardAttr
-                ++ " deck=" ++ quote (length deck)
-                ++ " />"
-        PlayedCard (PlayerHandle who) card result -> let
-            in "<playedCard"
-                ++ " handle=" ++ quote who
-                ++ " card=" ++ show (simpleName card)
-                ++ " result=" ++ quote result
-                ++ " />"
-        HeroTakesDamage (PlayerHandle (RawHandle who)) (Health oldHealth) (Damage damage) -> let
-            newHealth = oldHealth - damage
-            in "<heroTakesDamage"
-                ++ " handle=" ++ quote who
-                ++ " old=" ++ quote oldHealth
-                ++ " new=" ++ quote newHealth
-                ++ " dmg=" ++ quote damage
-                ++ " />"
-        GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
-            stateAttr = case mCrystalState of
-                Nothing -> "None"
-                Just CrystalFull -> "Full"
-                Just CrystalEmpty -> "Empty"
-            in "<gainsManaCrystal"
-                ++ " handle=" ++ quote who
-                ++ " crystal=" ++ show stateAttr
-                ++ " />"
-        ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
-            in "<manaCrystalsRefill"
-                ++ " handle=" ++ quote who
-                ++ " amount=" ++ quote amount
-                ++ "/>"
-        ManaCrystalsEmpty (PlayerHandle (RawHandle who)) amount -> let
-            in "<manaCrystalsEmpty"
-                ++ " handle=" ++ quote who
-                ++ " amount=" ++ quote amount
-                ++ "/>"
-    case null txt of
-        True -> return ()
-        False -> do
-            lead <- logIndentation
-            appendLogLine $ lead ++ txt
-            newLogLine
+gameEvent = unlessM isQuiet . \case 
+    CardDrawn (PlayerHandle (RawHandle who)) (mCard) (Deck deck) -> let
+        handleAttr = ("handle", show who)
+        cardAttr = case mCard of { Nothing -> ("", "") ; Just card -> ("card", simpleName card) }
+        deckAttr = ("deck", show $ length deck)
+        in tag "cardDrawn" [handleAttr, cardAttr,  deckAttr]
+    PlayedCard (PlayerHandle who) card result -> let
+        handleAttr = ("handle", show who)
+        cardAttr = ("card", show $ simpleName card)
+        resultAttr = ("result", show result)
+        in tag "playedCard" [handleAttr, cardAttr, resultAttr]
+    HeroTakesDamage (PlayerHandle (RawHandle who)) (Health oldHealth) (Damage damage) -> let
+        newHealth = oldHealth - damage
+        handleAttr = ("handle", show who)
+        oldAttr = ("old", show oldHealth)
+        newAttr = ("new", show newHealth)
+        dmgAttr = ("dmg", show damage)
+        in tag "heroTakesDamage" [handleAttr, oldAttr, newAttr, dmgAttr]
+    GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
+        handleAttr = ("handle", show who)
+        varietyAttr = ("variety", maybe (show mCrystalState) show mCrystalState)
+        in tag "gainsManaCrystal" [handleAttr, varietyAttr]
+    ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
+        handleAttr = ("handle", show who)
+        amountAttr = ("amount", show amount)
+        in tag "manaCrystalsRefill" [handleAttr, amountAttr]
+    ManaCrystalsEmpty (PlayerHandle (RawHandle who)) amount -> let
+        handleAttr = ("handle", show who)
+        amountAttr = ("amount", show amount)
+        in tag "manaCrystalsEmpty" [handleAttr, amountAttr]
     where
-        quote = show . show
+        tag name attrs = openTag name attrs >> closeTag name
 
 
 simpleName :: (Data a) => a -> String
@@ -264,7 +251,7 @@ runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
                 _loggedLines = [""],
                 _totalLines = 1,
                 _undisplayedLines = 1,
-                _callDepth = 0,
+                _tagDepth = 0,
                 _useShortTag = False,
                 _quiet = False } }
         power = HeroPower {
@@ -417,6 +404,12 @@ playCardAction retry = \case
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
+    action <- getAction' snapshot
+    return action
+
+
+getAction' :: GameSnapshot -> Console Action
+getAction' snapshot = do
     let go complain = do
             renewDisplay
             case complain of
