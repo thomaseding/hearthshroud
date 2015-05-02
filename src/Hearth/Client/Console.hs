@@ -166,7 +166,7 @@ closeTag name = do
             newLogLine
         False -> do
             lead <- logIndentation
-            appendLogLine $ lead ++ "</:" ++ name ++ ">"
+            appendLogLine $ lead ++ "</" ++ name ++ ">"
             newLogLine
     logState.useShortTag .= False
 
@@ -184,34 +184,34 @@ debugEvent e = unlessM isQuiet $ case e of
 gameEvent :: GameEvent -> Console ()
 gameEvent = unlessM isQuiet . \case 
     CardDrawn (PlayerHandle (RawHandle who)) (mCard) (Deck deck) -> let
-        handleAttr = ("handle", show who)
+        playerAttr = ("player", show who)
         cardAttr = case mCard of { Nothing -> ("", "") ; Just card -> ("card", simpleName card) }
         deckAttr = ("deck", show $ length deck)
-        in tag "cardDrawn" [handleAttr, cardAttr,  deckAttr]
-    PlayedCard (PlayerHandle who) card result -> let
-        handleAttr = ("handle", show who)
+        in tag "cardDrawn" [playerAttr, cardAttr,  deckAttr]
+    PlayedCard (PlayerHandle (RawHandle who)) card result -> let
+        playerAttr = ("player", show who)
         cardAttr = ("card", show $ simpleName card)
         resultAttr = ("result", show result)
-        in tag "playedCard" [handleAttr, cardAttr, resultAttr]
+        in tag "playedCard" [playerAttr, cardAttr, resultAttr]
     HeroTakesDamage (PlayerHandle (RawHandle who)) (Health oldHealth) (Damage damage) -> let
         newHealth = oldHealth - damage
-        handleAttr = ("handle", show who)
+        playerAttr = ("player", show who)
         oldAttr = ("old", show oldHealth)
         newAttr = ("new", show newHealth)
         dmgAttr = ("dmg", show damage)
-        in tag "heroTakesDamage" [handleAttr, oldAttr, newAttr, dmgAttr]
+        in tag "heroTakesDamage" [playerAttr, oldAttr, newAttr, dmgAttr]
     GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
-        handleAttr = ("handle", show who)
+        playerAttr = ("player", show who)
         varietyAttr = ("variety", maybe (show mCrystalState) show mCrystalState)
-        in tag "gainsManaCrystal" [handleAttr, varietyAttr]
+        in tag "gainsManaCrystal" [playerAttr, varietyAttr]
     ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
-        handleAttr = ("handle", show who)
+        playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
-        in tag "manaCrystalsRefill" [handleAttr, amountAttr]
+        in tag "manaCrystalsRefill" [playerAttr, amountAttr]
     ManaCrystalsEmpty (PlayerHandle (RawHandle who)) amount -> let
-        handleAttr = ("handle", show who)
+        playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
-        in tag "manaCrystalsEmpty" [handleAttr, amountAttr]
+        in tag "manaCrystalsEmpty" [playerAttr, amountAttr]
     where
         tag name attrs = openTag name attrs >> closeTag name
 
@@ -404,8 +404,12 @@ playCardAction retry = \case
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
+    openTag (showName 'getAction) []
     action <- getAction' snapshot
+    closeTag (showName 'getAction)
     return action
+    where
+        showName = (':' :) . nameBase
 
 
 getAction' :: GameSnapshot -> Console Action
@@ -443,7 +447,10 @@ renewLogWindow window row = do
             putStr $ lineNoStr
             setSGR [SetColor Background Dull Black]
             setSGR [SetColor Foreground intensity color]
-            putStrLn $ " " ++ str
+            putStrLn $ " " ++ str ++ case reverse str of
+                "" -> ""
+                '>' : _ -> ""
+                _ -> ">"
     newCount <- view $ logState.undisplayedLines
     (newLines, oldLines) <- view $ logState.loggedLines.to (id
         . splitAt (if totalCount < displayCount then min displayCount newCount + displayCount - totalCount else newCount)
