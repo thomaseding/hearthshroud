@@ -300,8 +300,9 @@ isPlayerHeroDead handle = logCall 'isPlayerHeroDead $ do
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
     Deck deck <- view playerDeck
-    deck' <- guardedPrompt (PromptShuffle deck) $ on (==) sort deck
-    playerDeck .= Deck deck'
+    deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ on (==) sort deck
+    prompt $ PromptGameEvent $ DeckShuffled handle deck'
+    playerDeck .= deck'
 
 
 isGameOver :: (HearthMonad m) => Hearth m Bool
