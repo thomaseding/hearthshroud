@@ -33,32 +33,24 @@ formatLoc loc = let
     in concat [file, ":", show line, ":", show col]
 
 
-class Stringy a where
-    stringy :: a -> String
-
-
-instance Stringy String where
-    stringy = show
-
-
-instance Stringy Name where
-    stringy = stringy . nameBase
+formatDesc :: String -> Name -> String -> String
+formatDesc kind func msg = kind ++ ": " ++ show msg ++ " in " ++ nameBase func ++ " "
 
 
 todo :: Q Exp
-todo = withLocatedError [| \e msg -> e $ "TODO " ++ stringy msg |]
+todo = withLocatedError [| \e f msg -> e $ formatDesc "TODO" f msg |]
 
 
 logicError :: Q Exp
-logicError = withLocatedError [| \e msg -> e $ "Logic error: " ++ stringy msg |]
+logicError = withLocatedError [| \e f msg -> e $ formatDesc "LogicError" f msg |]
 
 
 runtimeError :: Q Exp
-runtimeError = withLocatedError [| \e msg -> e $ "Runtime error: " ++ stringy msg |]
+runtimeError = withLocatedError [| \e f msg -> e $ formatDesc "RuntimeError" f msg |]
 
 
 debugShow :: Q Exp
-debugShow = withLocatedError [| \e x -> e $ "Debug message: " ++ show x |]
+debugShow = withLocatedError [| \e f msg -> e $ formatDesc "DebugMessage" f msg |]
 
 
 

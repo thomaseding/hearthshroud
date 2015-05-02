@@ -10,11 +10,10 @@ module Hearth.Client.Console.BoardMinionsColumn (
 --------------------------------------------------------------------------------
 
 
-import Control.Lens
+import Control.Lens hiding (index)
 import Data.List
 import Data.String
 import Hearth.Model
-import Hearth.Cards
 import Hearth.Client.Console.SGRString
 import Hearth.Names
 import System.Console.ANSI
@@ -26,7 +25,7 @@ import System.Console.ANSI
 boardMinionsColumn :: [BoardMinion] -> [SGRString]
 boardMinionsColumn = concat . reverse . foldl' f [label 0] . zip [1..] . map boardMinionColumn . zip [1..]
     where
-        label' idx = "<" ++ sgrShow (idx + 1) ++ ">"
+        label' idx = "<" ++ sgrShow (idx + 1 :: Int) ++ ">"
         label idx = [sgrColor (Dull, Magenta) ++ label' idx]
         f sss (idx, ss) = (ss ++ label idx) : sss
 
@@ -34,7 +33,6 @@ boardMinionsColumn = concat . reverse . foldl' f [label 0] . zip [1..] . map boa
 boardMinionColumn :: (Int, BoardMinion) -> [SGRString]
 boardMinionColumn (idx, bm) = let
     minion = _boardMinion bm
-    parens s = "(" ++ s ++ ")"
     nameColor = case hasDivineShield bm of
         True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
         False -> sgrColor (Vivid, Green)
@@ -54,7 +52,6 @@ boardMinionColumn (idx, bm) = let
     stats = let
         c = sgrColor (Dull, White)
         in attack ++ c ++ "/" ++ health
-    pad = if idx < 10 then " " else ""
     in map ("   " ++) [header, "    " ++ stats]
 
 

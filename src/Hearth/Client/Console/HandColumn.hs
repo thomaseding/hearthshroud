@@ -10,11 +10,10 @@ module Hearth.Client.Console.HandColumn (
 --------------------------------------------------------------------------------
 
 
-import Control.Lens
+import Control.Lens hiding (index)
 import Data.List
 import Data.String
 import Hearth.Model
-import Hearth.Cards
 import Hearth.Client.Console.SGRString
 import Hearth.Names
 import System.Console.ANSI
@@ -45,7 +44,7 @@ minionColumn (idx, minion) = let
         False -> ("", "")
     name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
     mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case minion^.minionCost of
-        ManaCost (Mana mana) -> mana)
+        ManaCost (Mana m) -> m)
     attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
     healthColor = (Vivid, Black)
     health = sgrColor healthColor ++ sgrShow (unHealth $ minion^.minionHealth)
@@ -56,7 +55,6 @@ minionColumn (idx, minion) = let
     stats = let
         c = sgrColor (Dull, White)
         in attack ++ c ++ "/" ++ health
-    pad = if idx < 10 then " " else ""
     in [header, "    " ++ stats]
 
 

@@ -11,16 +11,11 @@ module Hearth.Client.Console.PlayerColumn (
 --------------------------------------------------------------------------------
 
 
-import Control.Error
-import Control.Lens
-import Data.List
 import Hearth.Model
-import Hearth.Cards
 import Hearth.Client.Console.BoardHeroColumn
 import Hearth.Client.Console.DeckColumn
 import Hearth.Client.Console.ManaColumn
 import Hearth.Client.Console.SGRString
-import System.Console.ANSI
 
 
 --------------------------------------------------------------------------------

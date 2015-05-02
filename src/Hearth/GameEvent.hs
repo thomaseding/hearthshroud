@@ -16,6 +16,9 @@ import Hearth.Model
 
 
 data GameEvent :: * where
+    GameBegins :: GameEvent
+    GameEnds :: GameResult -> GameEvent
+    DeckShuffled :: PlayerHandle -> Deck -> GameEvent
     CardDrawn :: PlayerHandle -> Maybe HandCard -> Deck -> GameEvent
     PlayedCard :: PlayerHandle -> HandCard -> Result -> GameEvent
     HeroTakesDamage :: PlayerHandle -> Health -> Damage -> GameEvent

@@ -14,6 +14,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 
 module Hearth.Client.Console (
@@ -26,7 +27,7 @@ module Hearth.Client.Console (
 
 import Control.Applicative
 import Control.Error
-import Control.Exception
+import Control.Exception hiding (handle)
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
@@ -56,9 +57,10 @@ import Hearth.Model
 import Hearth.Names
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
+import Prelude hiding (pi)
 import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
-import System.Console.Terminal.Size as Window
+import qualified System.Console.Terminal.Size as Window
 import Text.Read (readMaybe)
 
 
@@ -132,7 +134,7 @@ newLogLine = zoom logState $ do
 appendLogLine :: String -> Console ()
 appendLogLine str = logState.loggedLines %= \case
     s : ss -> (s ++ str) : ss
-    [] -> $logicError 'appendLogLine
+    [] -> $logicError 'appendLogLine "Bad state"
 
 
 logIndentation :: Console String
@@ -182,37 +184,46 @@ debugEvent e = unlessM isQuiet $ case e of
 
 
 gameEvent :: GameEvent -> Console ()
-gameEvent = unlessM isQuiet . \case 
-    CardDrawn (PlayerHandle (RawHandle who)) (mCard) (Deck deck) -> let
+gameEvent = unlessM isQuiet . \case
+    GameBegins -> let
+        in tag "gameBegins" []
+    GameEnds gameResult -> let
+        gameResultAttr = ("gameResult", show gameResult)
+        in tag "gameEnds" [gameResultAttr]
+    DeckShuffled (viewPlayer -> who) _ -> let
+        playerAttr = ("player", show who)
+        in tag "deckShuffled" [playerAttr]
+    CardDrawn (viewPlayer -> who) (mCard) (Deck deck) -> let
         playerAttr = ("player", show who)
         cardAttr = case mCard of { Nothing -> ("", "") ; Just card -> ("card", simpleName card) }
         deckAttr = ("deck", show $ length deck)
         in tag "cardDrawn" [playerAttr, cardAttr,  deckAttr]
-    PlayedCard (PlayerHandle (RawHandle who)) card result -> let
+    PlayedCard (viewPlayer -> who) card result -> let
         playerAttr = ("player", show who)
         cardAttr = ("card", show $ simpleName card)
         resultAttr = ("result", show result)
         in tag "playedCard" [playerAttr, cardAttr, resultAttr]
-    HeroTakesDamage (PlayerHandle (RawHandle who)) (Health oldHealth) (Damage damage) -> let
+    HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Damage damage) -> let
         newHealth = oldHealth - damage
         playerAttr = ("player", show who)
         oldAttr = ("old", show oldHealth)
         newAttr = ("new", show newHealth)
         dmgAttr = ("dmg", show damage)
         in tag "heroTakesDamage" [playerAttr, oldAttr, newAttr, dmgAttr]
-    GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
+    GainsManaCrystal (viewPlayer -> who) mCrystalState -> let
         playerAttr = ("player", show who)
         varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
         in tag "gainsManaCrystal" [playerAttr, varietyAttr]
-    ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
+    ManaCrystalsRefill (viewPlayer -> who) amount -> let
         playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
         in tag "manaCrystalsRefill" [playerAttr, amountAttr]
-    ManaCrystalsEmpty (PlayerHandle (RawHandle who)) amount -> let
+    ManaCrystalsEmpty (viewPlayer -> who) amount -> let
         playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
         in tag "manaCrystalsEmpty" [playerAttr, amountAttr]
     where
+        viewPlayer (PlayerHandle (RawHandle who)) = who
         tag name attrs = openTag name attrs >> closeTag name
 
 
@@ -221,7 +232,7 @@ simpleName card = case universeBi card of
     [cardName] -> case cardName of
         BasicCardName name -> show name
         ClassicCardName name -> show name
-    _ -> $logicError 'simpleName
+    _ -> $logicError 'simpleName "Need to add new case or entirely reimplement this"
 
 
 instance MonadPrompt HearthPrompt Console where
@@ -235,16 +246,20 @@ instance MonadPrompt HearthPrompt Console where
 
 
 main :: IO ()
-main = do
-    result <- finally runTestGame $ do
-        setSGR [SetColor Foreground Dull White]
-        clearScreen
-        setCursorPosition 0 0
-    print result
+main = finally runTestGame $ do
+    setSGR [SetColor Foreground Dull White]
+    clearScreen
+    setCursorPosition 0 0
 
 
-runTestGame :: IO GameResult
-runTestGame = flip evalStateT st $ unConsole $ runHearth (player1, player2)
+runTestGame :: IO ()
+runTestGame = flip evalStateT st $ unConsole $ do
+    _ <- runHearth (player1, player2)
+    liftIO clearScreen
+    window <- liftIO getWindowSize
+    renewLogWindow window 0
+    _ <- liftIO getLine
+    return ()
     where
         st = ConsoleState {
             _logState = LogState {
@@ -274,8 +289,8 @@ data Who = Alice | Bob
 
 getWindowSize :: IO (Window Int)
 getWindowSize = Window.size >>= \case
+    Just w -> return $ w { Window.width = Window.width w - 1 }
     Nothing -> $runtimeError 'getWindowSize "Could not get window size."
-    Just w -> return $ w { width = Window.width w - 1 }
 
 
 renewDisplay :: Hearth Console ()
@@ -291,9 +306,9 @@ renewDisplay = do
         renewLogWindow window $ deepestPlayer + 1
 
 
-data ConsoleAction :: * -> * where
-    QuitAction :: ConsoleAction ()
-    GameAction :: ConsoleAction Action
+--data ConsoleAction :: * -> * where
+    --QuitAction :: ConsoleAction ()
+    --GameAction :: ConsoleAction Action
 
 
 data PromptInfo m a = PromptInfo {
@@ -467,7 +482,7 @@ renewLogWindow window row = do
         putStrLn $ replicate (Window.width window) '-'
         putStrLn ""
     where
-        isDebug str = "<:" `isInfixOf` str || "</:" `isInfixOf` str
+        isDebug s = any (`isInfixOf` s) ["<:", "</:"]
         borderColor = (Dull, Cyan)
         oldDebugColor = (Dull, Magenta)
         oldGameColor = (Vivid, Magenta)
@@ -485,7 +500,7 @@ printPlayer window p who = do
         player = playerColumn p
         hand = handColumn $ p^.playerHand
         boardMinions = boardMinionsColumn $ p^.playerMinions
-        (wx, wy, wz) = (15, 30, 30)
+        (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
         (deckLoc, handLoc, minionsLoc) = case who of
                 Alice -> (0, wx, wx + wy)
@@ -510,14 +525,12 @@ printColumn extraLine label column strs = do
         f row str = do
             setSGR [SetColor Foreground Dull Cyan]
             setCursorPosition row column
-            forM_ str $ \case
-                Left sgr -> setSGR [sgr]
-                Right c -> putChar c
+            putSGRString str
 
 
 putSGRString :: SGRString -> IO ()
 putSGRString = mapM_ $ \case
-    Left sgr -> setSGR [sgr]
+    Left s -> setSGR [s]
     Right c -> putChar c
 
 

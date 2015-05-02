@@ -96,11 +96,6 @@ instance (HearthMonad m) => LogCall (a -> b -> Hearth' st m c) where
     logCall msg f = logCall msg . f
 
 
-data GameResult :: * where
-    GameResult :: GameResult
-    deriving (Show, Eq, Ord)
-
-
 data PlayerData = PlayerData Hero Deck
     deriving (Show, Eq, Ord, Typeable)
 
@@ -204,9 +199,12 @@ instance GenHandle MinionHandle where
 
 runGame :: (HearthMonad m) => Hearth m GameResult
 runGame = logCall 'runGame $ do
+    prompt $ PromptGameEvent GameBegins
     initGame
     tickTurn
-    return GameResult
+    let gameResult = GameResult
+    prompt $ PromptGameEvent $ GameEnds gameResult
+    return gameResult
 
 
 initGame :: (HearthMonad m) => Hearth m ()
@@ -367,17 +365,24 @@ data TurnEvolution = ContinueTurn | EndTurn
 
 pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
-    _ <- iterateUntil (EndTurn ==) pumpTurn'
+    _ <- iterateUntil cond pumpTurn'
     return ()
+    where
+        cond = \case
+            Nothing -> True
+            Just EndTurn -> True
+            Just ContinueTurn -> False
 
 
-pumpTurn' :: (HearthMonad m) => Hearth m TurnEvolution
-pumpTurn' = logCall 'pumpTurn' $ do
-    snapshot <- gets GameSnapshot
-    prompt (PromptAction snapshot) >>= \case
-        ActionPlayerConceded _ -> $todo "concede"
-        ActionPlayCard card pos -> actionPlayCard card pos
-        ActionEndTurn -> return EndTurn
+pumpTurn' :: (HearthMonad m) => Hearth m (Maybe TurnEvolution)
+pumpTurn' = logCall 'pumpTurn' $ isGameOver >>= \case
+    True -> return Nothing
+    False -> do
+        snapshot <- gets GameSnapshot
+        prompt (PromptAction snapshot) >>= liftM Just . \case
+            ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
+            ActionPlayCard card pos -> actionPlayCard card pos
+            ActionEndTurn -> return EndTurn
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool

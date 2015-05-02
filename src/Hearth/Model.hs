@@ -95,13 +95,13 @@ data Elect :: * where
     --TargetCreature :: (CreatureHandle -> Effect) -> Elect
 
 instance Show Elect where
-    show = $todo "Show Elect"
+    show = $todo 'show "Show Elect"
 
 instance Eq Elect where
-    (==) = $todo "Eq Elect"
+    (==) = $todo '(==) "Eq Elect"
 
 instance Ord Elect where
-    compare = $todo "Ord Elect"
+    compare = $todo 'compare "Ord Elect"
 
 
 data Effect :: * where
@@ -239,6 +239,11 @@ data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
 } deriving (Show, Eq, Ord, Typeable)
 makeLenses ''GameSnapshot
+
+
+data GameResult :: * where
+    GameResult :: GameResult
+    deriving (Show, Eq, Ord)
 
 
 
