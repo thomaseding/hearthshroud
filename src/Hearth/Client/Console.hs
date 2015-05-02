@@ -37,9 +37,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Char
-import Data.Data
 import Data.Either
-import Data.Generics.Uniplate.Data
 import Data.List
 import Data.Maybe
 import Data.NonEmpty
@@ -195,12 +193,12 @@ gameEvent = unlessM isQuiet . \case
         in tag "deckShuffled" [playerAttr]
     CardDrawn (viewPlayer -> who) (eCard) _ -> let
         playerAttr = ("player", show who)
-        cardAttr = ("card", either simpleName simpleName eCard)
+        cardAttr = ("card", either deckCardName' handCardName' eCard)
         resultAttr = ("result", show $ either (const Failure) (const Success) eCard)
         in tag "cardDrawn" [playerAttr, cardAttr, resultAttr]
     PlayedCard (viewPlayer -> who) card result -> let
         playerAttr = ("player", show who)
-        cardAttr = ("card", show $ simpleName card)
+        cardAttr = ("card", show $ handCardName' card)
         resultAttr = ("result", show result)
         in tag "playedCard" [playerAttr, cardAttr, resultAttr]
     HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Damage damage) -> let
@@ -227,12 +225,18 @@ gameEvent = unlessM isQuiet . \case
         tag name attrs = openTag name attrs >> closeTag name
 
 
-simpleName :: (Data a) => a -> String
-simpleName card = case universeBi card of
-    [cardName] -> case cardName of
-        BasicCardName name -> show name
-        ClassicCardName name -> show name
-    _ -> $logicError 'simpleName "Need to add new case or entirely reimplement this"
+showCardName :: CardName -> String
+showCardName = \case
+    BasicCardName name -> show name
+    ClassicCardName name -> show name
+
+
+handCardName' :: HandCard -> String
+handCardName' = showCardName . handCardName
+
+
+deckCardName' :: DeckCard -> String
+deckCardName' = showCardName . deckCardName
 
 
 instance MonadPrompt HearthPrompt Console where

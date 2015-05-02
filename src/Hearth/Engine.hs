@@ -97,7 +97,7 @@ instance (HearthMonad m) => LogCall (a -> b -> Hearth' st m c) where
 
 
 data PlayerData = PlayerData Hero Deck
-    deriving (Show, Eq, Ord, Typeable)
+    deriving (Show, Typeable)
 
 
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> Bool) -> m a
@@ -232,8 +232,9 @@ initHand handle = logCall 'initHand $ do
         True -> 3
         False -> 4
     drawnCards <- drawCards handle numCards
-    keptCards <- guardedPrompt (PromptMulligan handle drawnCards) (`isSubsetOf` drawnCards)
-    let tossedCards = drawnCards \\ keptCards
+    keptCards <- guardedPrompt (PromptMulligan handle drawnCards) $ let
+        in flip (on isSubsetOf $ map handCardName) drawnCards
+    let tossedCards = foldr (deleteBy $ on (==) handCardName) keptCards drawnCards
         tossedCards' = map handToDeck tossedCards
     drawCards handle (length tossedCards) >>= \case
         [] -> return ()
@@ -258,7 +259,7 @@ putInHand handle card = logCall 'putInHand $ zoom (getPlayer handle.playerHand.h
 removeFromHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
 removeFromHand handle card = logCall 'removeFromHand $ zoom (getPlayer handle.playerHand.handCards) $ do
     hand <- view id
-    id %= delete card
+    id %= deleteBy (on (==) handCardName) card
     hand' <- view id
     return $ length hand /= length hand'
 
@@ -300,7 +301,9 @@ isPlayerHeroDead handle = logCall 'isPlayerHeroDead $ do
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
     Deck deck <- view playerDeck
-    deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ on (==) sort deck
+    deck' <- let
+        f = sort . map deckCardName
+        in liftM Deck $ guardedPrompt (PromptShuffle deck) $ on (==) f deck
     prompt $ PromptGameEvent $ DeckShuffled handle deck'
     playerDeck .= deck'
 
@@ -366,24 +369,27 @@ data TurnEvolution = ContinueTurn | EndTurn
 
 pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
-    _ <- iterateUntil cond pumpTurn'
-    return ()
-    where
-        cond = \case
+    let cond = \case
             Nothing -> True
             Just EndTurn -> True
             Just ContinueTurn -> False
+    _ <- iterateUntil cond pumpTurn'
+    return ()
 
 
 pumpTurn' :: (HearthMonad m) => Hearth m (Maybe TurnEvolution)
 pumpTurn' = logCall 'pumpTurn' $ isGameOver >>= \case
     True -> return Nothing
-    False -> do
-        snapshot <- gets GameSnapshot
-        prompt (PromptAction snapshot) >>= liftM Just . \case
-            ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
-            ActionPlayCard card pos -> actionPlayCard card pos
-            ActionEndTurn -> return EndTurn
+    False -> performAction
+
+
+performAction :: (HearthMonad m) => Hearth m (Maybe TurnEvolution)
+performAction = logCall 'performAction $ do
+    snapshot <- gets GameSnapshot
+    prompt (PromptAction snapshot) >>= liftM Just . \case
+        ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
+        ActionPlayCard card pos -> actionPlayCard card pos
+        ActionEndTurn -> return EndTurn
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
@@ -396,7 +402,7 @@ insertAt n x xs = let
     in left ++ [x] ++ right
 
 
-placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m Result
+placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth m (Maybe BoardMinion)
 placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     let minion' = BoardMinion {
@@ -408,16 +414,16 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
-            7 -> return Failure
+            7 -> return Nothing
             len -> case 0 <= pos && pos <= len of
-                False -> return Failure
+                False -> return Nothing
                 True -> do
                     id %= insertAt pos minion'
-                    return Success
+                    return $ Just minion'
 
 
 actionPlayCard :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m TurnEvolution
-actionPlayCard card pos = do
+actionPlayCard card pos = logCall 'actionPlayCard $ do
     handle <- getActivePlayerHandle
     _ <- playCard handle card pos
     return ContinueTurn
@@ -426,24 +432,53 @@ actionPlayCard card pos = do
 playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
 playCard handle card pos = logCall 'playCard $ do
     st <- get
-    result <- playCard' handle card pos >>= \case
-        Success -> return Success
-        Failure -> do
+    mBoardMinion <- playCard' handle card pos >>= \case
+        Just bm -> return $ Just bm
+        Nothing -> do
             put st
-            return Failure
+            return Nothing;
+    let result = maybe Failure (const Success) mBoardMinion
     prompt $ PromptGameEvent $ PlayedCard handle card result
+    case mBoardMinion of
+        Nothing -> return ()
+        Just bm -> enactAnyBattleCries bm
     return result
 
 
-playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
+enactAnyBattleCries :: (HearthMonad m) => BoardMinion -> Hearth m ()
+enactAnyBattleCries minion = logCall 'enactAnyBattleCries $ do
+    forM_ (minion^.boardMinionAbilities) $ \case
+        KeywordAbility (BattleCry effect) -> enactBattleCry effect
+        _ -> return ()
+
+
+enactBattleCry :: (HearthMonad m) => Effect -> Hearth m ()
+enactBattleCry = logCall 'enactBattleCry . enactEffect
+
+
+enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
+enactEffect = logCall 'enactEffect . \case
+    With elect -> enactEffect =<< reifyElect elect
+    DrawCards n handle -> drawCards handle n >> return ()
+
+
+reifyElect :: (HearthMonad m) => Elect -> Hearth m Effect
+reifyElect = logCall 'reifyElect . \case
+    Owner f -> do
+        handle <- getActivePlayerHandle
+        return $ f handle
+
+
+playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m (Maybe BoardMinion)
 playCard' handle card pos = logCall 'playCard' $ removeFromHand handle card >>= \case
-    False -> return Failure
+    False -> return Nothing
     True -> do
         payCost handle (costOf card) >>= \case
-            Failure -> return Failure
+            Failure -> return Nothing
             Success -> case card of
-                HandCardMinion minion -> placeOnBoard handle pos $ case minion of
-                    HandMinion minion' -> minion'
+                HandCardMinion hm -> do
+                    placeOnBoard handle pos $ case hm of
+                        HandMinion minion' -> minion'
 
 
 costOf :: HandCard -> Cost

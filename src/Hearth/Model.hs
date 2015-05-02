@@ -22,7 +22,6 @@ module Hearth.Model where
 --------------------------------------------------------------------------------
 
 
-import Control.Error
 import Control.Lens
 import Data.Data
 import Data.Monoid
@@ -89,36 +88,33 @@ data Cost :: * where
 
 
 data Elect :: * where
-    DummyElect :: (() -> Effect) -> Elect
-    --Self :: (PlayerHandle -> Effect) -> Elect
+    Owner :: (PlayerHandle -> Effect) -> Elect
     --Opponent :: (PlayerHandle -> Effect) -> Elect
     --TargetCreature :: (CreatureHandle -> Effect) -> Elect
+    deriving (Typeable)
+
 
 instance Show Elect where
-    show = $todo 'show "Show Elect"
-
-instance Eq Elect where
-    (==) = $todo '(==) "Eq Elect"
-
-instance Ord Elect where
-    compare = $todo 'compare "Ord Elect"
+    show _ = "Elect"
 
 
 data Effect :: * where
     With :: Elect -> Effect
-    deriving (Show, Eq, Ord, Typeable)
+    DrawCards :: Int -> PlayerHandle -> Effect
+    deriving (Show, Typeable)
 
 
 data Ability :: * where
     KeywordAbility :: KeywordAbility -> Ability
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Typeable)
 
 
 data KeywordAbility :: * where
+    BattleCry :: Effect -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Taunt :: KeywordAbility
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Typeable)
 
 
 data Enchantment :: * where
@@ -139,7 +135,7 @@ data Minion = Minion {
     _minionHealth :: Health,
     _minionAbilities :: [Ability],
     _minionName :: CardName
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''Minion
 
 
@@ -150,27 +146,27 @@ data BoardMinion = BoardMinion {
     _boardMinionHandle :: MinionHandle,
     _boardMinionAbilities :: [Ability],
     _boardMinion :: Minion
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''BoardMinion
 
 
 data DeckMinion = DeckMinion {
     _deckMinion :: Minion
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''DeckMinion
 
 
 data HandMinion = HandMinion {
     --_handMinionEffects :: [HandEffect]  -- Think Bolvar, *Giants, Freezing Trap
     _handMinion :: Minion
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''HandMinion
 
 
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffects :: [Effect]
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''HeroPower
 
 
@@ -179,7 +175,7 @@ data Hero = Hero {
     _heroHealth :: Health,
     _heroPower :: HeroPower,
     _heroName :: HeroName
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''Hero
 
 
@@ -187,29 +183,29 @@ data BoardHero = BoardHero {
     _boardHeroCurrHealth :: Health,
     _boardHeroArmor :: Armor,
     _boardHero :: Hero
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''BoardHero
 
 
 data HandCard :: * where
     HandCardMinion :: HandMinion -> HandCard
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Typeable)
 
 
 data DeckCard :: * where
     DeckCardMinion :: DeckMinion -> DeckCard
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Typeable)
 
 
 newtype Hand = Hand {
     _handCards :: [HandCard]
-} deriving (Show, Eq, Ord, Monoid, Generic, Data, Typeable)
+} deriving (Show, Monoid, Generic, Typeable)
 makeLenses ''Hand
 
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
-} deriving (Show, Eq, Ord, Monoid, Generic, Data, Typeable)
+} deriving (Show, Monoid, Generic, Typeable)
 makeLenses ''Deck
 
 
@@ -222,7 +218,7 @@ data Player = Player {
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
     _playerHero :: BoardHero
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''Player
 
 
@@ -231,19 +227,30 @@ data GameState = GameState {
     _gameHandleSeed :: RawHandle,
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''GameState
 
 
 data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
-} deriving (Show, Eq, Ord, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''GameSnapshot
 
 
 data GameResult :: * where
     GameResult :: GameResult
-    deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord, Typeable)
+
+
+deckCardName :: DeckCard -> CardName
+deckCardName = \case
+    DeckCardMinion minion -> minion^.deckMinion.minionName
+
+
+handCardName :: HandCard -> CardName
+handCardName = \case
+    HandCardMinion minion -> minion^.handMinion.minionName
+
 
 
 

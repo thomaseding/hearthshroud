@@ -47,6 +47,7 @@ data BasicCardName
     | FrostwolfGrunt
     | MagmaRager
     | MurlocRaider
+    | NoviceEngineer
     | OasisSnapjaw
     | RiverCrocolisk
     | WarGolem

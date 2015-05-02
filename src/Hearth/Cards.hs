@@ -25,6 +25,7 @@ minionUniverse = [
     frostwolfGrunt,
     magmaRager,
     murlocRaider,
+    noviceEngineer,
     oasisSnapjaw,
     riverCrocolisk,
     sunwalker,
@@ -49,7 +50,8 @@ mkClassicMinion name = mkMinion $ ClassicCardName name
 
 
 argentSquire :: Minion
-argentSquire = mkClassicMinion ArgentSquire 1 1 1 [KeywordAbility DivineShield]
+argentSquire = mkClassicMinion ArgentSquire 1 1 1 [
+    KeywordAbility DivineShield]
 
 
 bloodfenRaptor :: Minion
@@ -69,7 +71,13 @@ coreHound = mkBasicMinion CoreHound 7 9 5 []
 
 
 frostwolfGrunt :: Minion
-frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [KeywordAbility Taunt]
+frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
+    KeywordAbility Taunt]
+
+
+noviceEngineer :: Minion
+noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
+    KeywordAbility $ BattleCry $ With $ Owner $ DrawCards 1]
 
 
 magmaRager :: Minion
@@ -89,7 +97,9 @@ riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
 
 
 sunwalker :: Minion
-sunwalker = mkClassicMinion Sunwalker 6 4 5 [KeywordAbility Taunt, KeywordAbility DivineShield]
+sunwalker = mkClassicMinion Sunwalker 6 4 5 [
+    KeywordAbility Taunt,
+    KeywordAbility DivineShield]
 
 
 warGolem :: Minion

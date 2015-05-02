@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -9,6 +10,7 @@ module Hearth.GameEvent where
 --------------------------------------------------------------------------------
 
 
+import Data.Data
 import Hearth.Model
 
 
@@ -25,7 +27,7 @@ data GameEvent :: * where
     GainsManaCrystal :: PlayerHandle -> Maybe CrystalState -> GameEvent
     ManaCrystalsRefill :: PlayerHandle -> Int -> GameEvent
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
-    deriving (Show, Eq, Ord)
+    deriving (Show, Typeable)
 
 
 

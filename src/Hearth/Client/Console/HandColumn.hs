@@ -67,13 +67,17 @@ getMinionName minion = fromString $ case minion^.minionName of
 hasDivineShield :: Minion -> Bool
 hasDivineShield minion = let
     abilities = minion^.minionAbilities
-    in any (KeywordAbility DivineShield ==) abilities
+    in flip any abilities $ \case
+        KeywordAbility DivineShield -> True
+        _ -> False
 
 
 hasTaunt :: Minion -> Bool
 hasTaunt minion = let
     abilities = minion^.minionAbilities
-    in any (KeywordAbility Taunt ==) abilities
+    in flip any abilities $ \case
+        KeywordAbility Taunt -> True
+        _ -> False
 
 
 
