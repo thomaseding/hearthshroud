@@ -193,11 +193,11 @@ gameEvent = unlessM isQuiet . \case
     DeckShuffled (viewPlayer -> who) _ -> let
         playerAttr = ("player", show who)
         in tag "deckShuffled" [playerAttr]
-    CardDrawn (viewPlayer -> who) (mCard) (Deck deck) -> let
+    CardDrawn (viewPlayer -> who) (eCard) _ -> let
         playerAttr = ("player", show who)
-        cardAttr = case mCard of { Nothing -> ("", "") ; Just card -> ("card", simpleName card) }
-        deckAttr = ("deck", show $ length deck)
-        in tag "cardDrawn" [playerAttr, cardAttr,  deckAttr]
+        cardAttr = ("card", either simpleName simpleName eCard)
+        resultAttr = ("result", show $ either (const Failure) (const Success) eCard)
+        in tag "cardDrawn" [playerAttr, cardAttr, resultAttr]
     PlayedCard (viewPlayer -> who) card result -> let
         playerAttr = ("player", show who)
         cardAttr = ("card", show $ simpleName card)

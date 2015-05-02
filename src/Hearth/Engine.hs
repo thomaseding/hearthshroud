@@ -273,13 +273,13 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck (c:cs) -> do
         let c' = deckToHand c
             deck = Deck cs
-            promptDraw mCard = do
-                prompt $ PromptGameEvent $ CardDrawn handle mCard deck
-                return mCard
+            promptDraw eCard = do
+                prompt $ PromptGameEvent $ CardDrawn handle eCard deck
+                return $ either (const Nothing) Just eCard
         getPlayer handle.playerDeck .= deck
         putInHand handle c' >>= \case
-            False -> promptDraw Nothing
-            True -> promptDraw $ Just c'
+            False -> promptDraw $ Left c
+            True -> promptDraw $ Right c'
 
 
 damagePlayerHero :: (HearthMonad m) => PlayerHandle -> Damage -> Hearth m ()
