@@ -202,7 +202,7 @@ gameEvent = unlessM isQuiet . \case
         in tag "heroTakesDamage" [playerAttr, oldAttr, newAttr, dmgAttr]
     GainsManaCrystal (PlayerHandle (RawHandle who)) mCrystalState -> let
         playerAttr = ("player", show who)
-        varietyAttr = ("variety", maybe (show mCrystalState) show mCrystalState)
+        varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
         in tag "gainsManaCrystal" [playerAttr, varietyAttr]
     ManaCrystalsRefill (PlayerHandle (RawHandle who)) amount -> let
         playerAttr = ("player", show who)
