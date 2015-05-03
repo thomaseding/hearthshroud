@@ -162,13 +162,23 @@ getPlayer handle f st = fmap put' get'
 
 
 getActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
-getActivePlayerHandle = do
+getActivePlayerHandle = logCall 'getActivePlayerHandle $ do
     (h : _) <- view gamePlayerTurnOrder
     return h
 
 
 isActivePlayer :: (HearthMonad m) => PlayerHandle -> Hearth m Bool
 isActivePlayer h = liftM (h ==) getActivePlayerHandle
+
+
+getControllerOf :: (HearthMonad m) => MinionHandle -> Hearth m PlayerHandle
+getControllerOf handle = logCall 'getControllerOf $ do
+    players <- view gamePlayers
+    let f minion = minion^.boardMinionHandle == handle
+        players' = flip filter players $ \player -> any f $ player^.playerMinions
+    case players' of
+        [player] -> return $ player^.playerHandle
+        _ -> $logicError 'getControllerOf "Inconsistent handles."
 
 
 zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
@@ -447,13 +457,14 @@ playCard handle card pos = logCall 'playCard $ do
 
 enactAnyBattleCries :: (HearthMonad m) => BoardMinion -> Hearth m ()
 enactAnyBattleCries minion = logCall 'enactAnyBattleCries $ do
+    let minionHandle = minion^.boardMinionHandle
     forM_ (minion^.boardMinionAbilities) $ \case
-        KeywordAbility (BattleCry effect) -> enactBattleCry effect
+        KeywordAbility (BattleCry effect) -> enactBattleCry minionHandle effect
         _ -> return ()
 
 
-enactBattleCry :: (HearthMonad m) => Effect -> Hearth m ()
-enactBattleCry = logCall 'enactBattleCry . enactEffect
+enactBattleCry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+enactBattleCry handle = logCall 'enactBattleCry . enactEffect . ($ handle)
 
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
@@ -464,9 +475,7 @@ enactEffect = logCall 'enactEffect . \case
 
 reifyElect :: (HearthMonad m) => Elect -> Hearth m Effect
 reifyElect = logCall 'reifyElect . \case
-    Owner f -> do
-        handle <- getActivePlayerHandle
-        return $ f handle
+    ControllerOf minionHandle f -> liftM f $ getControllerOf minionHandle
 
 
 playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m (Maybe BoardMinion)

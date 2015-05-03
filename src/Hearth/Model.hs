@@ -88,9 +88,7 @@ data Cost :: * where
 
 
 data Elect :: * where
-    Owner :: (PlayerHandle -> Effect) -> Elect
-    --Opponent :: (PlayerHandle -> Effect) -> Elect
-    --TargetCreature :: (CreatureHandle -> Effect) -> Elect
+    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
@@ -110,11 +108,15 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    BattleCry :: Effect -> KeywordAbility
+    BattleCry :: (MinionHandle -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Taunt :: KeywordAbility
-    deriving (Show, Typeable)
+    deriving (Typeable)
+
+
+instance Show KeywordAbility where
+    show _ = "KeywordAbility"
 
 
 data Enchantment :: * where

@@ -77,7 +77,7 @@ frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
 
 noviceEngineer :: Minion
 noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
-    KeywordAbility $ BattleCry $ With $ Owner $ DrawCards 1]
+    KeywordAbility $ BattleCry $ \this -> With $ ControllerOf this $ DrawCards 1]
 
 
 magmaRager :: Minion
