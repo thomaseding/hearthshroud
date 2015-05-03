@@ -55,7 +55,7 @@ import Hearth.Model
 import Hearth.Names
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
-import Prelude hiding (pi)
+import Prelude hiding (pi, log)
 import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
@@ -65,13 +65,25 @@ import Text.Read (readMaybe)
 --------------------------------------------------------------------------------
 
 
+defaultVerbosity :: Verbosity
+defaultVerbosity = DebugLight
+
+
+data Verbosity
+    = Quiet
+    | GameEventsOnly
+    | DebugLight
+    | DebugExhaustive
+    deriving (Show, Eq, Ord)
+
+
 data LogState = LogState {
     _loggedLines :: [String],
     _totalLines :: !Int,
     _undisplayedLines :: !Int,
     _tagDepth :: !Int,
     _useShortTag :: !Bool,
-    _quiet :: !Bool
+    _verbosity :: !Verbosity
 } deriving (Show, Eq, Ord)
 makeLenses ''LogState
 
@@ -102,23 +114,12 @@ instance Zoom (Console' st) (Console' st') st st' where
     zoom l = Console . zoom l . unConsole
 
 
-unlessM :: (Monad m) => m Bool -> m () -> m ()
-unlessM c m = do
-    c >>= \case
-        False -> m
-        True -> return ()
-
-
-isQuiet :: Console Bool
-isQuiet = view $ logState.quiet
-
-
 localQuiet :: Console a -> Console a
 localQuiet m = do
-    q <- view $ logState.quiet
-    logState.quiet .= True
+    v <- view $ logState.verbosity
+    logState.verbosity .= Quiet
     x <- m
-    logState.quiet .= q
+    logState.verbosity .= v
     return x
 
 
@@ -171,18 +172,37 @@ closeTag name = do
     logState.useShortTag .= False
 
 
+verbosityGate :: String -> Console () -> Console ()
+verbosityGate name m = do
+    view (logState.verbosity) >>= \case
+        Quiet -> return ()
+        GameEventsOnly -> case name of
+            ':' : _ -> return ()
+            _ -> m
+        DebugLight -> case name of
+            ':' : rest -> case isLight rest of
+                True -> m
+                False -> return ()
+            _ -> m
+        DebugExhaustive -> m
+    where
+        isLight = (`notElem` words "")
+
+
 debugEvent :: DebugEvent -> Console ()
-debugEvent e = unlessM isQuiet $ case e of
-    FunctionEntered name -> do
-        openTag (showName name) []
-    FunctionExited name -> do
-        closeTag (showName name)
+debugEvent e = case e of
+    FunctionEntered name -> let
+        name' = showName name
+        in verbosityGate name' $ openTag name' []
+    FunctionExited name -> let
+        name' = showName name
+        in verbosityGate name' $ closeTag name'
     where
         showName = (':' :) . nameBase
 
 
 gameEvent :: GameEvent -> Console ()
-gameEvent = unlessM isQuiet . \case
+gameEvent = \case
     GameBegins -> let
         in tag "gameBegins" []
     GameEnds gameResult -> let
@@ -198,7 +218,7 @@ gameEvent = unlessM isQuiet . \case
         in tag "cardDrawn" [playerAttr, cardAttr, resultAttr]
     PlayedCard (viewPlayer -> who) card result -> let
         playerAttr = ("player", show who)
-        cardAttr = ("card", show $ handCardName' card)
+        cardAttr = ("card", handCardName' card)
         resultAttr = ("result", show result)
         in tag "playedCard" [playerAttr, cardAttr, resultAttr]
     HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Damage damage) -> let
@@ -222,7 +242,7 @@ gameEvent = unlessM isQuiet . \case
         in tag "manaCrystalsEmpty" [playerAttr, amountAttr]
     where
         viewPlayer (PlayerHandle (RawHandle who)) = who
-        tag name attrs = openTag name attrs >> closeTag name
+        tag name attrs = verbosityGate name $ openTag name attrs >> closeTag name
 
 
 showCardName :: CardName -> String
@@ -272,7 +292,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 _undisplayedLines = 1,
                 _tagDepth = 0,
                 _useShortTag = False,
-                _quiet = False } }
+                _verbosity = defaultVerbosity } }
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
             _heroPowerEffects = [] }
@@ -423,9 +443,10 @@ playCardAction retry = \case
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
-    openTag (showName 'getAction) []
+    let name = showName 'getAction
+    verbosityGate name $ openTag name []
     action <- getAction' snapshot
-    closeTag (showName 'getAction)
+    verbosityGate name $ closeTag name
     return action
     where
         showName = (':' :) . nameBase
@@ -448,11 +469,27 @@ getAction' snapshot = do
     return action
 
 
+viewLogLineInfo :: Console (Int,  Int, [String])
+viewLogLineInfo = zoom logState $ do
+    tl <- view totalLines
+    ul <- view undisplayedLines
+    strs <- view loggedLines
+    return $ case strs of
+        "" : rest -> (tl - 1, ul, rest)
+        _ -> (tl, ul, strs)
+
+
 renewLogWindow :: Window Int -> Int -> Console ()
 renewLogWindow window row = do
     let displayCount = Window.height window - 20 - row
-    totalCount <- view $ logState.totalLines
-    let lineNoLen = length $ show totalCount
+    (totalCount, newCount, log) <- viewLogLineInfo
+    let (newLines, oldLines) = id
+            . splitAt (if totalCount < displayCount then min displayCount newCount + displayCount - totalCount else newCount)
+            . zip (iterate pred $ max displayCount totalCount)
+            . (replicate (displayCount - totalCount) "" ++)
+            . take displayCount
+            $ log
+        lineNoLen = length $ show totalCount
         padWith c str = replicate (lineNoLen - length str) c ++ str
         putWithLineNo debugConfig gameConfig (lineNo, str) = do
             let config = case isDebug str of
@@ -470,12 +507,6 @@ renewLogWindow window row = do
                 "" -> ""
                 '>' : _ -> ""
                 _ -> ">"
-    newCount <- view $ logState.undisplayedLines
-    (newLines, oldLines) <- view $ logState.loggedLines.to (id
-        . splitAt (if totalCount < displayCount then min displayCount newCount + displayCount - totalCount else newCount)
-        . zip (iterate pred $ max displayCount totalCount)
-        . (replicate (displayCount - totalCount) "" ++)
-        . take displayCount)
     liftIO $ do
         setSGR [SetColor Foreground (fst borderColor) (snd borderColor)]
         setCursorPosition row 0

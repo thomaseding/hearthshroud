@@ -396,10 +396,14 @@ pumpTurn' = logCall 'pumpTurn' $ isGameOver >>= \case
 performAction :: (HearthMonad m) => Hearth m (Maybe TurnEvolution)
 performAction = logCall 'performAction $ do
     snapshot <- gets GameSnapshot
-    prompt (PromptAction snapshot) >>= liftM Just . \case
-        ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
-        ActionPlayCard card pos -> actionPlayCard card pos
-        ActionEndTurn -> return EndTurn
+    prompt (PromptAction snapshot) >>= liftM Just . enactAction
+    
+    
+enactAction :: (HearthMonad m) => Action -> Hearth m TurnEvolution
+enactAction = logCall 'enactAction . \case
+    ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
+    ActionPlayCard card pos -> actionPlayCard card pos
+    ActionEndTurn -> return EndTurn
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
