@@ -23,8 +23,12 @@ minionUniverse = [
     boulderfistOgre,
     chillwindYeti,
     coreHound,
+    dreadInfernal,
+    elvenArcher,
+    fireElemental,
     frostwolfGrunt,
     ironbeakOwl,
+    ironforgeRifleman,
     magmaRager,
     murlocRaider,
     noviceEngineer,
@@ -33,6 +37,7 @@ minionUniverse = [
     riverCrocolisk,
     spellbreaker,
     stonetuskBoar,
+    stormpikeCommando,
     stormwindKnight,
     sunwalker,
     warGolem,
@@ -54,6 +59,10 @@ mkBasicMinion name = mkMinion $ BasicCardName name
 
 mkClassicMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
 mkClassicMinion name = mkMinion $ ClassicCardName name
+
+
+allOtherCharacters :: (MinionHandle -> Effect) -> MinionHandle -> Effect
+allOtherCharacters f this = With $ AllOther [this] f
 
 
 targetAnotherMinion :: (MinionHandle -> Effect) -> MinionHandle -> Effect
@@ -86,6 +95,21 @@ coreHound :: Minion
 coreHound = mkBasicMinion CoreHound 7 9 5 []
 
 
+dreadInfernal :: Minion
+dreadInfernal = mkBasicMinion DreadInfernal 6 6 6 [
+    KeywordAbility $ Battlecry $ allOtherCharacters $ DealDamage 1 ]
+
+
+elvenArcher :: Minion
+elvenArcher = mkBasicMinion ElvenArcher 1 1 1 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ DealDamage 1 ]
+
+
+fireElemental :: Minion
+fireElemental = mkBasicMinion FireElemental 6 6 5 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ DealDamage 3 ]
+
+
 frostwolfGrunt :: Minion
 frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
     KeywordAbility Taunt ]
@@ -94,6 +118,11 @@ frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
 ironbeakOwl :: Minion
 ironbeakOwl = mkClassicMinion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ targetAnotherMinion $ KeywordEffect . Silence ]
+
+
+ironforgeRifleman :: Minion
+ironforgeRifleman = mkBasicMinion IronforgeRifleman 3 2 2 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ DealDamage 1 ]
 
 
 magmaRager :: Minion
@@ -130,6 +159,11 @@ spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
 stonetuskBoar :: Minion
 stonetuskBoar = mkBasicMinion StonetuskBoar 1 1 1 [
     KeywordAbility Charge ]
+
+
+stormpikeCommando :: Minion
+stormpikeCommando = mkBasicMinion StormpikeCommando 5 4 2 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ DealDamage 2 ]
 
 
 stormwindKnight :: Minion

@@ -45,6 +45,10 @@ data BasicCardName
     | BoulderfistOgre
     | ChillwindYeti
     | CoreHound
+    | DreadInfernal
+    | ElvenArcher
+    | IronforgeRifleman
+    | FireElemental
     | FrostwolfGrunt
     | MagmaRager
     | MurlocRaider
@@ -53,6 +57,7 @@ data BasicCardName
     | RecklessRocketeer
     | RiverCrocolisk
     | StonetuskBoar
+    | StormpikeCommando
     | StormwindKnight
     | WarGolem
     | WolfRider

@@ -489,26 +489,26 @@ enactBattlecry handle = logCall 'enactBattlecry . enactEffect . ($ handle)
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
 enactEffect = logCall 'enactEffect . \case
-    With elect -> reifyElect elect >>= \case
-        Nothing -> return ()
-        Just effect -> enactEffect effect
+    With elect -> enactElect elect
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
-    Deal damage handle -> dealDamage damage handle >> return ()
+    DealDamage damage handle -> dealDamage damage handle >> return ()
 
 
 dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
-dealDamage dmg@(Damage d) bmHandle = logCall 'dealDamage $ withMinions $ \bm -> do
-    liftM Just $ case bm^.boardMinionHandle == bmHandle of
-        False -> return bm
-        True -> case loseDivineShield bm of
-            Just bm' -> do
-                prompt $ PromptGameEvent $ LostDivineShield bm'
-                return bm'
-            Nothing -> do
-                let bm' = bm & boardMinionCurrHealth %~ Health . subtract d . unHealth
-                prompt $ PromptGameEvent $ MinionTakesDamage bm dmg
-                return bm'
+dealDamage dmg@(Damage d) bmHandle = logCall 'dealDamage $ do
+    withMinions $ \bm -> do
+        liftM Just $ case bm^.boardMinionHandle == bmHandle of
+            False -> return bm
+            True -> case loseDivineShield bm of
+                Just bm' -> do
+                    prompt $ PromptGameEvent $ LostDivineShield bm'
+                    return bm'
+                Nothing -> do
+                    let bm' = bm & boardMinionCurrHealth %~ Health . subtract d . unHealth
+                    prompt $ PromptGameEvent $ MinionTakesDamage bm dmg
+                    return bm'
+    clearDeadMinions
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
@@ -525,24 +525,33 @@ silence victim = logCall 'silence $ do
             True -> bm & boardMinionAbilities .~ []
 
 
-reifyElect :: (HearthMonad m) => Elect -> Hearth m (Maybe Effect)
-reifyElect = logCall 'reifyElect . \case
-    ControllerOf minionHandle f -> liftM (Just . f) $ getControllerOf minionHandle
+enactElect :: (HearthMonad m) => Elect -> Hearth m ()
+enactElect = logCall 'enactElect . \case
+    ControllerOf minionHandle f -> getControllerOf minionHandle >>= enactEffect . f
     TargetNoneOf banList f -> targetNoneOf banList f
+    AllOther banList f -> allOther banList f
 
 
-targetNoneOf :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m (Maybe Effect)
-targetNoneOf banList f = logCall 'targetNoneOf $ do
+allOther :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m ()
+allOther banList f = logCall 'targetNoneOf $ do
     handles <- getPlayerHandles
-    let _ = handles :: [PlayerHandle]
     targets <- liftM concat $ forM handles $ \handle -> do
-        let _ = handle :: PlayerHandle
         bms <- view $ getPlayer handle.playerMinions
         let mhs = map (\bm -> bm^.boardMinionHandle) bms
         return $ filter (`notElem` banList) mhs
-    pickMinionFrom targets >>= return . \case
-        Nothing -> Nothing
-        Just target -> Just $ f target
+    forM_ targets $ enactEffect . f
+
+
+targetNoneOf :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m ()
+targetNoneOf banList f = logCall 'targetNoneOf $ do
+    handles <- getPlayerHandles
+    targets <- liftM concat $ forM handles $ \handle -> do
+        bms <- view $ getPlayer handle.playerMinions
+        let mhs = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (`notElem` banList) mhs
+    pickMinionFrom targets >>= \case
+        Nothing -> return ()
+        Just target -> enactEffect $ f target
 
 
 pickMinionFrom :: (HearthMonad m) => [MinionHandle] -> Hearth m (Maybe MinionHandle)
@@ -650,7 +659,6 @@ attackMinion' attacker defender = logCall 'attackMinion' $ do
             withMinions $ \bm -> return $ Just $ case bm^.boardMinionHandle == attacker^.boardMinionHandle of
                 True -> bm & boardMinionAttackCount %~ mapBoth succ succ
                 False -> bm
-            clearDeadMinions
             return Success
     where
         hasTaunt bm = flip any (bm^.boardMinionAbilities) $ \case

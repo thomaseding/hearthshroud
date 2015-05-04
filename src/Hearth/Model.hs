@@ -90,6 +90,7 @@ data Cost :: * where
 data Elect :: * where
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
     TargetNoneOf :: [MinionHandle] -> (MinionHandle -> Effect) -> Elect
+    AllOther :: [MinionHandle] -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
@@ -101,7 +102,7 @@ data Effect :: * where
     With :: Elect -> Effect
     DrawCards :: Int -> PlayerHandle -> Effect
     KeywordEffect :: KeywordEffect -> Effect
-    Deal :: Damage -> MinionHandle -> Effect
+    DealDamage :: Damage -> MinionHandle -> Effect
     deriving (Show, Typeable)
 
 
