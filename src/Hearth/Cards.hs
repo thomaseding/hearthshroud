@@ -24,12 +24,14 @@ minionUniverse = [
     chillwindYeti,
     coreHound,
     frostwolfGrunt,
+    ironbeakOwl,
     magmaRager,
     murlocRaider,
     noviceEngineer,
     oasisSnapjaw,
     recklessRocketeer,
     riverCrocolisk,
+    spellbreaker,
     stonetuskBoar,
     stormwindKnight,
     sunwalker,
@@ -52,6 +54,10 @@ mkBasicMinion name = mkMinion $ BasicCardName name
 
 mkClassicMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
 mkClassicMinion name = mkMinion $ ClassicCardName name
+
+
+targetAnotherMinion :: (MinionHandle -> Effect) -> MinionHandle -> Effect
+targetAnotherMinion f this = With $ TargetNoneOf [this] f
 
 
 argentSquire :: Minion
@@ -85,9 +91,9 @@ frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
     KeywordAbility Taunt ]
 
 
-noviceEngineer :: Minion
-noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
-    KeywordAbility $ BattleCry $ \this -> With $ ControllerOf this $ DrawCards 1 ]
+ironbeakOwl :: Minion
+ironbeakOwl = mkClassicMinion IronbeakOwl 2 2 1 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ KeywordEffect . Silence ]
 
 
 magmaRager :: Minion
@@ -96,6 +102,11 @@ magmaRager = mkBasicMinion MagmaRager 3 5 1 []
 
 murlocRaider :: Minion
 murlocRaider = mkBasicMinion MurlocRaider 1 2 1 []
+
+
+noviceEngineer :: Minion
+noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
+    KeywordAbility $ Battlecry $ \this -> With $ ControllerOf this $ DrawCards 1 ]
 
 
 oasisSnapjaw :: Minion
@@ -109,6 +120,11 @@ recklessRocketeer = mkBasicMinion RecklessRocketeer 6 5 2 [
 
 riverCrocolisk :: Minion
 riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
+
+
+spellbreaker :: Minion
+spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ KeywordEffect . Silence ]
 
 
 stonetuskBoar :: Minion

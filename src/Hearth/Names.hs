@@ -61,6 +61,8 @@ data BasicCardName
 
 data ClassicCardName
     = ArgentSquire
+    | IronbeakOwl
+    | Spellbreaker
     | Sunwalker
     deriving (Show, Eq, Ord, Data, Typeable)
 

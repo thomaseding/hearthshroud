@@ -89,6 +89,7 @@ data Cost :: * where
 
 data Elect :: * where
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
+    TargetNoneOf :: [MinionHandle] -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
@@ -99,6 +100,12 @@ instance Show Elect where
 data Effect :: * where
     With :: Elect -> Effect
     DrawCards :: Int -> PlayerHandle -> Effect
+    KeywordEffect :: KeywordEffect -> Effect
+    deriving (Show, Typeable)
+
+
+data KeywordEffect :: * where
+    Silence :: MinionHandle -> KeywordEffect
     deriving (Show, Typeable)
 
 
@@ -108,7 +115,7 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    BattleCry :: (MinionHandle -> Effect) -> KeywordAbility
+    Battlecry :: (MinionHandle -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Taunt :: KeywordAbility

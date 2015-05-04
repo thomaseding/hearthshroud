@@ -479,23 +479,63 @@ enactAnyBattleCries :: (HearthMonad m) => BoardMinion -> Hearth m ()
 enactAnyBattleCries minion = logCall 'enactAnyBattleCries $ do
     let minionHandle = minion^.boardMinionHandle
     forM_ (minion^.boardMinionAbilities) $ \case
-        KeywordAbility (BattleCry effect) -> enactBattleCry minionHandle effect
+        KeywordAbility (Battlecry effect) -> enactBattlecry minionHandle effect
         _ -> return ()
 
 
-enactBattleCry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
-enactBattleCry handle = logCall 'enactBattleCry . enactEffect . ($ handle)
+enactBattlecry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+enactBattlecry handle = logCall 'enactBattlecry . enactEffect . ($ handle)
 
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
 enactEffect = logCall 'enactEffect . \case
-    With elect -> enactEffect =<< reifyElect elect
+    With elect -> reifyElect elect >>= \case
+        Nothing -> return ()
+        Just effect -> enactEffect effect
     DrawCards n handle -> drawCards handle n >> return ()
+    KeywordEffect effect -> enactKeywordEffect effect
 
 
-reifyElect :: (HearthMonad m) => Elect -> Hearth m Effect
+enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
+enactKeywordEffect = logCall 'enactKeywordEffect . \case
+    Silence handle -> silence handle
+
+
+silence :: (HearthMonad m) => MinionHandle -> Hearth m ()
+silence victim = logCall 'silence $ do
+    p <- getControllerOf victim
+    getPlayer p.playerMinions %= let
+        in map $ \bm -> case bm^.boardMinionHandle == victim of
+            False -> bm
+            True -> bm & boardMinionAbilities .~ []
+
+
+reifyElect :: (HearthMonad m) => Elect -> Hearth m (Maybe Effect)
 reifyElect = logCall 'reifyElect . \case
-    ControllerOf minionHandle f -> liftM f $ getControllerOf minionHandle
+    ControllerOf minionHandle f -> liftM (Just . f) $ getControllerOf minionHandle
+    TargetNoneOf banList f -> targetNoneOf banList f
+
+
+targetNoneOf :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m (Maybe Effect)
+targetNoneOf banList f = logCall 'targetNoneOf $ do
+    handles <- getPlayerHandles
+    let _ = handles :: [PlayerHandle]
+    targets <- liftM concat $ forM handles $ \handle -> do
+        let _ = handle :: PlayerHandle
+        bms <- view $ getPlayer handle.playerMinions
+        let mhs = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (`notElem` banList) mhs
+    pickMinionFrom targets >>= return . \case
+        Nothing -> Nothing
+        Just target -> Just $ f target
+
+
+pickMinionFrom :: (HearthMonad m) => [MinionHandle] -> Hearth m (Maybe MinionHandle)
+pickMinionFrom = logCall 'pickMinionFrom . \case
+    [] -> return Nothing
+    handles -> do
+        handle <- guardedPrompt (PromptPickRandom $ NonEmpty.fromList handles) (`elem` handles)
+        return $ Just handle
 
 
 playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m (Maybe BoardMinion)
