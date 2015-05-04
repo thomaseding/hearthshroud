@@ -60,7 +60,7 @@ newtype Health = Health { unHealth :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype Damage = Damage Int
+newtype Damage = Damage { unDamage :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
@@ -151,7 +151,7 @@ makeLenses ''Minion
 
 
 data BoardMinion = BoardMinion {
-    _boardMinionCurrHealth :: Health,
+    _boardMinionDamage :: Damage,
     _boardMinionEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Either Int Int,

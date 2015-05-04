@@ -429,7 +429,7 @@ placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth 
 placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     let minion' = BoardMinion {
-            _boardMinionCurrHealth = minion^.minionHealth,
+            _boardMinionDamage = 0,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
             _boardMinionAttackCount = Left 0,
@@ -498,8 +498,12 @@ dynamicAttack :: (HearthMonad m) => BoardMinion -> Hearth m Attack
 dynamicAttack bm = return $ bm^.boardMinion.minionAttack
 
 
+dynamicHealth :: (HearthMonad m) => BoardMinion -> Hearth m Health
+dynamicHealth bm = return $ bm^.boardMinion.minionHealth
+
+
 dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
-dealDamage dmg@(Damage d) bmHandle = logCall 'dealDamage $ do
+dealDamage damage bmHandle = logCall 'dealDamage $ do
     withMinions $ \bm -> do
         liftM Just $ case bm^.boardMinionHandle == bmHandle of
             False -> return bm
@@ -508,8 +512,8 @@ dealDamage dmg@(Damage d) bmHandle = logCall 'dealDamage $ do
                     prompt $ PromptGameEvent $ LostDivineShield bm'
                     return bm'
                 Nothing -> do
-                    let bm' = bm & boardMinionCurrHealth %~ Health . subtract d . unHealth
-                    prompt $ PromptGameEvent $ MinionTakesDamage bm dmg
+                    let bm' = bm & boardMinionDamage +~ damage
+                    prompt $ PromptGameEvent $ MinionTakesDamage bm damage
                     return bm'
     clearDeadMinions
 
@@ -611,7 +615,8 @@ withMinions f = logCall 'withMinions $ do
 
 clearDeadMinions :: (HearthMonad m) => Hearth m ()
 clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
-    let alive = bm^.boardMinionCurrHealth > 0
+    threshold <- liftM (Damage . unHealth) $ dynamicHealth bm
+    let alive = bm^.boardMinionDamage < threshold
     case alive of
         True -> return $ Just bm
         False -> do
