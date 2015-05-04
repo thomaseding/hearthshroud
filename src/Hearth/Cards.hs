@@ -18,6 +18,7 @@ cardUniverse = map (DeckCardMinion . DeckMinion) minionUniverse
 minionUniverse :: [Minion]
 minionUniverse = [
     argentSquire,
+    bluegillWarrior,
     bloodfenRaptor,
     boulderfistOgre,
     chillwindYeti,
@@ -27,9 +28,13 @@ minionUniverse = [
     murlocRaider,
     noviceEngineer,
     oasisSnapjaw,
+    recklessRocketeer,
     riverCrocolisk,
+    stonetuskBoar,
+    stormwindKnight,
     sunwalker,
-    warGolem ]
+    warGolem,
+    wolfRider ]
 
 
 mkMinion :: CardName -> Mana -> Attack -> Health -> [Ability] -> Minion
@@ -52,6 +57,11 @@ mkClassicMinion name = mkMinion $ ClassicCardName name
 argentSquire :: Minion
 argentSquire = mkClassicMinion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
+
+
+bluegillWarrior :: Minion
+bluegillWarrior = mkBasicMinion BluegillWarrior 2 2 1 [
+    KeywordAbility Charge ]
 
 
 bloodfenRaptor :: Minion
@@ -92,8 +102,23 @@ oasisSnapjaw :: Minion
 oasisSnapjaw = mkBasicMinion OasisSnapjaw 4 2 7 []
 
 
+recklessRocketeer :: Minion
+recklessRocketeer = mkBasicMinion RecklessRocketeer 6 5 2 [
+    KeywordAbility Charge ]
+
+
 riverCrocolisk :: Minion
 riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
+
+
+stonetuskBoar :: Minion
+stonetuskBoar = mkBasicMinion StonetuskBoar 1 1 1 [
+    KeywordAbility Charge ]
+
+
+stormwindKnight :: Minion
+stormwindKnight = mkBasicMinion StormwindKnight 4 2 5 [
+    KeywordAbility Charge ]
 
 
 sunwalker :: Minion
@@ -104,6 +129,15 @@ sunwalker = mkClassicMinion Sunwalker 6 4 5 [
 
 warGolem :: Minion
 warGolem = mkBasicMinion WarGolem 7 7 7 []
+
+
+wolfRider :: Minion
+wolfRider = mkBasicMinion WolfRider 3 3 1 [
+    KeywordAbility Charge ]
+
+
+
+
 
 
 

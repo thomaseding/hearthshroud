@@ -40,7 +40,8 @@ data CardName :: * where
 
 
 data BasicCardName
-    = BloodfenRaptor
+    = BluegillWarrior
+    | BloodfenRaptor
     | BoulderfistOgre
     | ChillwindYeti
     | CoreHound
@@ -49,8 +50,12 @@ data BasicCardName
     | MurlocRaider
     | NoviceEngineer
     | OasisSnapjaw
+    | RecklessRocketeer
     | RiverCrocolisk
+    | StonetuskBoar
+    | StormwindKnight
     | WarGolem
+    | WolfRider
     deriving (Show, Eq, Ord, Data, Typeable)
 
 

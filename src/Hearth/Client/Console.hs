@@ -378,7 +378,7 @@ actionPrompts quietRetry complainRetry = [
     PromptInfo "?" "> Help" $ helpAction quietRetry,
     PromptInfo "0" "> End Turn" $ endTurnAction complainRetry,
     PromptInfo "1" " H B> Play Card" $ playCardAction complainRetry,
-    PromptInfo "2" " B B> Attack Minion" $ attackMinionAction complainRetry,
+    PromptInfo "2" " M M> Attack Minion" $ attackMinionAction complainRetry,
     PromptInfo "" ">- Autoplay" $ autoplayAction complainRetry ]
 
 
@@ -413,8 +413,8 @@ autoplayAction retry = \case
         tryPlayCard = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
-            let pos = BoardPos 0
-            mCard <- flip firstM cards $ \card -> playCard handle card pos >>= \case
+            pos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
+            mCard <- flip firstM (reverse cards) $ \card -> playCard handle card pos >>= \case
                 Failure -> return False
                 Success -> return True
             return $ case mCard of

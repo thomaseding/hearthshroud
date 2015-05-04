@@ -146,7 +146,7 @@ data BoardMinion = BoardMinion {
     _boardMinionCurrHealth :: Health,
     _boardMinionEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
-    _boardMinionAttackCount :: Int,
+    _boardMinionAttackCount :: Either Int Int,
     _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Show, Typeable)

@@ -30,6 +30,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
+import Data.Either.Combinators
 import Data.Function
 import Data.List
 import Data.List.Ordered
@@ -370,7 +371,7 @@ beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
     gainManaCrystal CrystalFull handle
     getPlayer handle.playerEmptyManaCrystals .= 0
-    getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= 0
+    getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= Right 0
     _ <- drawCard handle
     return ()
 
@@ -432,7 +433,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
-            _boardMinionAttackCount = 0,
+            _boardMinionAttackCount = Left 0,
             _boardMinionHandle = minionHandle,
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
@@ -531,10 +532,24 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
             return Success
 
 
+clearDeadMinions :: (HearthMonad m) => Hearth m ()
+clearDeadMinions = gamePlayers.traverse.playerMinions %= let
+    in filter $ \bm -> 0 < bm^.boardMinionCurrHealth
+
+
 attackMinion :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
 attackMinion attacker defender = logCall 'attackMinion $ case attacker^.boardMinionAttackCount of
-    0 -> attackMinion' attacker defender
+    Right 0 -> go
+    Left 0 -> let
+        hasCharge = flip any (attacker^.boardMinionAbilities) $ \case
+            KeywordAbility Charge -> True
+            _ -> False
+        in case hasCharge of
+            False -> return Failure
+            True -> go
     _ -> return Failure
+    where
+        go = attackMinion' attacker defender
 
 
 attackMinion' :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
@@ -556,22 +571,43 @@ attackMinion' attacker defender = logCall 'attackMinion' $ do
     case isLegal of
         False -> return Failure
         True -> do
-            let attacker' = attacker & boardMinionAttackCount +~ 1
-            harm attacker defender defenderController
-            harm defender attacker' attackerController
+            let attacker' = attacker & boardMinionAttackCount %~ mapBoth (+ 1) (+ 1)
+            harm attacker defender
+            harm defender attacker'
+            clearDeadMinions
             return Success
     where
-        harm bm1 bm2 p2 = let
-            dmg = bm1^.boardMinionCurrAttack
-            bm2' = bm2 & boardMinionCurrHealth %~ dealDamage dmg
-            in getPlayer p2.playerMinions %= \bms -> let
-                (front, _ : end) = span (\bm -> bm^.boardMinionHandle /= bm2^.boardMinionHandle) bms
-                in front ++ [bm2'] ++ end
+        harm bm1 bm2 = loseDivineShield bm2 >>= \case
+            Just _ -> return ()
+            Nothing -> let
+                dmg = bm1^.boardMinionCurrAttack
+                in replaceMinionByHandle $ bm2 & boardMinionCurrHealth %~ dealDamage dmg
         dealDamage (Attack a) (Health h) = Health $ h - a
         hasTaunt bm = flip any (bm^.boardMinionAbilities) $ \case
             KeywordAbility Taunt -> True
             _ -> False
 
+
+replaceMinionByHandle :: (HearthMonad m) => BoardMinion -> Hearth m ()
+replaceMinionByHandle bm' = logCall 'replaceMinionByHandle $ do
+    controller <- getControllerOf $ bm'^.boardMinionHandle
+    getPlayer controller.playerMinions %= \bms -> let
+        (front, _ : end) = span (\bm -> bm^.boardMinionHandle /= bm'^.boardMinionHandle) bms
+        in front ++ [bm'] ++ end
+    
+
+loseDivineShield :: (HearthMonad m) => BoardMinion -> Hearth m (Maybe BoardMinion)
+loseDivineShield bm = let
+    abilities = bm^.boardMinionAbilities
+    abilities' = flip filter abilities $ \case
+        KeywordAbility DivineShield -> False
+        _ -> True
+    in case on (==) length abilities abilities' of
+        True -> return Nothing
+        False -> do
+            let bm' = bm & boardMinionAbilities .~ abilities'
+            replaceMinionByHandle bm' 
+            return $ Just bm'
 
 
 
