@@ -494,6 +494,21 @@ enactEffect = logCall 'enactEffect . \case
         Just effect -> enactEffect effect
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
+    Deal damage handle -> dealDamage damage handle >> return ()
+
+
+dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
+dealDamage dmg@(Damage d) bmHandle = logCall 'dealDamage $ withMinions $ \bm -> do
+    liftM Just $ case bm^.boardMinionHandle == bmHandle of
+        False -> return bm
+        True -> case loseDivineShield bm of
+            Just bm' -> do
+                prompt $ PromptGameEvent $ LostDivineShield bm'
+                return bm'
+            Nothing -> do
+                let bm' = bm & boardMinionCurrHealth %~ Health . subtract d . unHealth
+                prompt $ PromptGameEvent $ MinionTakesDamage bm dmg
+                return bm'
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
@@ -572,19 +587,24 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
             return Success
 
 
-clearDeadMinions :: (HearthMonad m) => Hearth m ()
-clearDeadMinions = logCall 'clearDeadMinions $ do
+withMinions :: (HearthMonad m) => (BoardMinion -> Hearth m (Maybe BoardMinion)) -> Hearth m ()
+withMinions f = logCall 'withMinions $ do
     ps <- view gamePlayers
     ps' <- forM ps $ \p -> do
-        aliveMinions <- flip filterM (p^.playerMinions) $ \bm -> do
-            let alive = bm^.boardMinionCurrHealth > 0
-            case alive of
-                True -> return True
-                False -> do
-                    prompt $ PromptGameEvent $ MinionDied bm
-                    return False
-        return $ p & playerMinions .~ aliveMinions
+        let bms = p^.playerMinions
+        bms' <- liftM catMaybes $ mapM f bms
+        return $ p & playerMinions .~ bms'
     gamePlayers .= ps'
+
+
+clearDeadMinions :: (HearthMonad m) => Hearth m ()
+clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
+    let alive = bm^.boardMinionCurrHealth > 0
+    case alive of
+        True -> return $ Just bm
+        False -> do
+            prompt $ PromptGameEvent $ MinionDied bm
+            return Nothing
 
 
 attackMinion :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
@@ -622,19 +642,17 @@ attackMinion' attacker defender = logCall 'attackMinion' $ do
     case isLegal of
         False -> return Failure
         True -> do
-            let attacker' = attacker & boardMinionAttackCount %~ mapBoth (+ 1) (+ 1)
-            harm attacker defender
-            harm defender attacker'
+            let x `harms` y = let
+                    dmg = Damage $ unAttack $ x^.boardMinionCurrAttack
+                    in dealDamage dmg $ y^.boardMinionHandle
+            attacker `harms` defender
+            defender `harms` attacker
+            withMinions $ \bm -> return $ Just $ case bm^.boardMinionHandle == attacker^.boardMinionHandle of
+                True -> bm & boardMinionAttackCount %~ mapBoth succ succ
+                False -> bm
             clearDeadMinions
             return Success
     where
-        harm bm1 bm2 = loseDivineShield bm2 >>= \case
-            Just _ -> return ()
-            Nothing -> do
-                let dmg = bm1^.boardMinionCurrAttack.to (Damage . unAttack)
-                replaceMinionByHandle $ bm2 & boardMinionCurrHealth %~ dealDamage dmg
-                prompt $ PromptGameEvent $ MinionTakesDamage bm2 dmg
-        dealDamage (Damage a) (Health h) = Health $ h - a
         hasTaunt bm = flip any (bm^.boardMinionAbilities) $ \case
             KeywordAbility Taunt -> True
             _ -> False
@@ -648,19 +666,15 @@ replaceMinionByHandle bm' = logCall 'replaceMinionByHandle $ do
         in front ++ [bm'] ++ end
     
 
-loseDivineShield :: (HearthMonad m) => BoardMinion -> Hearth m (Maybe BoardMinion)
+loseDivineShield :: BoardMinion -> Maybe BoardMinion
 loseDivineShield bm = let
     abilities = bm^.boardMinionAbilities
     abilities' = flip filter abilities $ \case
         KeywordAbility DivineShield -> False
         _ -> True
     in case on (==) length abilities abilities' of
-        True -> return Nothing
-        False -> do
-            let bm' = bm & boardMinionAbilities .~ abilities'
-            replaceMinionByHandle bm' 
-            prompt $ PromptGameEvent $ LostDivineShield bm'
-            return $ Just bm'
+        True -> Nothing
+        False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
 

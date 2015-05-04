@@ -101,6 +101,7 @@ data Effect :: * where
     With :: Elect -> Effect
     DrawCards :: Int -> PlayerHandle -> Effect
     KeywordEffect :: KeywordEffect -> Effect
+    Deal :: Damage -> MinionHandle -> Effect
     deriving (Show, Typeable)
 
 
