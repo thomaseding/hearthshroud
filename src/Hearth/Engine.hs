@@ -167,6 +167,12 @@ getActivePlayerHandle = logCall 'getActivePlayerHandle $ do
     return h
 
 
+getNonActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
+getNonActivePlayerHandle = logCall 'getNonActivePlayerHandle $ do
+    (_ : h : _) <- view gamePlayerTurnOrder
+    return h
+
+
 isActivePlayer :: (HearthMonad m) => PlayerHandle -> Hearth m Bool
 isActivePlayer h = liftM (h ==) getActivePlayerHandle
 
@@ -364,6 +370,7 @@ beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
     gainManaCrystal CrystalFull handle
     getPlayer handle.playerEmptyManaCrystals .= 0
+    getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= 0
     _ <- drawCard handle
     return ()
 
@@ -403,6 +410,7 @@ enactAction :: (HearthMonad m) => Action -> Hearth m TurnEvolution
 enactAction = logCall 'enactAction . \case
     ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
     ActionPlayCard card pos -> actionPlayCard card pos
+    ActionAttackMinion attacker defender -> actionAttackMinion attacker defender
     ActionEndTurn -> return EndTurn
 
 
@@ -424,6 +432,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
+            _boardMinionAttackCount = 0,
             _boardMinionHandle = minionHandle,
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
@@ -434,6 +443,12 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
                 True -> do
                     id %= insertAt pos minion'
                     return $ Just minion'
+
+
+actionAttackMinion :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m TurnEvolution
+actionAttackMinion attacker defender = logCall 'actionAttackMinion $ do
+    _ <- attackMinion attacker defender
+    return ContinueTurn
 
 
 actionPlayCard :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m TurnEvolution
@@ -516,6 +531,46 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
             return Success
 
 
+attackMinion :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
+attackMinion attacker defender = logCall 'attackMinion $ case attacker^.boardMinionAttackCount of
+    0 -> attackMinion' attacker defender
+    _ -> return Failure
+
+
+attackMinion' :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
+attackMinion' attacker defender = logCall 'attackMinion' $ do
+    active <- getActivePlayerHandle
+    attackerController <- getControllerOf $ attacker^.boardMinionHandle
+    defenderController <- getControllerOf $ defender^.boardMinionHandle
+    isLegal <- case attackerController == active of
+        False -> return False
+        True -> case defenderController == active of
+            True -> return False
+            False -> case hasTaunt defender of
+                True -> return True
+                False -> do
+                    hasTaunts <- view $ getPlayer defenderController.playerMinions.to (any hasTaunt)
+                    case hasTaunts of
+                        True -> return False
+                        False -> return True
+    case isLegal of
+        False -> return Failure
+        True -> do
+            let attacker' = attacker & boardMinionAttackCount +~ 1
+            harm attacker defender defenderController
+            harm defender attacker' attackerController
+            return Success
+    where
+        harm bm1 bm2 p2 = let
+            dmg = bm1^.boardMinionCurrAttack
+            bm2' = bm2 & boardMinionCurrHealth %~ dealDamage dmg
+            in getPlayer p2.playerMinions %= \bms -> let
+                (front, _ : end) = span (\bm -> bm^.boardMinionHandle /= bm2^.boardMinionHandle) bms
+                in front ++ [bm2'] ++ end
+        dealDamage (Attack a) (Health h) = Health $ h - a
+        hasTaunt bm = flip any (bm^.boardMinionAbilities) $ \case
+            KeywordAbility Taunt -> True
+            _ -> False
 
 
 

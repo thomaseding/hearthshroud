@@ -41,10 +41,10 @@ boardMinionColumn (idx, bm) = let
         False -> ("", "")
     name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
     attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
-    healthColor = case bm^.boardMinionCurrHealth < bm^.boardMinion^.minionHealth of
+    healthColor = case bm^.boardMinionCurrHealth < minion^.minionHealth of
         True -> (Vivid, Red)
         False -> (Vivid, Black)
-    health = sgrColor healthColor ++ sgrShow (unHealth $ minion^.minionHealth)
+    health = sgrColor healthColor ++ sgrShow (unHealth $ bm^.boardMinionCurrHealth)
     index = let
         pad = if idx < 10 then " " else ""
         in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
@@ -73,7 +73,7 @@ hasTaunt :: BoardMinion -> Bool
 hasTaunt minion = let
     abilities = minion^.boardMinionAbilities
     in flip any abilities $ \case
-        KeywordAbility DivineShield -> True
+        KeywordAbility Taunt -> True
         _ -> False
 
 

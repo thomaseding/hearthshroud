@@ -145,8 +145,9 @@ data BoardMinion = BoardMinion {
     _boardMinionCurrAttack :: Attack,
     _boardMinionCurrHealth :: Health,
     _boardMinionEnchantments :: [Enchantment],
-    _boardMinionHandle :: MinionHandle,
     _boardMinionAbilities :: [Ability],
+    _boardMinionAttackCount :: Int,
+    _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Show, Typeable)
 makeLenses ''BoardMinion

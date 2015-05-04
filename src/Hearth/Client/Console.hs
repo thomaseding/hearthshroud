@@ -378,6 +378,7 @@ actionPrompts quietRetry complainRetry = [
     PromptInfo "?" "> Help" $ helpAction quietRetry,
     PromptInfo "0" "> End Turn" $ endTurnAction complainRetry,
     PromptInfo "1" " H B> Play Card" $ playCardAction complainRetry,
+    PromptInfo "2" " B B> Attack Minion" $ attackMinionAction complainRetry,
     PromptInfo "" ">- Autoplay" $ autoplayAction complainRetry ]
 
 
@@ -400,17 +401,38 @@ helpAction retry _ = do
 
 autoplayAction :: Hearth Console Action -> [Int] -> Hearth Console Action
 autoplayAction retry = \case
-    [] -> do
-        handle <- getActivePlayerHandle
-        cards <- view $ getPlayer handle.playerHand.handCards
-        let pos = BoardPos 0
-        mCard <- flip firstM cards $ \card -> playCard handle card pos >>= \case
-            Failure -> return False
-            Success -> return True
-        return $ case mCard of
-            Nothing -> ActionEndTurn
-            Just card -> ActionPlayCard card pos
+    [] -> decideAction activities
     _ -> retry
+    where
+        decideAction = \case
+            [] -> return ActionEndTurn
+            m : ms -> m >>= \case
+                Nothing -> decideAction ms
+                Just x -> return x
+        activities = [tryPlayCard, tryAttackMinion]
+        tryPlayCard = do
+            handle <- getActivePlayerHandle
+            cards <- view $ getPlayer handle.playerHand.handCards
+            let pos = BoardPos 0
+            mCard <- flip firstM cards $ \card -> playCard handle card pos >>= \case
+                Failure -> return False
+                Success -> return True
+            return $ case mCard of
+                Nothing -> Nothing
+                Just card -> Just $ ActionPlayCard card pos
+        tryAttackMinion = do
+            activeHandle <- getActivePlayerHandle
+            activeMinions <- view $ getPlayer activeHandle.playerMinions
+            nonActiveHandle <- getNonActivePlayerHandle
+            nonActiveMinions <- view $ getPlayer nonActiveHandle.playerMinions
+            let pairs = [(a, na) | a <- activeMinions, na <- nonActiveMinions]
+            mPair <- flip firstM pairs $ \(activeMinion, nonActiveMinion) -> do
+                attackMinion activeMinion nonActiveMinion >>= \case
+                    Failure -> return False
+                    Success -> return True
+            return $ case mPair of
+                Nothing -> Nothing
+                Just (attacker, defender) -> Just $ ActionAttackMinion attacker defender
 
 
 endTurnAction :: Hearth Console Action -> [Int] -> Hearth Console Action
@@ -424,6 +446,23 @@ lookupIndex (x:xs) n = case n == 0 of
     True -> Just x
     False -> lookupIndex xs (n - 1)
 lookupIndex [] _ = Nothing
+
+
+attackMinionAction :: Hearth Console Action -> [Int] -> Hearth Console Action
+attackMinionAction retry = \case
+    [attackerIdx, defenderIdx] -> do
+        activePlayer <- getActivePlayerHandle
+        activeMinions <- view $ getPlayer activePlayer.playerMinions
+        nonActivePlayer <- getNonActivePlayerHandle
+        nonActiveMinions <- view $ getPlayer nonActivePlayer.playerMinions
+        let mAttacker = lookupIndex activeMinions attackerIdx
+            mDefender = lookupIndex nonActiveMinions defenderIdx
+        case mAttacker of
+            Nothing -> retry
+            Just attacker -> case mDefender of
+                Nothing -> retry
+                Just defender -> return $ ActionAttackMinion attacker defender
+    _ -> retry
 
 
 playCardAction :: Hearth Console Action -> [Int] -> Hearth Console Action
