@@ -204,45 +204,63 @@ debugEvent e = case e of
 gameEvent :: GameEvent -> Console ()
 gameEvent = \case
     GameBegins -> let
-        in tag "gameBegins" []
+        in tag 'GameBegins []
     GameEnds gameResult -> let
         gameResultAttr = ("gameResult", show gameResult)
-        in tag "gameEnds" [gameResultAttr]
+        in tag 'GameEnds [gameResultAttr]
     DeckShuffled (viewPlayer -> who) _ -> let
         playerAttr = ("player", show who)
-        in tag "deckShuffled" [playerAttr]
+        in tag 'DeckShuffled [playerAttr]
     CardDrawn (viewPlayer -> who) (eCard) _ -> let
         playerAttr = ("player", show who)
         cardAttr = ("card", either deckCardName' handCardName' eCard)
         resultAttr = ("result", show $ either (const Failure) (const Success) eCard)
-        in tag "cardDrawn" [playerAttr, cardAttr, resultAttr]
+        in tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
     PlayedCard (viewPlayer -> who) card result -> let
         playerAttr = ("player", show who)
         cardAttr = ("card", handCardName' card)
         resultAttr = ("result", show result)
-        in tag "playedCard" [playerAttr, cardAttr, resultAttr]
+        in tag 'PlayedCard [playerAttr, cardAttr, resultAttr]
     HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Damage damage) -> let
         newHealth = oldHealth - damage
         playerAttr = ("player", show who)
         oldAttr = ("old", show oldHealth)
         newAttr = ("new", show newHealth)
         dmgAttr = ("dmg", show damage)
-        in tag "heroTakesDamage" [playerAttr, oldAttr, newAttr, dmgAttr]
+        in tag 'HeroTakesDamage [playerAttr, oldAttr, newAttr, dmgAttr]
+    MinionTakesDamage bm (Damage damage) -> let
+        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        dmgAttr = ("dmg", show damage)
+        in tag 'MinionTakesDamage [minionAttr, dmgAttr]
+    MinionDied bm -> let
+        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        in tag 'MinionDied [minionAttr]
+    AttackMinion attacker defender -> let
+        attackerAttr = ("attacker", showCardName $ attacker^.boardMinion.minionName)
+        defenderAttr = ("defender", showCardName $ defender^.boardMinion.minionName)
+        in tag 'AttackMinion [attackerAttr, defenderAttr]
     GainsManaCrystal (viewPlayer -> who) mCrystalState -> let
         playerAttr = ("player", show who)
         varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
-        in tag "gainsManaCrystal" [playerAttr, varietyAttr]
+        in tag 'GainsManaCrystal [playerAttr, varietyAttr]
     ManaCrystalsRefill (viewPlayer -> who) amount -> let
         playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
-        in tag "manaCrystalsRefill" [playerAttr, amountAttr]
+        in tag 'ManaCrystalsRefill [playerAttr, amountAttr]
     ManaCrystalsEmpty (viewPlayer -> who) amount -> let
         playerAttr = ("player", show who)
         amountAttr = ("amount", show amount)
-        in tag "manaCrystalsEmpty" [playerAttr, amountAttr]
+        in tag 'ManaCrystalsEmpty [playerAttr, amountAttr]
+    LostDivineShield bm -> let
+        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        in tag 'LostDivineShield [minionAttr]
     where
         viewPlayer (PlayerHandle (RawHandle who)) = who
-        tag name attrs = verbosityGate name $ openTag name attrs >> closeTag name
+        tag name attrs = let
+            name' = case nameBase name of
+                (c : cs) -> toLower c : cs
+                "" -> ""
+            in verbosityGate name' $ openTag name' attrs >> closeTag name'
 
 
 showCardName :: CardName -> String

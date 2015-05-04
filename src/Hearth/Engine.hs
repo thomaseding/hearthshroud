@@ -573,8 +573,18 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
 
 
 clearDeadMinions :: (HearthMonad m) => Hearth m ()
-clearDeadMinions = gamePlayers.traverse.playerMinions %= let
-    in filter $ \bm -> 0 < bm^.boardMinionCurrHealth
+clearDeadMinions = logCall 'clearDeadMinions $ do
+    ps <- view gamePlayers
+    ps' <- forM ps $ \p -> do
+        aliveMinions <- flip filterM (p^.playerMinions) $ \bm -> do
+            let alive = bm^.boardMinionCurrHealth > 0
+            case alive of
+                True -> return True
+                False -> do
+                    prompt $ PromptGameEvent $ MinionDied bm
+                    return False
+        return $ p & playerMinions .~ aliveMinions
+    gamePlayers .= ps'
 
 
 attackMinion :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
@@ -594,6 +604,7 @@ attackMinion attacker defender = logCall 'attackMinion $ case attacker^.boardMin
 
 attackMinion' :: (HearthMonad m) => BoardMinion -> BoardMinion -> Hearth m Result
 attackMinion' attacker defender = logCall 'attackMinion' $ do
+    prompt $ PromptGameEvent $ AttackMinion attacker defender
     active <- getActivePlayerHandle
     attackerController <- getControllerOf $ attacker^.boardMinionHandle
     defenderController <- getControllerOf $ defender^.boardMinionHandle
@@ -619,10 +630,11 @@ attackMinion' attacker defender = logCall 'attackMinion' $ do
     where
         harm bm1 bm2 = loseDivineShield bm2 >>= \case
             Just _ -> return ()
-            Nothing -> let
-                dmg = bm1^.boardMinionCurrAttack
-                in replaceMinionByHandle $ bm2 & boardMinionCurrHealth %~ dealDamage dmg
-        dealDamage (Attack a) (Health h) = Health $ h - a
+            Nothing -> do
+                let dmg = bm1^.boardMinionCurrAttack.to (Damage . unAttack)
+                replaceMinionByHandle $ bm2 & boardMinionCurrHealth %~ dealDamage dmg
+                prompt $ PromptGameEvent $ MinionTakesDamage bm2 dmg
+        dealDamage (Damage a) (Health h) = Health $ h - a
         hasTaunt bm = flip any (bm^.boardMinionAbilities) $ \case
             KeywordAbility Taunt -> True
             _ -> False
@@ -647,6 +659,7 @@ loseDivineShield bm = let
         False -> do
             let bm' = bm & boardMinionAbilities .~ abilities'
             replaceMinionByHandle bm' 
+            prompt $ PromptGameEvent $ LostDivineShield bm'
             return $ Just bm'
 
 

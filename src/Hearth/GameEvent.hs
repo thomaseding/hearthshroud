@@ -24,9 +24,13 @@ data GameEvent :: * where
     CardDrawn :: PlayerHandle -> Either DeckCard HandCard -> Deck -> GameEvent
     PlayedCard :: PlayerHandle -> HandCard -> Result -> GameEvent
     HeroTakesDamage :: PlayerHandle -> Health -> Damage -> GameEvent
+    MinionTakesDamage :: BoardMinion -> Damage -> GameEvent
+    MinionDied :: BoardMinion -> GameEvent
+    AttackMinion :: BoardMinion -> BoardMinion -> GameEvent
     GainsManaCrystal :: PlayerHandle -> Maybe CrystalState -> GameEvent
     ManaCrystalsRefill :: PlayerHandle -> Int -> GameEvent
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
+    LostDivineShield :: BoardMinion -> GameEvent
     deriving (Show, Typeable)
 
 
