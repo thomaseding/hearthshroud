@@ -429,7 +429,6 @@ placeOnBoard :: (HearthMonad m) => PlayerHandle -> BoardPos -> Minion -> Hearth 
 placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     let minion' = BoardMinion {
-            _boardMinionCurrAttack = minion^.minionAttack,
             _boardMinionCurrHealth = minion^.minionHealth,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
@@ -493,6 +492,10 @@ enactEffect = logCall 'enactEffect . \case
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
     DealDamage damage handle -> dealDamage damage handle >> return ()
+
+
+dynamicAttack :: (HearthMonad m) => BoardMinion -> Hearth m Attack
+dynamicAttack bm = return $ bm^.boardMinion.minionAttack
 
 
 dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
@@ -651,9 +654,9 @@ attackMinion' attacker defender = logCall 'attackMinion' $ do
     case isLegal of
         False -> return Failure
         True -> do
-            let x `harms` y = let
-                    dmg = Damage $ unAttack $ x^.boardMinionCurrAttack
-                    in dealDamage dmg $ y^.boardMinionHandle
+            let x `harms` y = do
+                    dmg <- liftM (Damage . unAttack) $ dynamicAttack x
+                    dealDamage dmg $ y^.boardMinionHandle
             attacker `harms` defender
             defender `harms` attacker
             withMinions $ \bm -> return $ Just $ case bm^.boardMinionHandle == attacker^.boardMinionHandle of

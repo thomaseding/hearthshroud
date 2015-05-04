@@ -151,7 +151,6 @@ makeLenses ''Minion
 
 
 data BoardMinion = BoardMinion {
-    _boardMinionCurrAttack :: Attack,
     _boardMinionCurrHealth :: Health,
     _boardMinionEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
