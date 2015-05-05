@@ -64,22 +64,6 @@ mkClassicMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> M
 mkClassicMinion name = mkMinion $ ClassicCardName name
 
 
-allOtherCharacters :: (MinionHandle -> Effect) -> MinionHandle -> Effect
-allOtherCharacters f this = With $ AllOther this f
-
-
-anotherCharacter :: (MinionHandle -> Effect) -> MinionHandle -> Effect
-anotherCharacter f this = With $ AnotherMinion this f
-
-
-anotherMinion :: (MinionHandle -> Effect) -> MinionHandle -> Effect
-anotherMinion f this = With $ AnotherMinion this f
-
-
-anotherFriendlyMinion :: (MinionHandle -> Effect) -> MinionHandle -> Effect
-anotherFriendlyMinion f this = With $ AnotherFriendlyMinion this f
-
-
 amaniBerserker :: Minion
 amaniBerserker = mkClassicMinion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [StatsDelta 3 0] ]
@@ -113,24 +97,24 @@ coreHound = mkBasicMinion CoreHound 7 9 5 []
 
 cruelTaskmaster :: Minion
 cruelTaskmaster = mkClassicMinion CruelTaskmaster 2 2 2 [
-    KeywordAbility $ Battlecry $ anotherMinion $ \target -> Sequence [
+    KeywordAbility $ Battlecry $ With . AnotherMinion (\target -> Sequence [
         DealDamage 1 target,
-        Enchant [StatsDelta 2 0] target ]]
+        Enchant [StatsDelta 2 0] target ]) ]
 
 
 dreadInfernal :: Minion
 dreadInfernal = mkBasicMinion DreadInfernal 6 6 6 [
-    KeywordAbility $ Battlecry $ allOtherCharacters $ DealDamage 1 ]
+    KeywordAbility $ Battlecry $ With . OtherCharacters (DealDamage 1) ]
 
 
 elvenArcher :: Minion
 elvenArcher = mkBasicMinion ElvenArcher 1 1 1 [
-    KeywordAbility $ Battlecry $ anotherCharacter $ DealDamage 1 ]
+    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 1) ]
 
 
 fireElemental :: Minion
 fireElemental = mkBasicMinion FireElemental 6 6 5 [
-    KeywordAbility $ Battlecry $ anotherCharacter $ DealDamage 3 ]
+    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 3) ]
 
 
 frostwolfGrunt :: Minion
@@ -140,12 +124,12 @@ frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
 
 ironbeakOwl :: Minion
 ironbeakOwl = mkClassicMinion IronbeakOwl 2 2 1 [
-    KeywordAbility $ Battlecry $ anotherMinion $ KeywordEffect . Silence ]
+    KeywordAbility $ Battlecry $ With . AnotherMinion (KeywordEffect . Silence) ]
 
 
 ironforgeRifleman :: Minion
 ironforgeRifleman = mkBasicMinion IronforgeRifleman 3 2 2 [
-    KeywordAbility $ Battlecry $ anotherCharacter $ DealDamage 1 ]
+    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 1) ]
 
 
 magmaRager :: Minion
@@ -158,7 +142,7 @@ murlocRaider = mkBasicMinion MurlocRaider 1 2 1 []
 
 noviceEngineer :: Minion
 noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
-    KeywordAbility $ Battlecry $ \this -> With $ ControllerOf this $ DrawCards 1 ]
+    KeywordAbility $ Battlecry $ With . ControllerOf (DrawCards 1) ]
 
 
 oasisSnapjaw :: Minion
@@ -176,12 +160,12 @@ riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
 
 shatteredSunCleric :: Minion
 shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
-    KeywordAbility $ Battlecry $ anotherFriendlyMinion $ Enchant [StatsDelta 1 1] ]
+    KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (Enchant [StatsDelta 1 1]) ]
 
 
 spellbreaker :: Minion
 spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
-    KeywordAbility $ Battlecry $ anotherFriendlyMinion $ KeywordEffect . Silence ]
+    KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (KeywordEffect . Silence) ]
 
 
 stonetuskBoar :: Minion
@@ -191,7 +175,7 @@ stonetuskBoar = mkBasicMinion StonetuskBoar 1 1 1 [
 
 stormpikeCommando :: Minion
 stormpikeCommando = mkBasicMinion StormpikeCommando 5 4 2 [
-    KeywordAbility $ Battlecry $ anotherCharacter $ DealDamage 2 ]
+    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 2) ]
 
 
 stormwindKnight :: Minion
