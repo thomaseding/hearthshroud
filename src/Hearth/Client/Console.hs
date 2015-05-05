@@ -473,8 +473,8 @@ attackMinionAction retry = \case
         activeMinions <- view $ getPlayer activePlayer.playerMinions
         nonActivePlayer <- getNonActivePlayerHandle
         nonActiveMinions <- view $ getPlayer nonActivePlayer.playerMinions
-        let mAttacker = lookupIndex activeMinions attackerIdx
-            mDefender = lookupIndex nonActiveMinions defenderIdx
+        let mAttacker = lookupIndex activeMinions $ attackerIdx - 1
+            mDefender = lookupIndex nonActiveMinions $ defenderIdx - 1
         case mAttacker of
             Nothing -> retry
             Just attacker -> case mDefender of
