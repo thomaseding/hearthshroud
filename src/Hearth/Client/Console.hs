@@ -186,7 +186,13 @@ verbosityGate name m = do
             _ -> m
         DebugExhaustive -> m
     where
-        isLight = (`notElem` words "")
+        isLight = (`notElem` lightBanList)
+        lightBanList = map nameBase [
+            'dynamicAttack,
+            'dynamicHealth,
+            'getActivePlayerHandle,
+            'getControllerOf,
+            'withMinions ]
 
 
 debugEvent :: DebugEvent -> Console ()
@@ -254,6 +260,9 @@ gameEvent = \case
     LostDivineShield bm -> let
         minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
         in tag 'LostDivineShield [minionAttr]
+    EnrageActivated bm -> let
+        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        in tag 'EnrageActivated [minionAttr]
     where
         viewPlayer (PlayerHandle (RawHandle who)) = who
         tag name attrs = let

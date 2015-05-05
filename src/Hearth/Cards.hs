@@ -17,6 +17,7 @@ cardUniverse = map (DeckCardMinion . DeckMinion) minionUniverse
 
 minionUniverse :: [Minion]
 minionUniverse = [
+    amaniBerserker,
     argentSquire,
     bluegillWarrior,
     bloodfenRaptor,
@@ -77,6 +78,11 @@ anotherMinion f this = With $ AnotherMinion this f
 
 anotherFriendlyMinion :: (MinionHandle -> Effect) -> MinionHandle -> Effect
 anotherFriendlyMinion f this = With $ AnotherFriendlyMinion this f
+
+
+amaniBerserker :: Minion
+amaniBerserker = mkClassicMinion AmaniBerserker 2 2 3 [
+    KeywordAbility $ Enrage [StatsDelta 3 0] ]
 
 
 argentSquire :: Minion

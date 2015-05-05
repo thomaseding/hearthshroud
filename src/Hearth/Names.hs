@@ -66,7 +66,8 @@ data BasicCardName
 
 
 data ClassicCardName
-    = ArgentSquire
+    = AmaniBerserker
+    | ArgentSquire
     | CruelTaskmaster
     | IronbeakOwl
     | Spellbreaker

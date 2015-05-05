@@ -432,6 +432,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionDamage = 0,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
+            _boardMinionEnrageEnchantments = [],
             _boardMinionAttackCount = Left 0,
             _boardMinionHandle = minionHandle,
             _boardMinion = minion }
@@ -503,34 +504,65 @@ enchant enchantments handle = logCall 'enchant $ withMinions $ \bm -> let
         True -> bm & boardMinionEnchantments %~ (enchantments ++)
 
 
+activateEnrage :: (HearthMonad m) => MinionHandle -> Hearth m ()
+activateEnrage handle = logCall 'activateEnrage $ do
+    withMinions $ liftM Just . \bm -> case bm^.boardMinionHandle == handle of
+        False -> return bm
+        True -> case bm^.boardMinionDamage == 0 of
+            True -> return bm
+            False -> case bm^.boardMinionEnrageEnchantments of
+                [] -> let
+                    enchantments = concat $ flip mapMaybe (bm^.boardMinionAbilities) $ \case
+                        KeywordAbility (Enrage es) -> Just es
+                        _ -> Nothing
+                    bm' = bm & boardMinionEnrageEnchantments .~ enchantments
+                    in case enchantments of
+                         [] -> return bm
+                         _ -> do
+                            prompt $ PromptGameEvent $ EnrageActivated bm'
+                            return bm'
+                _ -> return bm
+
+
+deactivateEnrage :: (HearthMonad m) => BoardMinion -> Hearth m ()
+deactivateEnrage _ = logCall 'deactivateEnrage $ $todo 'deactivateEnrage "xxx"
+
+
+allEnchantments :: BoardMinion -> [Enchantment]
+allEnchantments bm = bm^.boardMinionEnrageEnchantments ++ bm^.boardMinionEnchantments
+
+
 dynamicAttack :: (HearthMonad m) => BoardMinion -> Hearth m Attack
-dynamicAttack bm = let
-    delta = sum $ flip mapMaybe (bm^.boardMinionEnchantments) $ \case
+dynamicAttack bm = logCall 'dynamicAttack $ let
+    delta = sum $ flip mapMaybe (allEnchantments bm) $ \case
         StatsDelta a _ -> Just a
     in return $ bm^.boardMinion.minionAttack + delta
 
 
 dynamicHealth :: (HearthMonad m) => BoardMinion -> Hearth m Health
-dynamicHealth bm = let
-    delta = sum $ flip mapMaybe (bm^.boardMinionEnchantments) $ \case
+dynamicHealth bm = logCall 'dynamicHealth $ let
+    delta = sum $ flip mapMaybe (allEnchantments bm) $ \case
         StatsDelta _ h -> Just h
     in return $ bm^.boardMinion.minionHealth + delta
 
 
 dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
-dealDamage damage bmHandle = logCall 'dealDamage $ do
-    withMinions $ \bm -> do
-        liftM Just $ case bm^.boardMinionHandle == bmHandle of
-            False -> return bm
-            True -> case loseDivineShield bm of
-                Just bm' -> do
-                    prompt $ PromptGameEvent $ LostDivineShield bm'
-                    return bm'
-                Nothing -> do
-                    let bm' = bm & boardMinionDamage +~ damage
-                    prompt $ PromptGameEvent $ MinionTakesDamage bm damage
-                    return bm'
-    clearDeadMinions
+dealDamage damage bmHandle = logCall 'dealDamage $ case damage <= 0 of
+    True -> return ()
+    False -> do
+        withMinions $ \bm -> do
+            liftM Just $ case bm^.boardMinionHandle == bmHandle of
+                False -> return bm
+                True -> case loseDivineShield bm of
+                    Just bm' -> do
+                        prompt $ PromptGameEvent $ LostDivineShield bm'
+                        return bm'
+                    Nothing -> do
+                        let bm' = bm & boardMinionDamage +~ damage
+                        prompt $ PromptGameEvent $ MinionTakesDamage bm damage
+                        return bm'
+        activateEnrage bmHandle
+        clearDeadMinions
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()

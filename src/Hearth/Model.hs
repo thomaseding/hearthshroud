@@ -123,6 +123,7 @@ data KeywordAbility :: * where
     Battlecry :: (MinionHandle -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
+    Enrage :: [Enchantment] -> KeywordAbility
     Taunt :: KeywordAbility
     deriving (Typeable)
 
@@ -157,6 +158,7 @@ makeLenses ''Minion
 data BoardMinion = BoardMinion {
     _boardMinionDamage :: Damage,
     _boardMinionEnchantments :: [Enchantment],
+    _boardMinionEnrageEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Either Int Int,
     _boardMinionHandle :: MinionHandle,
