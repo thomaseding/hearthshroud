@@ -551,27 +551,40 @@ silence victim = logCall 'silence $ do
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()
 enactElect = logCall 'enactElect . \case
     ControllerOf minionHandle f -> getControllerOf minionHandle >>= enactEffect . f
-    TargetNoneOf banList f -> targetNoneOf banList f
-    AllOther banList f -> allOther banList f
+    AnotherMinion bannedMinion f -> anotherMinion bannedMinion f
+    AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
+    AllOther bannedMinion f -> allOther bannedMinion f
 
 
-allOther :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m ()
-allOther banList f = logCall 'targetNoneOf $ do
+allOther :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+allOther bannedHandle f = logCall 'allOther $ do
     handles <- getPlayerHandles
     targets <- liftM concat $ forM handles $ \handle -> do
         bms <- view $ getPlayer handle.playerMinions
-        let mhs = map (\bm -> bm^.boardMinionHandle) bms
-        return $ filter (`notElem` banList) mhs
+        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (/= bannedHandle) bmHandles
     forM_ targets $ enactEffect . f
 
 
-targetNoneOf :: (HearthMonad m) => [MinionHandle] -> (MinionHandle -> Effect) -> Hearth m ()
-targetNoneOf banList f = logCall 'targetNoneOf $ do
+anotherMinion :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+anotherMinion bannedHandle f = logCall 'anotherMinion $ do
     handles <- getPlayerHandles
     targets <- liftM concat $ forM handles $ \handle -> do
         bms <- view $ getPlayer handle.playerMinions
-        let mhs = map (\bm -> bm^.boardMinionHandle) bms
-        return $ filter (`notElem` banList) mhs
+        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (/= bannedHandle) bmHandles
+    pickMinionFrom targets >>= \case
+        Nothing -> return ()
+        Just target -> enactEffect $ f target
+
+
+anotherFriendlyMinion :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+anotherFriendlyMinion bannedHandle f = logCall 'anotherFriendlyMinion $ do
+    controller <- getControllerOf bannedHandle
+    targets <- do
+        bms <- view $ getPlayer controller.playerMinions
+        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (/= bannedHandle) bmHandles
     pickMinionFrom targets >>= \case
         Nothing -> return ()
         Just target -> enactEffect $ f target

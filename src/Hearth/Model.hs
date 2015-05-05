@@ -89,8 +89,9 @@ data Cost :: * where
 
 data Elect :: * where
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
-    TargetNoneOf :: [MinionHandle] -> (MinionHandle -> Effect) -> Elect
-    AllOther :: [MinionHandle] -> (MinionHandle -> Effect) -> Elect
+    AnotherMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AllOther :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
