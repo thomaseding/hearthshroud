@@ -489,6 +489,7 @@ enactBattlecry handle = logCall 'enactBattlecry . enactEffect . ($ handle)
 enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
 enactEffect = logCall 'enactEffect . \case
     With elect -> enactElect elect
+    Sequence effects -> mapM_ enactEffect effects
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
     DealDamage damage handle -> dealDamage damage handle
@@ -543,15 +544,12 @@ silence victim = logCall 'silence $ do
         False -> return $ Just bm
         True -> do
             health <- dynamicHealth bm
-            let bm1 = bm & boardMinionAbilities .~ []
-                bm2 = bm1 & boardMinionEnchantments .~ []
-                bm' = bm2
+            let bm' = bm & boardMinionAbilities .~ [] & boardMinionEnchantments .~ []
             health' <- dynamicHealth bm'
-            let Health delta = health' - health
+            let delta = Damage $ unHealth $ health' - health
             return $ Just $ case delta < 0 of
-                True -> bm' & boardMinionDamage %~ Damage . max 0 . (+ delta) . unDamage
+                True -> bm' & boardMinionDamage %~ max 0 . (+ delta)
                 False -> bm'
-                
 
 
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()

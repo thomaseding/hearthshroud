@@ -23,6 +23,7 @@ minionUniverse = [
     boulderfistOgre,
     chillwindYeti,
     coreHound,
+    cruelTaskmaster,
     dreadInfernal,
     elvenArcher,
     fireElemental,
@@ -102,6 +103,13 @@ chillwindYeti = mkBasicMinion MurlocRaider 1 2 1 []
 
 coreHound :: Minion
 coreHound = mkBasicMinion CoreHound 7 9 5 []
+
+
+cruelTaskmaster :: Minion
+cruelTaskmaster = mkClassicMinion CruelTaskmaster 2 2 2 [
+    KeywordAbility $ Battlecry $ anotherMinion $ \target -> Sequence [
+        DealDamage 1 target,
+        Enchant [StatsDelta 2 0] target ]]
 
 
 dreadInfernal :: Minion

@@ -101,6 +101,7 @@ instance Show Elect where
 
 data Effect :: * where
     With :: Elect -> Effect
+    Sequence :: [Effect] -> Effect
     DrawCards :: Int -> PlayerHandle -> Effect
     KeywordEffect :: KeywordEffect -> Effect
     DealDamage :: Damage -> MinionHandle -> Effect

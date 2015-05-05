@@ -67,6 +67,7 @@ data BasicCardName
 
 data ClassicCardName
     = ArgentSquire
+    | CruelTaskmaster
     | IronbeakOwl
     | Spellbreaker
     | Sunwalker
