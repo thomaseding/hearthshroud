@@ -491,15 +491,29 @@ enactEffect = logCall 'enactEffect . \case
     With elect -> enactElect elect
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
-    DealDamage damage handle -> dealDamage damage handle >> return ()
+    DealDamage damage handle -> dealDamage damage handle
+    Enchant enchs handle -> enchant enchs handle
+
+
+enchant :: (HearthMonad m) => [Enchantment] -> MinionHandle -> Hearth m ()
+enchant enchantments handle = logCall 'enchant $ withMinions $ \bm -> let
+    in return $ Just $ case bm^.boardMinionHandle == handle of
+        False -> bm
+        True -> bm & boardMinionEnchantments %~ (enchantments ++)
 
 
 dynamicAttack :: (HearthMonad m) => BoardMinion -> Hearth m Attack
-dynamicAttack bm = return $ bm^.boardMinion.minionAttack
+dynamicAttack bm = let
+    delta = sum $ flip mapMaybe (bm^.boardMinionEnchantments) $ \case
+        StatsDelta a _ -> Just a
+    in return $ bm^.boardMinion.minionAttack + delta
 
 
 dynamicHealth :: (HearthMonad m) => BoardMinion -> Hearth m Health
-dynamicHealth bm = return $ bm^.boardMinion.minionHealth
+dynamicHealth bm = let
+    delta = sum $ flip mapMaybe (bm^.boardMinionEnchantments) $ \case
+        StatsDelta _ h -> Just h
+    in return $ bm^.boardMinion.minionHealth + delta
 
 
 dealDamage :: (HearthMonad m) => Damage -> MinionHandle -> Hearth m ()
@@ -529,7 +543,9 @@ silence victim = logCall 'silence $ do
     getPlayer p.playerMinions %= let
         in map $ \bm -> case bm^.boardMinionHandle == victim of
             False -> bm
-            True -> bm & boardMinionAbilities .~ []
+            True -> let
+                bm' = bm & boardMinionAbilities .~ []
+                in bm' & boardMinionEnchantments .~ []
 
 
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()

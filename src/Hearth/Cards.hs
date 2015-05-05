@@ -35,6 +35,7 @@ minionUniverse = [
     oasisSnapjaw,
     recklessRocketeer,
     riverCrocolisk,
+    shatteredSunCleric,
     spellbreaker,
     stonetuskBoar,
     stormpikeCommando,
@@ -149,6 +150,11 @@ recklessRocketeer = mkBasicMinion RecklessRocketeer 6 5 2 [
 
 riverCrocolisk :: Minion
 riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
+
+
+shatteredSunCleric :: Minion
+shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
+    KeywordAbility $ Battlecry $ targetAnotherMinion $ Enchant [StatsDelta 1 1] ]
 
 
 spellbreaker :: Minion

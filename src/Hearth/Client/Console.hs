@@ -589,14 +589,14 @@ printPlayer window p who = do
     let playerName = fromString (map toUpper $ show who) ++ case isActive of
             True -> sgrColor (Dull, White) ++ "*" ++ sgrColor (Dull, Cyan)
             False -> ""
-        player = playerColumn p
-        hand = handColumn $ p^.playerHand
-        boardMinions = boardMinionsColumn $ p^.playerMinions
         (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
         (deckLoc, handLoc, minionsLoc) = case who of
                 Alice -> (0, wx, wx + wy)
                 Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
+    player <- playerColumn p
+    hand <- handColumn $ p^.playerHand
+    boardMinions <- boardMinionsColumn $ p^.playerMinions
     liftIO $ do
         n0 <- printColumn True (take (wx - 1) playerName) deckLoc player
         n1 <- printColumn True "HAND" handLoc hand

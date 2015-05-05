@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -13,6 +14,7 @@ module Hearth.Client.Console.HandColumn (
 import Control.Lens hiding (index)
 import Data.List
 import Data.String
+import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.SGRString
 import Hearth.Names
@@ -22,8 +24,8 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-handColumn :: Hand -> [SGRString]
-handColumn (Hand cs) = let
+handColumn :: (HearthMonad m) => Hand -> Hearth m [SGRString]
+handColumn (Hand cs) = return $ let
     cs' = map cardColumn $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 

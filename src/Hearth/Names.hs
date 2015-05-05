@@ -56,6 +56,7 @@ data BasicCardName
     | OasisSnapjaw
     | RecklessRocketeer
     | RiverCrocolisk
+    | ShatteredSunCleric
     | StonetuskBoar
     | StormpikeCommando
     | StormwindKnight

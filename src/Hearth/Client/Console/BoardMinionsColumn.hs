@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -11,8 +12,10 @@ module Hearth.Client.Console.BoardMinionsColumn (
 
 
 import Control.Lens hiding (index)
+import Control.Monad
 import Data.List
 import Data.String
+import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.SGRString
 import Hearth.Names
@@ -22,38 +25,40 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-boardMinionsColumn :: [BoardMinion] -> [SGRString]
-boardMinionsColumn = concat . reverse . foldl' f [label 0] . zip [1..] . map boardMinionColumn . zip [1..]
+boardMinionsColumn :: (HearthMonad m) => [BoardMinion] -> Hearth m [SGRString]
+boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) . mapM boardMinionColumn . zip [1..]
     where
         label' idx = "<" ++ sgrShow (idx + 1 :: Int) ++ ">"
         label idx = [sgrColor (Dull, Magenta) ++ label' idx]
         f sss (idx, ss) = (ss ++ label idx) : sss
 
 
-boardMinionColumn :: (Int, BoardMinion) -> [SGRString]
-boardMinionColumn (idx, bm) = let
-    minion = _boardMinion bm
-    nameColor = case hasDivineShield bm of
-        True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
-        False -> sgrColor (Vivid, Green)
-    (tauntL, tauntR) = case hasTaunt bm of
-        True -> ("[", ">")
-        False -> ("", "")
-    name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
-    attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
-    healthColor = case bm^.boardMinionDamage > 0 of
-        True -> (Vivid, Red)
-        False -> (Vivid, Black)
-    dmg = bm^.boardMinionDamage.to unDamage
-    health = sgrColor healthColor ++ sgrShow (bm^.boardMinion.minionHealth.to unHealth - dmg)
-    index = let
-        pad = if idx < 10 then " " else ""
-        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
-    header = index ++ name
-    stats = let
-        c = sgrColor (Dull, White)
-        in attack ++ c ++ "/" ++ health
-    in map ("   " ++) [header, "    " ++ stats]
+boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m [SGRString]
+boardMinionColumn (idx, bm) = do
+    dynAttack <- liftM unAttack $ dynamicAttack bm
+    dynHealth <- liftM unHealth $ dynamicHealth bm
+    let minion = _boardMinion bm
+        nameColor = case hasDivineShield bm of
+            True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
+            False -> sgrColor (Vivid, Green)
+        (tauntL, tauntR) = case hasTaunt bm of
+            True -> ("[", ">")
+            False -> ("", "")
+        name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
+        attack = sgrColor (Vivid, Black) ++ sgrShow dynAttack
+        healthColor = case bm^.boardMinionDamage > 0 of
+            True -> (Vivid, Red)
+            False -> (Vivid, Black)
+        dmg = bm^.boardMinionDamage.to unDamage
+        index = let
+            pad = if idx < 10 then " " else ""
+            in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
+        header = index ++ name
+        remainingHealth = sgrColor healthColor ++ sgrShow (dynHealth - dmg)
+        stats = let
+            c = sgrColor (Dull, White)
+            in attack ++ c ++ "/" ++ remainingHealth
+    return $ map ("   " ++) [header, "    " ++ stats]
 
 
 getMinionName :: Minion -> SGRString

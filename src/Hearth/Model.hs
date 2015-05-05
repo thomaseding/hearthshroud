@@ -103,6 +103,7 @@ data Effect :: * where
     DrawCards :: Int -> PlayerHandle -> Effect
     KeywordEffect :: KeywordEffect -> Effect
     DealDamage :: Damage -> MinionHandle -> Effect
+    Enchant :: [Enchantment] -> MinionHandle -> Effect
     deriving (Show, Typeable)
 
 
@@ -129,7 +130,8 @@ instance Show KeywordAbility where
 
 
 data Enchantment :: * where
-    FrozenUntil :: Turn -> Enchantment
+    StatsDelta :: Attack -> Health -> Enchantment
+    --FrozenUntil :: Turn -> Enchantment
     deriving (Show, Eq, Ord, Data, Typeable)
 
 

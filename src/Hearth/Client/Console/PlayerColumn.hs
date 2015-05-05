@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -11,6 +12,7 @@ module Hearth.Client.Console.PlayerColumn (
 --------------------------------------------------------------------------------
 
 
+import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.BoardHeroColumn
 import Hearth.Client.Console.DeckColumn
@@ -21,8 +23,8 @@ import Hearth.Client.Console.SGRString
 --------------------------------------------------------------------------------
 
 
-playerColumn :: Player -> [SGRString]
-playerColumn = concat . withEach [
+playerColumn :: (HearthMonad m) => Player -> Hearth m [SGRString]
+playerColumn = return . concat . withEach [
     deckColumn . _playerDeck,
     txt "",
     manaColumn,
