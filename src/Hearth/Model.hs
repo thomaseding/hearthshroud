@@ -41,7 +41,7 @@ newtype Turn = Turn Int
 
 
 newtype BoardPos = BoardPos Int
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 newtype Mana = Mana Int

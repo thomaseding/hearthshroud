@@ -31,7 +31,6 @@ import Control.Exception hiding (handle)
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
-import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
@@ -299,9 +298,8 @@ instance MonadPrompt HearthPrompt Console where
 
 main :: IO ()
 main = finally runTestGame $ do
+    setSGR [SetColor Background Dull Black]
     setSGR [SetColor Foreground Dull White]
-    clearScreen
-    setCursorPosition 0 0
 
 
 runTestGame :: IO ()
@@ -427,6 +425,10 @@ helpAction retry _ = do
     retry
 
 
+pickRandom :: [a] -> IO (Maybe a)
+pickRandom = liftM listToMaybe . shuffleM
+
+
 autoplayAction :: Hearth Console Action -> [Int] -> Hearth Console Action
 autoplayAction retry = \case
     [] -> liftIO (shuffleM activities) >>= decideAction
@@ -441,20 +443,22 @@ autoplayAction retry = \case
         tryPlayMinion = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
-            pos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
-            mCard <- flip firstM (reverse cards) $ \card -> playMinion handle card pos >>= \case
+            maxPos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
+            let positions = [BoardPos 0 .. maxPos]
+            pos <- liftM head $ liftIO $ shuffleM positions
+            allowedCards <- flip filterM (reverse cards) $ \card -> local id (playMinion handle card pos) >>= \case
                 Failure -> return False
                 Success -> return True
-            return $ case mCard of
+            liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ ActionPlayMinion card pos
         tryPlaySpell = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
-            mCard <- flip firstM (reverse cards) $ \card -> playSpell handle card >>= \case
+            allowedCards <- flip filterM (reverse cards) $ \card -> local id (playSpell handle card) >>= \case
                 Failure -> return False
                 Success -> return True
-            return $ case mCard of
+            liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ ActionPlaySpell card
         tryAttackMinion = do
@@ -463,11 +467,11 @@ autoplayAction retry = \case
             nonActiveHandle <- getNonActivePlayerHandle
             nonActiveMinions <- view $ getPlayer nonActiveHandle.playerMinions
             let pairs = [(a, na) | a <- activeMinions, na <- nonActiveMinions]
-            mPair <- flip firstM pairs $ \(activeMinion, nonActiveMinion) -> do
-                attackMinion activeMinion nonActiveMinion >>= \case
+            allowedPairs <- flip filterM pairs $ \(activeMinion, nonActiveMinion) -> do
+                local id $ attackMinion activeMinion nonActiveMinion >>= \case
                     Failure -> return False
                     Success -> return True
-            return $ case mPair of
+            liftIO (pickRandom allowedPairs) >>= return . \case
                 Nothing -> Nothing
                 Just (attacker, defender) -> Just $ ActionAttackMinion attacker defender
 
