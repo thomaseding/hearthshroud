@@ -32,13 +32,12 @@ handColumn (Hand cs) = return $ let
 
 cardColumn :: Int -> HandCard -> [SGRString]
 cardColumn idx = \case
-    HandCardMinion minion -> minionColumn (idx, minion)
-    HandCardSpell spell -> [sgrShow $ spell^.spellName, ""]
+    HandCardMinion minion -> minionColumn idx minion
+    HandCardSpell spell -> spellColumn idx spell
 
 
-minionColumn :: (Int, Minion) -> [SGRString]
-minionColumn (idx, minion) = let
-    parens s = "(" ++ s ++ ")"
+minionColumn :: Int -> Minion -> [SGRString]
+minionColumn idx minion = let
     nameColor = case hasDivineShield minion of
         True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
         False -> sgrColor (Vivid, Green)
@@ -59,6 +58,25 @@ minionColumn (idx, minion) = let
         c = sgrColor (Dull, White)
         in attack ++ c ++ "/" ++ health
     in [header, "    " ++ stats]
+
+
+spellColumn :: Int -> Spell -> [SGRString]
+spellColumn idx spell = let
+    nameColor = sgrColor (Vivid, Green)
+    name = nameColor ++ getSpellName spell
+    mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case spell^.spellCost of
+        ManaCost (Mana m) -> m)
+    index = let
+        pad = if idx < 10 then " " else ""
+        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
+    header = index ++ name ++ " " ++ mana
+    in [header, "    Spell"]
+
+
+getSpellName :: Spell -> SGRString
+getSpellName spell = fromString $ case spell^.spellName of
+    BasicCardName name -> show name
+    ClassicCardName name -> show name
 
 
 getMinionName :: Minion -> SGRString
@@ -83,7 +101,8 @@ hasTaunt minion = let
         _ -> False
 
 
-
+parens :: SGRString -> SGRString
+parens s = "(" ++ s ++ ")"
 
 
 
