@@ -12,12 +12,14 @@ import Hearth.Names
 
 
 cardUniverse :: [DeckCard]
-cardUniverse = map (DeckCardMinion . DeckMinion) minionUniverse
+cardUniverse = map DeckCardMinion minionUniverse ++ map DeckCardSpell spellUniverse
 
 
 minionUniverse :: [Minion]
 minionUniverse = [
     amaniBerserker,
+    argentCommander,
+    argentProtector,
     argentSquire,
     bluegillWarrior,
     bloodfenRaptor,
@@ -37,6 +39,8 @@ minionUniverse = [
     oasisSnapjaw,
     recklessRocketeer,
     riverCrocolisk,
+    scarletCrusader,
+    silvermoonGuardian,
     shatteredSunCleric,
     spellbreaker,
     stonetuskBoar,
@@ -45,6 +49,15 @@ minionUniverse = [
     sunwalker,
     warGolem,
     wolfRider ]
+
+
+spellUniverse :: [Spell]
+spellUniverse = [
+    moonfire,
+    starfire ]
+
+
+--------------------------------------------------------------------------------
 
 
 mkMinion :: CardName -> Mana -> Attack -> Health -> [Ability] -> Minion
@@ -64,9 +77,43 @@ mkClassicMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> M
 mkClassicMinion name = mkMinion $ ClassicCardName name
 
 
+
+--------------------------------------------------------------------------------
+
+
+mkSpell :: CardName -> Mana -> SpellEffect -> Spell
+mkSpell name mana effect = Spell {
+    _spellCost = ManaCost mana,
+    _spellEffect = effect,
+    _spellName = name }
+
+
+mkBasicSpell :: BasicCardName -> Mana -> SpellEffect -> Spell
+mkBasicSpell name = mkSpell $ BasicCardName name
+
+
+mkClassicSpell :: ClassicCardName -> Mana -> SpellEffect -> Spell
+mkClassicSpell name = mkSpell $ ClassicCardName name
+
+
+
+--------------------------------------------------------------------------------
+
+
 amaniBerserker :: Minion
 amaniBerserker = mkClassicMinion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [StatsDelta 3 0] ]
+
+
+argentCommander :: Minion
+argentCommander = mkClassicMinion ArgentCommander 6 4 2 [
+    KeywordAbility Charge,
+    KeywordAbility DivineShield ]
+
+
+argentProtector :: Minion
+argentProtector = mkClassicMinion ArgentProtector 2 2 2 [
+    KeywordAbility $ Battlecry $ With . AnotherMinion (Give [KeywordAbility DivineShield]) ]
 
 
 argentSquire :: Minion
@@ -136,6 +183,10 @@ magmaRager :: Minion
 magmaRager = mkBasicMinion MagmaRager 3 5 1 []
 
 
+moonfire :: Spell
+moonfire = mkBasicSpell Moonfire 0 $ const $ With $ AnyCharacter $ DealDamage 1
+
+
 murlocRaider :: Minion
 murlocRaider = mkBasicMinion MurlocRaider 1 2 1 []
 
@@ -158,6 +209,16 @@ riverCrocolisk :: Minion
 riverCrocolisk = mkBasicMinion RiverCrocolisk 2 2 3 []
 
 
+scarletCrusader :: Minion
+scarletCrusader = mkClassicMinion ScarletCrusader 3 3 1 [
+    KeywordAbility DivineShield ]
+
+
+silvermoonGuardian :: Minion
+silvermoonGuardian = mkClassicMinion SilvermoonGuardian 4 3 3 [
+    KeywordAbility DivineShield ]
+
+
 shatteredSunCleric :: Minion
 shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (Enchant [StatsDelta 1 1]) ]
@@ -166,6 +227,12 @@ shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
 spellbreaker :: Minion
 spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (KeywordEffect . Silence) ]
+
+
+starfire :: Spell
+starfire = mkBasicSpell Starfire 6 $ \this -> Sequence [
+    With $ AnyCharacter $ DealDamage 5,
+    With $ CasterOf (DrawCards 1) this ]
 
 
 stonetuskBoar :: Minion

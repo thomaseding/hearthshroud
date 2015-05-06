@@ -121,6 +121,12 @@ runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
 runHearth = evalStateT (unHearth runGame) . mkGameState
 
 
+newHandle :: (HearthMonad m) => Hearth m RawHandle
+newHandle = do
+    gameHandleSeed += 1
+    view gameHandleSeed
+
+
 mkGameState :: Pair PlayerData -> GameState
 mkGameState (p1, p2) = let
     ps = [p1, p2]
@@ -210,8 +216,13 @@ genRawHandle = do
 class GenHandle handle where
     genHandle :: (HearthMonad m) => Hearth m handle
 
+
 instance GenHandle MinionHandle where
     genHandle = liftM MinionHandle genRawHandle
+
+
+instance GenHandle SpellHandle where
+    genHandle = liftM SpellHandle genRawHandle
 
 
 runGame :: (HearthMonad m) => Hearth m GameResult
@@ -410,7 +421,8 @@ performAction = logCall 'performAction $ do
 enactAction :: (HearthMonad m) => Action -> Hearth m TurnEvolution
 enactAction = logCall 'enactAction . \case
     ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
-    ActionPlayCard card pos -> actionPlayCard card pos
+    ActionPlayMinion card pos -> actionPlayMinion card pos
+    ActionPlaySpell card -> actionPlaySpell card
     ActionAttackMinion attacker defender -> actionAttackMinion attacker defender
     ActionEndTurn -> return EndTurn
 
@@ -452,27 +464,50 @@ actionAttackMinion attacker defender = logCall 'actionAttackMinion $ do
     return ContinueTurn
 
 
-actionPlayCard :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m TurnEvolution
-actionPlayCard card pos = logCall 'actionPlayCard $ do
+actionPlayMinion :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m TurnEvolution
+actionPlayMinion card pos = logCall 'actionPlayMinion $ do
     handle <- getActivePlayerHandle
-    _ <- playCard handle card pos
+    _ <- playMinion handle card pos
     return ContinueTurn
 
 
-playCard :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
-playCard handle card pos = logCall 'playCard $ do
+actionPlaySpell :: (HearthMonad m) => HandCard -> Hearth m TurnEvolution
+actionPlaySpell card = logCall 'actionPlaySpell $ do
+    handle <- getActivePlayerHandle
+    _ <- playSpell handle card
+    return ContinueTurn
+
+
+playMinion :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m Result
+playMinion handle card pos = logCall 'playMinion $ do
     st <- get
-    mBoardMinion <- playCard' handle card pos >>= \case
-        Just bm -> return $ Just bm
-        Nothing -> do
-            put st
-            return Nothing;
+    mBoardMinion <- playMinion' handle card pos
+    when (isNothing mBoardMinion) $ put st
     let result = maybe Failure (const Success) mBoardMinion
     prompt $ PromptGameEvent $ PlayedCard handle card result
     case mBoardMinion of
         Nothing -> return ()
         Just bm -> enactAnyBattleCries bm
     return result
+
+
+playSpell :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
+playSpell handle card = logCall 'playSpell $ do
+    st <- get
+    mSpell <- playSpell' handle card
+    when (isNothing mSpell) $ put st
+    let result = maybe Failure (const Success) mSpell
+    prompt $ PromptGameEvent $ PlayedCard handle card result
+    case mSpell of
+        Nothing -> return ()
+        Just spell -> enactSpell spell
+    return result
+
+
+enactSpell :: (HearthMonad m) => Spell -> Hearth m ()
+enactSpell spell = let
+    f = spell^.spellEffect
+    in genHandle >>= enactEffect . f
 
 
 enactAnyBattleCries :: (HearthMonad m) => BoardMinion -> Hearth m ()
@@ -494,7 +529,15 @@ enactEffect = logCall 'enactEffect . \case
     DrawCards n handle -> drawCards handle n >> return ()
     KeywordEffect effect -> enactKeywordEffect effect
     DealDamage damage handle -> dealDamage damage handle
-    Enchant enchs handle -> enchant enchs handle
+    Enchant enchantments handle -> enchant enchantments handle
+    Give abilities handle -> giveAbilities abilities handle
+
+
+giveAbilities :: (HearthMonad m) => [Ability] -> MinionHandle -> Hearth m ()
+giveAbilities abilities handle = logCall 'giveAbilities $ withMinions $ \bm -> let
+    in return $ Just $ case bm^.boardMinionHandle == handle of
+        False -> bm
+        True -> bm & boardMinionAbilities %~ (abilities ++)
 
 
 enchant :: (HearthMonad m) => [Enchantment] -> MinionHandle -> Hearth m ()
@@ -586,7 +629,9 @@ silence victim = logCall 'silence $ do
 
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()
 enactElect = logCall 'enactElect . \case
+    CasterOf f _ -> getActivePlayerHandle >>= enactEffect . f
     ControllerOf f minionHandle -> getControllerOf minionHandle >>= enactEffect . f
+    AnyCharacter f -> anyCharacter f
     AnotherCharacter f bannedMinion -> anotherCharacter bannedMinion f
     AnotherMinion f bannedMinion -> anotherMinion bannedMinion f
     AnotherFriendlyMinion f bannedMinion -> anotherFriendlyMinion bannedMinion f
@@ -605,6 +650,17 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
 
 anotherCharacter :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
 anotherCharacter = logCall 'anotherCharacter anotherMinion
+
+
+anyCharacter :: (HearthMonad m) => (MinionHandle -> Effect) -> Hearth m ()
+anyCharacter f = logCall 'anotherMinion $ do
+    handles <- getPlayerHandles
+    targets <- liftM concat $ forM handles $ \handle -> do
+        bms <- view $ getPlayer handle.playerMinions
+        return $ map (\bm -> bm^.boardMinionHandle) bms
+    pickMinionFrom targets >>= \case
+        Nothing -> return ()
+        Just target -> enactEffect $ f target
 
 
 anotherMinion :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
@@ -639,21 +695,32 @@ pickMinionFrom = logCall 'pickMinionFrom . \case
         return $ Just handle
 
 
-playCard' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m (Maybe BoardMinion)
-playCard' handle card pos = logCall 'playCard' $ removeFromHand handle card >>= \case
-    False -> return Nothing
-    True -> do
-        payCost handle (costOf card) >>= \case
-            Failure -> return Nothing
-            Success -> case card of
-                HandCardMinion hm -> do
-                    placeOnBoard handle pos $ case hm of
-                        HandMinion minion' -> minion'
+playCommon :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Result
+playCommon handle card = logCall 'playCommon $ removeFromHand handle card >>= \case
+    False -> return Failure
+    True -> payCost handle $ costOf card
+
+
+playMinion' :: (HearthMonad m) => PlayerHandle -> HandCard -> BoardPos -> Hearth m (Maybe BoardMinion)
+playMinion' handle card pos = logCall 'playMinion' $ playCommon handle card >>= \case
+    Failure -> return Nothing
+    Success -> case card of
+        HandCardMinion minion -> placeOnBoard handle pos minion
+        _ -> return Nothing
+
+
+playSpell' :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m (Maybe Spell)
+playSpell' handle card = logCall 'playSpell' $ playCommon handle card >>= \case
+    Failure -> return Nothing
+    Success -> return $ case card of
+        HandCardSpell spell -> Just spell
+        _ -> Nothing
 
 
 costOf :: HandCard -> Cost
 costOf = \case
-    HandCardMinion minion -> minion^.handMinion.minionCost
+    HandCardMinion minion -> minion^.minionCost
+    HandCardSpell spell -> spell^.spellCost
 
 
 payCost :: (HearthMonad m) => PlayerHandle -> Cost -> Hearth m Result

@@ -72,6 +72,10 @@ newtype MinionHandle = MinionHandle RawHandle
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+newtype SpellHandle = SpellHandle RawHandle
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 newtype PlayerHandle = PlayerHandle RawHandle
     deriving (Show, Eq, Ord, Data, Typeable)
 
@@ -88,7 +92,9 @@ data Cost :: * where
 
 
 data Elect :: * where
+    CasterOf :: (PlayerHandle -> Effect) -> SpellHandle -> Elect
     ControllerOf :: (PlayerHandle -> Effect) -> MinionHandle -> Elect
+    AnyCharacter :: (MinionHandle -> Effect) -> Elect
     AnotherCharacter :: (MinionHandle -> Effect) -> MinionHandle -> Elect
     AnotherMinion :: (MinionHandle -> Effect) -> MinionHandle -> Elect
     AnotherFriendlyMinion :: (MinionHandle -> Effect) -> MinionHandle -> Elect
@@ -107,6 +113,7 @@ data Effect :: * where
     KeywordEffect :: KeywordEffect -> Effect
     DealDamage :: Damage -> MinionHandle -> Effect
     Enchant :: [Enchantment] -> MinionHandle -> Effect
+    Give :: [Ability] -> MinionHandle -> Effect
     deriving (Show, Typeable)
 
 
@@ -139,10 +146,18 @@ data Enchantment :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+type SpellEffect = SpellHandle -> Effect
+
+
+instance Show SpellEffect where
+    show _ = "SpellEffect"
+
+
 data Spell = Spell {
-    --_spellEffects :: [SpellEffect],
+    _spellCost :: Cost,
+    _spellEffect :: SpellEffect,
     _spellName :: CardName
-} deriving (Show, Eq, Ord, Data, Typeable)
+} deriving (Show, Typeable)
 makeLenses ''Spell
 
 
@@ -169,16 +184,10 @@ makeLenses ''BoardMinion
 
 
 data DeckMinion = DeckMinion {
-    _deckMinion :: Minion
+    _deckMinion :: Minion,
+    _deckSpell :: Spell
 } deriving (Show, Typeable)
 makeLenses ''DeckMinion
-
-
-data HandMinion = HandMinion {
-    --_handMinionEffects :: [HandEffect]  -- Think Bolvar, *Giants, Freezing Trap
-    _handMinion :: Minion
-} deriving (Show, Typeable)
-makeLenses ''HandMinion
 
 
 data HeroPower = HeroPower {
@@ -206,12 +215,14 @@ makeLenses ''BoardHero
 
 
 data HandCard :: * where
-    HandCardMinion :: HandMinion -> HandCard
+    HandCardMinion ::Minion -> HandCard
+    HandCardSpell :: Spell -> HandCard
     deriving (Show, Typeable)
 
 
 data DeckCard :: * where
-    DeckCardMinion :: DeckMinion -> DeckCard
+    DeckCardMinion :: Minion -> DeckCard
+    DeckCardSpell :: Spell -> DeckCard
     deriving (Show, Typeable)
 
 
@@ -262,12 +273,14 @@ data GameResult :: * where
 
 deckCardName :: DeckCard -> CardName
 deckCardName = \case
-    DeckCardMinion minion -> minion^.deckMinion.minionName
+    DeckCardMinion minion -> minion^.minionName
+    DeckCardSpell spell -> spell^.spellName
 
 
 handCardName :: HandCard -> CardName
 handCardName = \case
-    HandCardMinion minion -> minion^.handMinion.minionName
+    HandCardMinion minion -> minion^.minionName
+    HandCardSpell spell -> spell^.spellName
 
 
 

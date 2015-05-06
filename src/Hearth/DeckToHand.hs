@@ -20,11 +20,8 @@ class DeckToHand d h | d -> h where
 
 instance DeckToHand DeckCard HandCard where
     deckToHand = \case
-        DeckCardMinion m -> HandCardMinion $ deckToHand m
-
-
-instance DeckToHand DeckMinion HandMinion where
-    deckToHand = HandMinion . _deckMinion
+        DeckCardMinion minion -> HandCardMinion minion
+        DeckCardSpell spell -> HandCardSpell spell
 
 
 

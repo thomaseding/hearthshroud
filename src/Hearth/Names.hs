@@ -51,12 +51,14 @@ data BasicCardName
     | FireElemental
     | FrostwolfGrunt
     | MagmaRager
+    | Moonfire
     | MurlocRaider
     | NoviceEngineer
     | OasisSnapjaw
     | RecklessRocketeer
     | RiverCrocolisk
     | ShatteredSunCleric
+    | Starfire
     | StonetuskBoar
     | StormpikeCommando
     | StormwindKnight
@@ -67,9 +69,13 @@ data BasicCardName
 
 data ClassicCardName
     = AmaniBerserker
+    | ArgentCommander
+    | ArgentProtector
     | ArgentSquire
     | CruelTaskmaster
     | IronbeakOwl
+    | ScarletCrusader
+    | SilvermoonGuardian
     | Spellbreaker
     | Sunwalker
     deriving (Show, Eq, Ord, Data, Typeable)

@@ -26,13 +26,14 @@ import System.Console.ANSI
 
 handColumn :: (HearthMonad m) => Hand -> Hearth m [SGRString]
 handColumn (Hand cs) = return $ let
-    cs' = map cardColumn $ zip [1..] $ reverse cs
+    cs' = map (uncurry cardColumn) $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 
 
-cardColumn :: (Int, HandCard) -> [SGRString]
-cardColumn = \case
-    (idx, HandCardMinion (HandMinion minion)) -> minionColumn (idx, minion)
+cardColumn :: Int -> HandCard -> [SGRString]
+cardColumn idx = \case
+    HandCardMinion minion -> minionColumn (idx, minion)
+    HandCardSpell spell -> [sgrShow $ spell^.spellName, ""]
 
 
 minionColumn :: (Int, Minion) -> [SGRString]

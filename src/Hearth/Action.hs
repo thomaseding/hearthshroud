@@ -17,7 +17,8 @@ import Hearth.Model
 data Action :: * where
     ActionPlayerConceded :: PlayerHandle -> Action
     ActionEndTurn :: Action
-    ActionPlayCard :: HandCard -> BoardPos -> Action
+    ActionPlayMinion :: HandCard -> BoardPos -> Action
+    ActionPlaySpell :: HandCard -> Action
     ActionAttackMinion :: BoardMinion -> BoardMinion -> Action
     deriving (Show)
 

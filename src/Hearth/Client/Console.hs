@@ -59,6 +59,7 @@ import Prelude hiding (pi, log)
 import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
+import System.Random.Shuffle
 import Text.Read (readMaybe)
 
 
@@ -428,7 +429,7 @@ helpAction retry _ = do
 
 autoplayAction :: Hearth Console Action -> [Int] -> Hearth Console Action
 autoplayAction retry = \case
-    [] -> decideAction activities
+    [] -> liftIO (shuffleM activities) >>= decideAction
     _ -> retry
     where
         decideAction = \case
@@ -436,17 +437,26 @@ autoplayAction retry = \case
             m : ms -> m >>= \case
                 Nothing -> decideAction ms
                 Just x -> return x
-        activities = [tryPlayCard, tryAttackMinion]
-        tryPlayCard = do
+        activities = [tryPlayMinion, tryPlaySpell, tryAttackMinion]
+        tryPlayMinion = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
             pos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
-            mCard <- flip firstM (reverse cards) $ \card -> playCard handle card pos >>= \case
+            mCard <- flip firstM (reverse cards) $ \card -> playMinion handle card pos >>= \case
                 Failure -> return False
                 Success -> return True
             return $ case mCard of
                 Nothing -> Nothing
-                Just card -> Just $ ActionPlayCard card pos
+                Just card -> Just $ ActionPlayMinion card pos
+        tryPlaySpell = do
+            handle <- getActivePlayerHandle
+            cards <- view $ getPlayer handle.playerHand.handCards
+            mCard <- flip firstM (reverse cards) $ \card -> playSpell handle card >>= \case
+                Failure -> return False
+                Success -> return True
+            return $ case mCard of
+                Nothing -> Nothing
+                Just card -> Just $ ActionPlaySpell card
         tryAttackMinion = do
             activeHandle <- getActivePlayerHandle
             activeMinions <- view $ getPlayer activeHandle.playerMinions
@@ -493,18 +503,25 @@ attackMinionAction retry = \case
 
 
 playCardAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-playCardAction retry = \case
-    [handIdx, boardIdx] -> do
+playCardAction retry = let
+    go handIdx f = do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
-        boardLen <- view $ getPlayer handle.playerMinions.to length
         let mCard = lookupIndex cards $ length cards - handIdx
         case mCard of
             Nothing -> retry
-            Just card -> case 0 < boardIdx && boardIdx <= boardLen + 1 of
-                False -> retry
-                True -> return $ ActionPlayCard card $ BoardPos $ boardIdx - 1
-    _ -> retry
+            Just card -> f card
+    goMinion boardIdx card = do
+        handle <- getActivePlayerHandle
+        boardLen <- view $ getPlayer handle.playerMinions.to length
+        case 0 < boardIdx && boardIdx <= boardLen + 1 of
+            False -> retry
+            True -> return $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
+    goSpell = return . ActionPlaySpell
+    in \case
+        [handIdx, boardIdx] -> go handIdx $ goMinion boardIdx
+        [handIdx] -> go handIdx goSpell
+        _ -> retry
 
 
 getAction :: GameSnapshot -> Console Action
