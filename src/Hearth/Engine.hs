@@ -644,9 +644,11 @@ silence victim = logCall 'silence $ do
             let bm' = bm & boardMinionAbilities .~ [] & boardMinionEnchantments .~ []
             health' <- dynamicHealth bm'
             let delta = Damage $ unHealth $ health' - health
-            return $ Just $ case delta < 0 of
-                True -> bm' & boardMinionDamage %~ max 0 . (+ delta)
-                False -> bm'
+            let bm'' = case delta < 0 of
+                    True -> bm' & boardMinionDamage %~ max 0 . (+ delta)
+                    False -> bm'
+            prompt $ PromptGameEvent $ Silenced bm''
+            return $ Just bm''
 
 
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()

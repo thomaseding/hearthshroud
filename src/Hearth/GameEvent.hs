@@ -32,6 +32,7 @@ data GameEvent :: * where
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
     LostDivineShield :: BoardMinion -> GameEvent
     EnrageActivated :: BoardMinion -> GameEvent
+    Silenced :: BoardMinion -> GameEvent
     deriving (Show, Typeable)
 
 
