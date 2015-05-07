@@ -83,6 +83,7 @@ newtype PlayerHandle = PlayerHandle RawHandle
 data CrystalState :: * where
     CrystalFull :: CrystalState
     CrystalEmpty :: CrystalState
+    CrystalTemporary :: CrystalState
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
@@ -114,6 +115,7 @@ data Effect :: * where
     DealDamage :: MinionHandle -> Damage -> Effect
     Enchant :: MinionHandle -> [Enchantment] -> Effect
     Give :: MinionHandle -> [Ability] -> Effect
+    GainManaCrystal :: PlayerHandle -> CrystalState -> Effect
     deriving (Show, Typeable)
 
 
@@ -246,6 +248,7 @@ data Player = Player {
     _playerMinions :: [BoardMinion],
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
+    _playerTemporaryManaCrystals :: Int,
     _playerHero :: BoardHero
 } deriving (Show, Typeable)
 makeLenses ''Player

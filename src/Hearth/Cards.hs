@@ -54,7 +54,8 @@ minionUniverse = [
 spellUniverse :: [Spell]
 spellUniverse = [
     moonfire,
-    starfire ]
+    starfire,
+    theCoin ]
 
 
 --------------------------------------------------------------------------------
@@ -254,6 +255,10 @@ sunwalker :: Minion
 sunwalker = mkClassicMinion Sunwalker 6 4 5 [
     KeywordAbility Taunt,
     KeywordAbility DivineShield ]
+
+
+theCoin :: Spell
+theCoin = mkBasicSpell TheCoin 0 $ \this -> With $ CasterOf this $ \caster -> GainManaCrystal caster CrystalTemporary
 
 
 warGolem :: Minion

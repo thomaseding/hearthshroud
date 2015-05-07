@@ -37,6 +37,7 @@ import Data.List.Ordered
 import Data.Maybe
 import qualified Data.NonEmpty as NonEmpty
 import Hearth.Action
+import Hearth.Cards (theCoin)
 import Hearth.DebugEvent
 import Hearth.DeckToHand
 import Hearth.GameEvent
@@ -146,6 +147,7 @@ mkPlayer handle (PlayerData hero deck) = Player {
     _playerMinions = [],
     _playerTotalManaCrystals = 0,
     _playerEmptyManaCrystals = 0,
+    _playerTemporaryManaCrystals = 0,
     _playerHero = mkBoardHero hero }
 
 
@@ -256,9 +258,10 @@ initPlayer = initHand
 initHand :: (HearthMonad m) => PlayerHandle -> Hearth m ()
 initHand handle = logCall 'initHand $ do
     shuffleDeck handle
-    numCards <- isActivePlayer handle >>= return . \case
-        True -> 3
-        False -> 4
+    isFirst <- isActivePlayer handle
+    let numCards = case isFirst of
+            True -> 3
+            False -> 4
     drawnCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle drawnCards) $ let
         in flip (on isSubsetOf $ map handCardName) drawnCards
@@ -269,6 +272,9 @@ initHand handle = logCall 'initHand $ do
         _ -> do
             getPlayer handle.playerDeck.deckCards %= (tossedCards' ++)
             shuffleDeck handle
+    case isFirst of
+        True -> return ()
+        False -> getPlayer handle.playerHand.handCards %= (HandCardSpell theCoin :)
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]
@@ -357,30 +363,40 @@ runTurn = logCall 'runTurn $ do
     endTurn
 
 
-gainManaCrystal :: (HearthMonad m) => CrystalState -> PlayerHandle -> Hearth m ()
-gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ zoomPlayer handle $ do
-    emptyCount <- view playerEmptyManaCrystals
+gainManaCrystal :: (HearthMonad m) => PlayerHandle -> CrystalState -> Hearth m ()
+gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ zoomPlayer handle $ do
     totalCount <- view playerTotalManaCrystals
     case totalCount of
         10 -> do
+            emptyCount <- view playerEmptyManaCrystals
             prompt $ PromptGameEvent $ GainsManaCrystal handle Nothing
             case emptyCount of
                 0 -> return ()
                 _ -> do
-                    playerEmptyManaCrystals -= 1
-                    prompt $ PromptGameEvent $ ManaCrystalsRefill handle 1
+                    let refillCount = case crystalState of
+                            CrystalFull -> 1
+                            CrystalEmpty -> 0
+                            CrystalTemporary -> 1
+                    let realCount = case crystalState of
+                            CrystalFull -> 1
+                            CrystalEmpty -> 1
+                            CrystalTemporary -> 0
+                    playerEmptyManaCrystals -= refillCount
+                    playerTemporaryManaCrystals %= max 0 . subtract realCount
+                    prompt $ PromptGameEvent $ ManaCrystalsRefill handle refillCount
         _ -> do
             playerTotalManaCrystals += 1
             case crystalState of
                 CrystalFull -> return ()
                 CrystalEmpty -> playerEmptyManaCrystals += 1
+                CrystalTemporary -> playerTemporaryManaCrystals += 1
             prompt $ PromptGameEvent $ GainsManaCrystal handle $ Just crystalState
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
-    gainManaCrystal CrystalFull handle
+    gainManaCrystal handle CrystalFull
     getPlayer handle.playerEmptyManaCrystals .= 0
     getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= Right 0
     _ <- drawCard handle
@@ -389,6 +405,11 @@ beginTurn = logCall 'beginTurn $ do
 
 endTurn :: (HearthMonad m) => Hearth m ()
 endTurn = logCall 'endTurn $ do
+    handle <- getActivePlayerHandle
+    zoomPlayer handle $ do
+        tempCount <- view playerTemporaryManaCrystals
+        playerTotalManaCrystals -= tempCount
+        playerTemporaryManaCrystals .= 0
     gamePlayerTurnOrder %= tail
 
 
@@ -531,6 +552,7 @@ enactEffect = logCall 'enactEffect . \case
     DealDamage handle damage -> dealDamage handle damage
     Enchant handle enchantments -> enchant handle enchantments
     Give handle abilities -> giveAbilities handle abilities
+    GainManaCrystal handle crystalState -> gainManaCrystal handle crystalState
 
 
 giveAbilities :: (HearthMonad m) => MinionHandle -> [Ability] -> Hearth m ()

@@ -327,8 +327,9 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroHealth = 30,
             _heroPower = power,
             _heroName = BasicHeroName name }
-        deck1 = Deck $ take 30 $ cycle cardUniverse
-        deck2 = Deck $ take 30 $ cycle $ reverse cardUniverse
+        cards = filter ((/= BasicCardName TheCoin) . deckCardName) cardUniverse
+        deck1 = Deck $ take 30 $ cycle cards
+        deck2 = Deck $ take 30 $ cycle $ reverse cards
         player1 = PlayerData (hero Thrall) deck1
         player2 = PlayerData (hero Rexxar) deck2
 

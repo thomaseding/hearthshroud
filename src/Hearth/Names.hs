@@ -62,6 +62,7 @@ data BasicCardName
     | StonetuskBoar
     | StormpikeCommando
     | StormwindKnight
+    | TheCoin
     | WarGolem
     | WolfRider
     deriving (Show, Eq, Ord, Data, Typeable)
