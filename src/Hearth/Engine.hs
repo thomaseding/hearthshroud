@@ -368,22 +368,18 @@ gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ zoomPlayer hand
     totalCount <- view playerTotalManaCrystals
     case totalCount of
         10 -> do
-            emptyCount <- view playerEmptyManaCrystals
+            let refillCount = case crystalState of
+                    CrystalFull -> 1
+                    CrystalEmpty -> 0
+                    CrystalTemporary -> 1
+            let realCount = case crystalState of
+                    CrystalFull -> 1
+                    CrystalEmpty -> 1
+                    CrystalTemporary -> 0
+            playerTemporaryManaCrystals %= max 0 . subtract realCount
             prompt $ PromptGameEvent $ GainsManaCrystal handle Nothing
-            case emptyCount of
-                0 -> return ()
-                _ -> do
-                    let refillCount = case crystalState of
-                            CrystalFull -> 1
-                            CrystalEmpty -> 0
-                            CrystalTemporary -> 1
-                    let realCount = case crystalState of
-                            CrystalFull -> 1
-                            CrystalEmpty -> 1
-                            CrystalTemporary -> 0
-                    playerEmptyManaCrystals -= refillCount
-                    playerTemporaryManaCrystals %= max 0 . subtract realCount
-                    prompt $ PromptGameEvent $ ManaCrystalsRefill handle refillCount
+            playerEmptyManaCrystals %= max 0 . subtract refillCount
+            prompt $ PromptGameEvent $ ManaCrystalsRefill handle refillCount
         _ -> do
             playerTotalManaCrystals += 1
             case crystalState of
