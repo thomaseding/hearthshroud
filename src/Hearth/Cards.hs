@@ -4,6 +4,8 @@ module Hearth.Cards where
 --------------------------------------------------------------------------------
 
 
+import Data.List
+import Data.Ord
 import Hearth.Model
 import Hearth.Names
 
@@ -12,7 +14,9 @@ import Hearth.Names
 
 
 cardUniverse :: [DeckCard]
-cardUniverse = map DeckCardMinion minionUniverse ++ map DeckCardSpell spellUniverse
+cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . show . deckCardName) $ concat [
+    map DeckCardMinion minionUniverse,
+    map DeckCardSpell spellUniverse ]
 
 
 minionUniverse :: [Minion]
@@ -227,7 +231,7 @@ shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
 
 spellbreaker :: Minion
 spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
-    KeywordAbility $ Battlecry $ \this -> With $ AnotherFriendlyMinion this $ \target -> KeywordEffect $ Silence target ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherMinion this $ \target -> KeywordEffect $ Silence target ]
 
 
 starfire :: Spell
