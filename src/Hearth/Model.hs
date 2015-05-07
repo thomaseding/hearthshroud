@@ -92,13 +92,13 @@ data Cost :: * where
 
 
 data Elect :: * where
-    CasterOf :: (PlayerHandle -> Effect) -> SpellHandle -> Elect
-    ControllerOf :: (PlayerHandle -> Effect) -> MinionHandle -> Elect
+    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Elect
+    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
     AnyCharacter :: (MinionHandle -> Effect) -> Elect
-    AnotherCharacter :: (MinionHandle -> Effect) -> MinionHandle -> Elect
-    AnotherMinion :: (MinionHandle -> Effect) -> MinionHandle -> Elect
-    AnotherFriendlyMinion :: (MinionHandle -> Effect) -> MinionHandle -> Elect
-    OtherCharacters :: (MinionHandle -> Effect) -> MinionHandle -> Elect
+    AnotherCharacter :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnotherMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    OtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
@@ -109,11 +109,11 @@ instance Show Elect where
 data Effect :: * where
     With :: Elect -> Effect
     Sequence :: [Effect] -> Effect
-    DrawCards :: Int -> PlayerHandle -> Effect
+    DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
-    DealDamage :: Damage -> MinionHandle -> Effect
-    Enchant :: [Enchantment] -> MinionHandle -> Effect
-    Give :: [Ability] -> MinionHandle -> Effect
+    DealDamage :: MinionHandle -> Damage -> Effect
+    Enchant :: MinionHandle -> [Enchantment] -> Effect
+    Give :: MinionHandle -> [Ability] -> Effect
     deriving (Show, Typeable)
 
 

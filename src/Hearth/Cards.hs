@@ -113,7 +113,7 @@ argentCommander = mkClassicMinion ArgentCommander 6 4 2 [
 
 argentProtector :: Minion
 argentProtector = mkClassicMinion ArgentProtector 2 2 2 [
-    KeywordAbility $ Battlecry $ With . AnotherMinion (Give [KeywordAbility DivineShield]) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherMinion this $ \target -> Give target [KeywordAbility DivineShield]]
 
 
 argentSquire :: Minion
@@ -144,24 +144,24 @@ coreHound = mkBasicMinion CoreHound 7 9 5 []
 
 cruelTaskmaster :: Minion
 cruelTaskmaster = mkClassicMinion CruelTaskmaster 2 2 2 [
-    KeywordAbility $ Battlecry $ With . AnotherMinion (\target -> Sequence [
-        DealDamage 1 target,
-        Enchant [StatsDelta 2 0] target ]) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherMinion this $ \target -> Sequence [
+        DealDamage target 1,
+        Enchant target [StatsDelta 2 0]]]
 
 
 dreadInfernal :: Minion
 dreadInfernal = mkBasicMinion DreadInfernal 6 6 6 [
-    KeywordAbility $ Battlecry $ With . OtherCharacters (DealDamage 1) ]
+    KeywordAbility $ Battlecry $ \this -> With $ OtherCharacters this $ \victim -> DealDamage victim 1 ]
 
 
 elvenArcher :: Minion
 elvenArcher = mkBasicMinion ElvenArcher 1 1 1 [
-    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 1) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherCharacter this $ \target -> DealDamage target 1 ]
 
 
 fireElemental :: Minion
 fireElemental = mkBasicMinion FireElemental 6 6 5 [
-    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 3) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherCharacter this $ \target -> DealDamage target 3 ]
 
 
 frostwolfGrunt :: Minion
@@ -171,12 +171,12 @@ frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
 
 ironbeakOwl :: Minion
 ironbeakOwl = mkClassicMinion IronbeakOwl 2 2 1 [
-    KeywordAbility $ Battlecry $ With . AnotherMinion (KeywordEffect . Silence) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherMinion this $ \target -> KeywordEffect $ Silence target ]
 
 
 ironforgeRifleman :: Minion
 ironforgeRifleman = mkBasicMinion IronforgeRifleman 3 2 2 [
-    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 1) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherCharacter this $ \target -> DealDamage target 1 ]
 
 
 magmaRager :: Minion
@@ -184,7 +184,7 @@ magmaRager = mkBasicMinion MagmaRager 3 5 1 []
 
 
 moonfire :: Spell
-moonfire = mkBasicSpell Moonfire 0 $ const $ With $ AnyCharacter $ DealDamage 1
+moonfire = mkBasicSpell Moonfire 0 $ \_ -> With $ AnyCharacter $ \target -> DealDamage target 1
 
 
 murlocRaider :: Minion
@@ -193,7 +193,7 @@ murlocRaider = mkBasicMinion MurlocRaider 1 2 1 []
 
 noviceEngineer :: Minion
 noviceEngineer = mkBasicMinion NoviceEngineer 2 1 1 [
-    KeywordAbility $ Battlecry $ With . ControllerOf (DrawCards 1) ]
+    KeywordAbility $ Battlecry $ \this -> With $ ControllerOf this $ \controller -> DrawCards controller 1 ]
 
 
 oasisSnapjaw :: Minion
@@ -221,18 +221,18 @@ silvermoonGuardian = mkClassicMinion SilvermoonGuardian 4 3 3 [
 
 shatteredSunCleric :: Minion
 shatteredSunCleric = mkBasicMinion ShatteredSunCleric 3 3 2 [
-    KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (Enchant [StatsDelta 1 1]) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherFriendlyMinion this $ \target -> Enchant target [StatsDelta 1 1]]
 
 
 spellbreaker :: Minion
 spellbreaker = mkClassicMinion Spellbreaker 4 4 3 [
-    KeywordAbility $ Battlecry $ With . AnotherFriendlyMinion (KeywordEffect . Silence) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherFriendlyMinion this $ \target -> KeywordEffect $ Silence target ]
 
 
 starfire :: Spell
 starfire = mkBasicSpell Starfire 6 $ \this -> Sequence [
-    With $ AnyCharacter $ DealDamage 5,
-    With $ CasterOf (DrawCards 1) this ]
+    With $ AnyCharacter $ \target -> DealDamage target 5,
+    With $ CasterOf this $ \caster -> DrawCards caster 1 ]
 
 
 stonetuskBoar :: Minion
@@ -242,7 +242,7 @@ stonetuskBoar = mkBasicMinion StonetuskBoar 1 1 1 [
 
 stormpikeCommando :: Minion
 stormpikeCommando = mkBasicMinion StormpikeCommando 5 4 2 [
-    KeywordAbility $ Battlecry $ With . AnotherCharacter (DealDamage 2) ]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherCharacter this $ \target -> DealDamage target 2 ]
 
 
 stormwindKnight :: Minion
