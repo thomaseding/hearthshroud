@@ -404,7 +404,8 @@ endTurn = logCall 'endTurn $ do
     handle <- getActivePlayerHandle
     zoomPlayer handle $ do
         tempCount <- view playerTemporaryManaCrystals
-        playerTotalManaCrystals -= tempCount
+        playerTotalManaCrystals %= max 0 . subtract tempCount
+        playerEmptyManaCrystals %= max 0 . subtract tempCount
         playerTemporaryManaCrystals .= 0
     gamePlayerTurnOrder %= tail
 
