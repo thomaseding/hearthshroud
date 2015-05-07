@@ -22,6 +22,7 @@ cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . show . deckCardName) $ c
 minionUniverse :: [Minion]
 minionUniverse = [
     amaniBerserker,
+    arcaneGolem,
     argentCommander,
     argentProtector,
     argentSquire,
@@ -57,9 +58,11 @@ minionUniverse = [
 
 spellUniverse :: [Spell]
 spellUniverse = [
+    innervate,
     moonfire,
     starfire,
-    theCoin ]
+    theCoin,
+    wildGrowth ]
 
 
 --------------------------------------------------------------------------------
@@ -108,6 +111,12 @@ mkClassicSpell name = mkSpell $ ClassicCardName name
 amaniBerserker :: Minion
 amaniBerserker = mkClassicMinion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [StatsDelta 3 0] ]
+
+
+arcaneGolem :: Minion
+arcaneGolem = mkClassicMinion ArcaneGolem 3 4 2 [
+    KeywordAbility Charge,
+    KeywordAbility $ Battlecry $ \this -> With $ ControllerOf this $ \controller -> With $ OpponentOf controller $ \opponent -> GainManaCrystal opponent CrystalFull ]
 
 
 argentCommander :: Minion
@@ -172,6 +181,10 @@ fireElemental = mkBasicMinion FireElemental 6 6 5 [
 frostwolfGrunt :: Minion
 frostwolfGrunt = mkBasicMinion FrostwolfGrunt 2 2 2 [
     KeywordAbility Taunt ]
+
+
+innervate :: Spell
+innervate = mkBasicSpell Innervate 0 $ \this -> With $ CasterOf this $ \caster -> Sequence $ replicate 2 $ GainManaCrystal caster CrystalTemporary
 
 
 ironbeakOwl :: Minion
@@ -267,6 +280,10 @@ theCoin = mkBasicSpell TheCoin 0 $ \this -> With $ CasterOf this $ \caster -> Ga
 
 warGolem :: Minion
 warGolem = mkBasicMinion WarGolem 7 7 7 []
+
+
+wildGrowth :: Spell
+wildGrowth = mkBasicSpell WildGrowth 2 $ \this -> With $ CasterOf this $ \caster -> GainManaCrystal caster CrystalEmpty
 
 
 wolfRider :: Minion

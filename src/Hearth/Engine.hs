@@ -651,6 +651,7 @@ silence victim = logCall 'silence $ do
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()
 enactElect = logCall 'enactElect . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
+    OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> getControllerOf minionHandle >>= enactEffect . f
     AnyCharacter f -> anyCharacter f
     AnotherCharacter bannedMinion f -> anotherCharacter bannedMinion f

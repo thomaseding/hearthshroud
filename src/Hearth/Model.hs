@@ -94,6 +94,7 @@ data Cost :: * where
 
 data Elect :: * where
     CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Elect
+    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Elect
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
     AnyCharacter :: (MinionHandle -> Effect) -> Elect
     AnotherCharacter :: MinionHandle -> (MinionHandle -> Effect) -> Elect

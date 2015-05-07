@@ -47,6 +47,7 @@ data BasicCardName
     | CoreHound
     | DreadInfernal
     | ElvenArcher
+    | Innervate
     | IronforgeRifleman
     | FireElemental
     | FrostwolfGrunt
@@ -64,12 +65,14 @@ data BasicCardName
     | StormwindKnight
     | TheCoin
     | WarGolem
+    | WildGrowth
     | WolfRider
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data ClassicCardName
     = AmaniBerserker
+    | ArcaneGolem
     | ArgentCommander
     | ArgentProtector
     | ArgentSquire
