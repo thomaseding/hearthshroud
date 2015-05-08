@@ -93,7 +93,7 @@ boulderfistOgre = minion BoulderfistOgre 6 6 7 []
 
 
 chillwindYeti :: Minion
-chillwindYeti = minion MurlocRaider 1 2 1 []
+chillwindYeti = minion ChillwindYeti 4 4 5 []
 
 
 coreHound :: Minion
