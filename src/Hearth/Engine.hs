@@ -37,12 +37,14 @@ import Data.List.Ordered
 import Data.Maybe
 import qualified Data.NonEmpty as NonEmpty
 import Hearth.Action
-import Hearth.Cards (theCoin)
+import Hearth.Cards (cardByName)
 import Hearth.DebugEvent
 import Hearth.DeckToHand
 import Hearth.GameEvent
 import Hearth.HandToDeck
 import Hearth.Model
+import Hearth.Names (CardName(BasicCardName))
+import Hearth.Names.Basic (BasicCardName(TheCoin))
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (Name)
 
@@ -274,7 +276,9 @@ initHand handle = logCall 'initHand $ do
             shuffleDeck handle
     case isFirst of
         True -> return ()
-        False -> getPlayer handle.playerHand.handCards %= (HandCardSpell theCoin :)
+        False -> let
+            theCoin = deckToHand $ cardByName $ BasicCardName TheCoin
+            in getPlayer handle.playerHand.handCards %= (theCoin :)
 
 
 drawCards :: (HearthMonad m) => PlayerHandle -> Int -> Hearth m [HandCard]

@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.Names.Hero where
+module Hearth.Names.Hero (
+    BasicHeroName(..),
+) where
 
 
 --------------------------------------------------------------------------------

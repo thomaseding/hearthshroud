@@ -42,7 +42,7 @@ import Data.Maybe
 import Data.NonEmpty
 import Data.String
 import Hearth.Action
-import Hearth.Cards
+import qualified Hearth.Cards as Universe
 import Hearth.Client.Console.BoardMinionsColumn
 import Hearth.Client.Console.HandColumn
 import Hearth.Client.Console.PlayerColumn
@@ -332,7 +332,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroHealth = 30,
             _heroPower = power,
             _heroName = BasicHeroName name }
-        cards = filter ((/= BasicCardName TheCoin) . deckCardName) cardUniverse
+        cards = filter ((/= BasicCardName TheCoin) . deckCardName) Universe.cards
         deck1 = Deck $ take 30 $ cycle cards
         deck2 = Deck $ take 30 $ cycle $ reverse cards
         player1 = PlayerData (hero Thrall) deck1
