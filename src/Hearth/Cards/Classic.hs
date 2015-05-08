@@ -75,7 +75,7 @@ argentCommander = minion ArgentCommander 6 4 2 [
 
 argentProtector :: Minion
 argentProtector = minion ArgentProtector 2 2 2 [
-    KeywordAbility $ Battlecry $ \this -> With $ AnotherMinion this $ \target -> Give target [KeywordAbility DivineShield]]
+    KeywordAbility $ Battlecry $ \this -> With $ AnotherFriendlyMinion this $ \target -> Give target [KeywordAbility DivineShield]]
 
 
 argentSquire :: Minion
