@@ -10,6 +10,9 @@ module Hearth.Names where
 
 
 import Data.Data
+import Hearth.Names.Basic
+import Hearth.Names.Classic
+import Hearth.Names.Hero
 
 
 --------------------------------------------------------------------------------
@@ -20,69 +23,12 @@ data HeroName :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-data BasicHeroName
-    = Malfurion
-    | Rexxar
-    | Jaina
-    | Uther
-    | Anduin
-    | Valeera
-    | Thrall
-    | Gul'dan
-    | Garrosh
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
 data CardName :: * where
     BasicCardName :: BasicCardName -> CardName
     ClassicCardName :: ClassicCardName -> CardName
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-data BasicCardName
-    = BluegillWarrior
-    | BloodfenRaptor
-    | BoulderfistOgre
-    | ChillwindYeti
-    | CoreHound
-    | DreadInfernal
-    | ElvenArcher
-    | Innervate
-    | IronforgeRifleman
-    | FireElemental
-    | FrostwolfGrunt
-    | MagmaRager
-    | Moonfire
-    | MurlocRaider
-    | NoviceEngineer
-    | OasisSnapjaw
-    | RecklessRocketeer
-    | RiverCrocolisk
-    | ShatteredSunCleric
-    | Starfire
-    | StonetuskBoar
-    | StormpikeCommando
-    | StormwindKnight
-    | TheCoin
-    | WarGolem
-    | WildGrowth
-    | WolfRider
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-data ClassicCardName
-    = AmaniBerserker
-    | ArcaneGolem
-    | ArgentCommander
-    | ArgentProtector
-    | ArgentSquire
-    | CruelTaskmaster
-    | IronbeakOwl
-    | ScarletCrusader
-    | SilvermoonGuardian
-    | Spellbreaker
-    | Sunwalker
-    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 

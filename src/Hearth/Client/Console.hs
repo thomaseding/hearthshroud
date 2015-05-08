@@ -52,6 +52,8 @@ import Hearth.Engine
 import Hearth.GameEvent
 import Hearth.Model
 import Hearth.Names
+import Hearth.Names.Basic (BasicCardName(TheCoin))
+import Hearth.Names.Hero
 import Hearth.Prompt
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)

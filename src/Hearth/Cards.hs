@@ -8,6 +8,8 @@ import Data.List
 import Data.Ord
 import Hearth.Model
 import Hearth.Names
+import Hearth.Names.Basic
+import Hearth.Names.Classic
 
 
 --------------------------------------------------------------------------------
