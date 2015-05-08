@@ -43,7 +43,7 @@ data BasicCardName
     | WarGolem
     | WildGrowth
     | WolfRider
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 

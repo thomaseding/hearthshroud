@@ -27,7 +27,7 @@ data ClassicCardName
     | SilvermoonGuardian
     | Spellbreaker
     | Sunwalker
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 

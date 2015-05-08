@@ -25,7 +25,7 @@ data BasicHeroName
     | Thrall
     | Gul'dan
     | Garrosh
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 
