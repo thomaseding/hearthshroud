@@ -180,10 +180,20 @@ showElect = \case
     OpponentOf handle effectHole -> showOpponentOf handle effectHole
     ControllerOf handle effectHole -> showControllerOf handle effectHole
     AnyCharacter effectHole -> showAnyCharacter effectHole
+    AnyEnemy effectHole -> showAnyEnemy effectHole
     AnotherCharacter handle effectHole -> showAnotherCharacter handle effectHole
     AnotherMinion handle effectHole -> showAnotherMinion handle effectHole
     AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
+    OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
+
+
+showOtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
+showOtherEnemies minion effectHole = do
+    others <- readHandle minion >>= \case
+        (is this -> True) -> genNumberedHandle "OTHER_ENEMIES"
+        str -> genHandle ("OtherEnemies " ++ str)
+    showEffect $ effectHole others
 
 
 showOtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
@@ -200,6 +210,12 @@ showAnotherCharacter minion effectHole = do
         (is this -> True) -> genNumberedHandle "TARGET_CHARACTER"
         str -> genHandle ("AnotherCharacter " ++ str)
     showEffect $ effectHole other
+
+
+showAnyEnemy :: (MinionHandle -> Effect) -> ShowCard String
+showAnyEnemy effectHole = do
+    character <- genNumberedHandle "ANY_ENEMY"
+    showEffect $ effectHole character
 
 
 showAnyCharacter :: (MinionHandle -> Effect) -> ShowCard String

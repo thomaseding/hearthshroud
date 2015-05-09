@@ -658,10 +658,22 @@ enactElect = logCall 'enactElect . \case
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> getControllerOf minionHandle >>= enactEffect . f
     AnyCharacter f -> anyCharacter f
+    AnyEnemy f -> anyEnemy f
     AnotherCharacter bannedMinion f -> anotherCharacter bannedMinion f
     AnotherMinion bannedMinion f -> anotherMinion bannedMinion f
     AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
+    OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
+
+
+otherEnemies :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
+otherEnemies bannedHandle f = logCall 'otherEnemies $ do
+    handles <- getPlayerHandles
+    targets <- liftM concat $ forM handles $ \handle -> do
+        bms <- view $ getPlayer handle.playerMinions
+        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
+        return $ filter (/= bannedHandle) bmHandles
+    forM_ targets $ enactEffect . f
 
 
 otherCharacters :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
@@ -678,8 +690,19 @@ anotherCharacter :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) 
 anotherCharacter = logCall 'anotherCharacter anotherMinion
 
 
+anyEnemy :: (HearthMonad m) => (MinionHandle -> Effect) -> Hearth m ()
+anyEnemy f = logCall 'anyEnemy $ do
+    handles <- getPlayerHandles
+    targets <- liftM concat $ forM handles $ \handle -> do
+        bms <- view $ getPlayer handle.playerMinions
+        return $ map (\bm -> bm^.boardMinionHandle) bms
+    pickMinionFrom targets >>= \case
+        Nothing -> return ()
+        Just target -> enactEffect $ f target
+
+
 anyCharacter :: (HearthMonad m) => (MinionHandle -> Effect) -> Hearth m ()
-anyCharacter f = logCall 'anotherMinion $ do
+anyCharacter f = logCall 'anyCharacter $ do
     handles <- getPlayerHandles
     targets <- liftM concat $ forM handles $ \handle -> do
         bms <- view $ getPlayer handle.playerMinions

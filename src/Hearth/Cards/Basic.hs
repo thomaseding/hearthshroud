@@ -53,6 +53,7 @@ spells = [
     innervate,
     moonfire,
     starfire,
+    swipe,
     theCoin,
     wildGrowth ]
 
@@ -183,6 +184,12 @@ stormpikeCommando = minion StormpikeCommando 5 4 2 [
 stormwindKnight :: Minion
 stormwindKnight = minion StormwindKnight 4 2 5 [
     KeywordAbility Charge ]
+
+
+swipe :: Spell
+swipe = spell Swipe 4 $ \_ -> With $ AnyEnemy $ \target -> Sequence [
+    DealDamage target 4,
+    With $ OtherEnemies target $ \other -> DealDamage other 1 ]
 
 
 theCoin :: Spell

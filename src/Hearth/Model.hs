@@ -97,10 +97,12 @@ data Elect :: * where
     OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Elect
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
     AnyCharacter :: (MinionHandle -> Effect) -> Elect
+    AnyEnemy :: (MinionHandle -> Effect) -> Elect
     AnotherCharacter :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     AnotherMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     OtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    OtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
 
 

@@ -39,6 +39,7 @@ data BasicCardName
     | StonetuskBoar
     | StormpikeCommando
     | StormwindKnight
+    | Swipe
     | TheCoin
     | WarGolem
     | WildGrowth
