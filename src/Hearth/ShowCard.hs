@@ -4,7 +4,9 @@
 {-# LANGUAGE ViewPatterns #-}
 
 
-module Hearth.ShowCard where
+module Hearth.ShowCard (
+    showCard,
+) where
 
 
 --------------------------------------------------------------------------------
@@ -16,6 +18,7 @@ import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Hearth.Model
+import Hearth.Names
 
 
 --------------------------------------------------------------------------------
@@ -131,10 +134,45 @@ opponent = "OPPONENT"
 --------------------------------------------------------------------------------
 
 
-showCardAbilities :: DeckCard -> ShowCard String
-showCardAbilities = liftM (unlines . filter (not . null) . lines) . \case
-    DeckCardMinion minion -> showAbilities $ _minionAbilities minion
-    DeckCardSpell spell -> genHandle this >>= showEffect . _spellEffect spell
+showCard :: HandCard -> String
+showCard card = let
+    name = showName card
+    cost = showCost card
+    bt = boxText card
+    mStats = case card of
+        HandCardMinion minion -> let
+            Attack atk = _minionAttack minion
+            Health hlt = _minionHealth minion
+            in Just (atk, hlt)
+        _ -> Nothing
+    stats = case mStats of
+        Nothing -> ""
+        Just (atk, hlt) -> show atk ++ "/" ++ show hlt
+    in unlines $ filter (/= "") $ lines $ unlines [
+        name ++ " " ++ cost,
+        bt,
+        stats ]
+
+
+showName :: HandCard -> String
+showName card = case handCardName card of
+    BasicCardName name -> show name
+    ClassicCardName name -> show name
+
+
+showCost :: HandCard -> String
+showCost card = let
+    cost = case card of
+        HandCardMinion minion -> _minionCost minion
+        HandCardSpell spell -> _spellCost spell
+    in case cost of
+        ManaCost (Mana mana) -> "(" ++ show mana ++ ")"
+
+
+boxText :: HandCard -> String
+boxText = runShowCard . liftM (unlines . filter (not . null) . lines) . \case
+    HandCardMinion minion -> showAbilities $ _minionAbilities minion
+    HandCardSpell spell -> genHandle this >>= showEffect . _spellEffect spell
 
 
 --------------------------------------------------------------------------------
@@ -192,7 +230,7 @@ showOtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
 showOtherEnemies minion effectHole = do
     others <- readHandle minion >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_ENEMIES"
-        str -> genHandle ("OtherEnemies " ++ str)
+        str -> genHandle ("(OtherEnemies " ++ str ++ ")")
     showEffect $ effectHole others
 
 
@@ -200,7 +238,7 @@ showOtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard Stri
 showOtherCharacters minion effectHole = do
     others <- readHandle minion >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_CHARACTERS"
-        str -> genHandle ("OtherChracters " ++ str)
+        str -> genHandle ("(OtherChracters " ++ str ++ ")")
     showEffect $ effectHole others
 
 
@@ -208,7 +246,7 @@ showAnotherCharacter :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard Str
 showAnotherCharacter minion effectHole = do
     other <- readHandle minion >>= \case
         (is this -> True) -> genNumberedHandle "TARGET_CHARACTER"
-        str -> genHandle ("AnotherCharacter " ++ str)
+        str -> genHandle ("(AnotherCharacter " ++ str ++ ")")
     showEffect $ effectHole other
 
 
@@ -228,7 +266,7 @@ showAnotherMinion :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
 showAnotherMinion minion effectHole = do
     other <- readHandle minion >>= \case
         (is this -> True) -> genNumberedHandle "TARGET_MINION"
-        str -> genHandle ("AnotherMinion " ++ str)
+        str -> genHandle ("(AnotherMinion " ++ str ++ ")")
     showEffect $ effectHole other
 
 
@@ -236,7 +274,7 @@ showAnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> Effect) -> ShowCar
 showAnotherFriendlyMinion minion effectHole = do
     other <- readHandle minion >>= \case
         (is this -> True) -> genNumberedHandle "FRIENDLY_MINION"
-        str -> genHandle ("AnotherFriendlyMinion " ++ str)
+        str -> genHandle ("(AnotherFriendlyMinion " ++ str ++ ")")
     showEffect $ effectHole other
 
 
@@ -244,7 +282,7 @@ showCasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showCasterOf spell effectHole = do
     player <- readHandle spell >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("CasterOf " ++ str)
+        str -> genHandle ("(CasterOf " ++ str ++ ")")
     showEffect $ effectHole player
 
 
@@ -252,7 +290,7 @@ showControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showControllerOf minion effectHole = do
     player <- readHandle minion >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("ControllerOf " ++ str)
+        str -> genHandle ("(ControllerOf " ++ str ++ ")")
     showEffect $ effectHole player
 
 
@@ -260,7 +298,7 @@ showOpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showOpponentOf minion effectHole = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
-        str -> genHandle ("OpponentOf " ++ str)
+        str -> genHandle ("(OpponentOf " ++ str ++ ")")
     showEffect $ effectHole player
 
 

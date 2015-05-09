@@ -55,6 +55,7 @@ import Hearth.Names
 import Hearth.Names.Basic (BasicCardName(TheCoin))
 import Hearth.Names.Hero
 import Hearth.Prompt
+import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)
 import System.Console.ANSI
@@ -411,6 +412,7 @@ actionPrompts quietRetry complainRetry = [
     PromptInfo "0" "> End Turn" $ endTurnAction complainRetry,
     PromptInfo "1" " H B> Play Card" $ playCardAction complainRetry,
     PromptInfo "2" " M M> Attack Minion" $ attackMinionAction complainRetry,
+    PromptInfo "9" " H> Read Hand Card" $ readHandCard quietRetry complainRetry,
     PromptInfo "" ">- Autoplay" $ autoplayAction complainRetry ]
 
 
@@ -493,6 +495,24 @@ lookupIndex (x:xs) n = case n == 0 of
     True -> Just x
     False -> lookupIndex xs (n - 1)
 lookupIndex [] _ = Nothing
+
+
+readHandCard :: Hearth Console Action -> Hearth Console Action -> [Int] -> Hearth Console Action
+readHandCard quietRetry complainRetry = \case
+    [handIdx] -> do
+        handle <- getActivePlayerHandle
+        cards <- view $ getPlayer handle.playerHand.handCards
+        let mCard = lookupIndex cards $ length cards - handIdx
+        case mCard of
+            Nothing -> complainRetry
+            Just card -> do
+                liftIO $ do
+                    putStrLn $ showCard card
+                    putStrLn "ENTER TO CONTINUE"
+                    _ <- getLine
+                    return ()
+                quietRetry
+    _ -> complainRetry
 
 
 attackMinionAction :: Hearth Console Action -> [Int] -> Hearth Console Action
