@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 
-module Hearth.Client.Console.PlayerColumn (
+module Hearth.Client.Console.Render.PlayerColumn (
     playerColumn
 ) where
 
@@ -14,9 +14,9 @@ module Hearth.Client.Console.PlayerColumn (
 
 import Hearth.Engine
 import Hearth.Model
-import Hearth.Client.Console.BoardHeroColumn
-import Hearth.Client.Console.DeckColumn
-import Hearth.Client.Console.ManaColumn
+import Hearth.Client.Console.Render.BoardHeroColumn
+import Hearth.Client.Console.Render.DeckColumn
+import Hearth.Client.Console.Render.ManaColumn
 import Hearth.Client.Console.SGRString
 
 

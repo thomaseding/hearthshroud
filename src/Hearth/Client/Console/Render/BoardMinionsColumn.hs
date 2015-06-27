@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module Hearth.Client.Console.BoardMinionsColumn (
+module Hearth.Client.Console.Render.BoardMinionsColumn (
     boardMinionsColumn
 ) where
 

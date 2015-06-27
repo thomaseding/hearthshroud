@@ -43,9 +43,9 @@ import Data.NonEmpty
 import Data.String
 import Hearth.Action
 import qualified Hearth.Cards as Universe
-import Hearth.Client.Console.BoardMinionsColumn
-import Hearth.Client.Console.HandColumn
-import Hearth.Client.Console.PlayerColumn
+import Hearth.Client.Console.Render.BoardMinionsColumn
+import Hearth.Client.Console.Render.HandColumn
+import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
 import Hearth.DebugEvent
 import Hearth.Engine

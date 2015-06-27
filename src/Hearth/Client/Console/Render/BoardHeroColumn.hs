@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 
-module Hearth.Client.Console.BoardHeroColumn (
+module Hearth.Client.Console.Render.BoardHeroColumn (
     boardHeroColumn
 ) where
 

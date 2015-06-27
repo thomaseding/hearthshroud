@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module Hearth.Client.Console.ManaColumn (
+module Hearth.Client.Console.Render.ManaColumn (
     manaColumn
 ) where
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module Hearth.Client.Console.DeckColumn (
+module Hearth.Client.Console.Render.DeckColumn (
     deckColumn
 ) where
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 
-module Hearth.Client.Console.BoardColumn (
+module Hearth.Client.Console.Render.BoardColumn (
     boardColumn
 ) where
 
@@ -15,7 +15,7 @@ import Control.Lens
 import Data.List
 import Hearth.Model
 import Hearth.Cards
-import Hearth.Client.Console.BoardMinionsColumn
+import Hearth.Client.Console.Render.BoardMinionsColumn
 
 
 --------------------------------------------------------------------------------

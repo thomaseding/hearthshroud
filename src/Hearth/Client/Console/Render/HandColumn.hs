@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 
-module Hearth.Client.Console.HandColumn (
+module Hearth.Client.Console.Render.HandColumn (
     handColumn
 ) where
 
