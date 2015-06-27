@@ -380,14 +380,18 @@ presentPrompt promptMessage responseParser = do
 
 parseActionResponse :: [String] -> Hearth Console Action
 parseActionResponse response = case runOptions actionOptions response of
-    Left err -> $todo 'parseActionResponse $ show err
+    Left (ParseFailed err _ _) -> do
+        liftIO $ putStrLn err
+        process ComplainRetryAction
     Right ms -> case ms of
-        [m] -> m >>= \case
+        [m] -> m >>= process
+        _ -> process ComplainRetryAction
+    where
+        process = \case
             QuitAction -> $todo 'parseActionResponse "QuitAction"
             GameAction action -> return action
-            QuietRetryAction -> $todo 'parseActionResponse "QuietRetryAction"
-            ComplainRetryAction -> $todo 'parseActionResponse "ComplainRetryAction"
-        _ -> $todo 'parseActionResponse "bad input"
+            QuietRetryAction -> getAction'
+            ComplainRetryAction -> helpAction >>= process
 
 
 data ConsoleAction :: * where
@@ -564,21 +568,18 @@ getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
     let name = showName 'getAction
     verbosityGate name $ openTag name []
-    action <- getAction' snapshot
+    action <- localQuiet $ runQuery snapshot getAction'
+    logState.undisplayedLines .= 0
     verbosityGate name $ closeTag name
     return action
     where
         showName = (':' :) . nameBase
 
 
-getAction' :: GameSnapshot -> Console Action
-getAction' snapshot = do
-    let go = do
-            renewDisplay
-            presentPrompt formattedActionOptions parseActionResponse
-    action <- localQuiet $ runQuery snapshot go
-    logState.undisplayedLines .= 0
-    return action
+getAction' :: Hearth Console Action
+getAction' = do
+    renewDisplay
+    presentPrompt formattedActionOptions parseActionResponse
 
 
 viewLogLineInfo :: Console (Int,  Int, [String])
