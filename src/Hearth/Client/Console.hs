@@ -8,7 +8,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -62,7 +61,7 @@ import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
 import System.Random.Shuffle
-import Text.Read (readMaybe)
+import Text.LambdaOptions
 
 
 --------------------------------------------------------------------------------
@@ -363,61 +362,57 @@ renewDisplay = do
         renewLogWindow window $ deepestPlayer + 1
 
 
---data ConsoleAction :: * -> * where
-    --QuitAction :: ConsoleAction ()
-    --GameAction :: ConsoleAction Action
-
-
-data PromptInfo m a = PromptInfo {
-    _key :: SGRString,
-    _desc :: SGRString,
-    _action :: [Int] -> m a
-}
-
-
-presentPrompt :: (MonadIO m) => m a -> [PromptInfo m a] -> m a
-presentPrompt retry promptInfos = do
-    let descs = map (rights . _desc) promptInfos
-        descMaxTrailLen = foldl' (+) 0 $ map (length . takeWhile (/= '>')) descs
+presentPrompt :: (MonadIO m) => String -> ([String] -> m a) -> m a
+presentPrompt promptMessage responseParser = do
     response <- liftM (map toLower) $ liftIO $ do
         setSGR [SetColor Foreground Dull White]
-        forM_ promptInfos $ \pi -> let
-            (innerDesc, Right '>' : outerDesc) = span (/= Right '>') $ _desc pi
-            trailLen = descMaxTrailLen - length innerDesc + 1
-            trail = fromString $ '>' : replicate trailLen '-'
-            key = _key pi
-            in putSGRString $ "-<" ++ key ++ innerDesc ++ trail ++ outerDesc ++ "\n"
+        putStrLn promptMessage
         putStrLn ""
         putStr "> "
         getLine
-    let mPromptInfo = flip find promptInfos $ \pi -> let
-            key = map toLower $ rights $ _key pi
-            in key `isPrefixOf` response
-    case mPromptInfo of
-        Nothing -> retry
-        Just pi -> let
-            massage = \case
-                '+' -> ' '
-                c -> c
-            args = map readMaybe $ words $ map massage $ drop (length $ rights $ _key pi) $ response
-            args' = catMaybes args
-            in case length args == length args' of
-                False -> retry
-                True -> _action pi args'
+    let tokenizeResponse = words . map (\case { '+' -> ' '; c -> c })
+    responseParser $ case tokenizeResponse response of
+        [] -> [""]
+        args -> args
 
 
-actionPrompts :: Hearth Console Action -> Hearth Console Action -> [PromptInfo (Hearth Console) Action]
-actionPrompts quietRetry complainRetry = [
-    PromptInfo "?" "> Help" $ helpAction quietRetry,
-    PromptInfo "0" "> End Turn" $ endTurnAction complainRetry,
-    PromptInfo "1" " H B> Play Card" $ playCardAction complainRetry,
-    PromptInfo "2" " M M> Attack Minion" $ attackMinionAction complainRetry,
-    PromptInfo "9" " H> Read Hand Card" $ readHandCard quietRetry complainRetry,
-    PromptInfo "" ">- Autoplay" $ autoplayAction complainRetry ]
+parseActionResponse :: [String] -> Hearth Console Action
+parseActionResponse response = case runOptions actionOptions response of
+    Left err -> $todo 'parseActionResponse $ show err
+    Right ms -> case ms of
+        [m] -> m >>= \case
+            QuitAction -> $todo 'parseActionResponse "QuitAction"
+            GameAction action -> return action
+            QuietRetryAction -> $todo 'parseActionResponse "QuietRetryAction"
+            ComplainRetryAction -> $todo 'parseActionResponse "ComplainRetryAction"
+        _ -> $todo 'parseActionResponse "bad input"
 
 
-helpAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-helpAction retry _ = do
+data ConsoleAction :: * where
+    QuitAction :: ConsoleAction
+    GameAction :: Action -> ConsoleAction
+    QuietRetryAction :: ConsoleAction
+    ComplainRetryAction :: ConsoleAction
+
+
+actionOptions :: Options (Hearth Console) ConsoleAction ()
+actionOptions = do
+    addOption (kw "?" `text` "Display this help text.") $
+        helpAction
+    addOption (kw "0" `text` "Ends the active player's turn.")
+        endTurnAction
+    addOption (kw "1" `argText` "H B" `text` "Plays the card.")
+        playCardAction
+    addOption (kw "2" `argText` "M M" `text` "Attack minion.")
+        attackMinionAction
+    addOption (kw "9" `text` "Read card in hand.")
+        readCardInHandAction
+    addOption (kw "" `text` "Autoplay.")
+        autoplayAction
+
+
+helpAction :: HelpDescription -> Hearth Console ConsoleAction
+helpAction (HelpDescription desc) = do
     liftIO $ do
         putStrLn ""
         putStrLn "Usage:"
@@ -427,26 +422,26 @@ helpAction retry _ = do
         putStrLn "> 1 4 3"
         putStrLn "> 1+4+3"
         putStrLn ""
+        putStrLn desc
+        putStrLn ""
         putStrLn "ENTER TO CONTINUE"
         _ <- getLine
         return ()
-    retry
+    return QuietRetryAction
 
 
 pickRandom :: [a] -> IO (Maybe a)
 pickRandom = liftM listToMaybe . shuffleM
 
 
-autoplayAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-autoplayAction retry = \case
-    [] -> liftIO (shuffleM activities) >>= decideAction
-    _ -> retry
+autoplayAction :: Hearth Console ConsoleAction
+autoplayAction = liftIO (shuffleM activities) >>= decideAction
     where
         decideAction = \case
-            [] -> return ActionEndTurn
+            [] -> endTurnAction
             m : ms -> m >>= \case
                 Nothing -> decideAction ms
-                Just x -> return x
+                Just action -> action
         activities = [tryPlayMinion, tryPlaySpell, tryAttackMinion]
         tryPlayMinion = do
             handle <- getActivePlayerHandle
@@ -459,7 +454,7 @@ autoplayAction retry = \case
                 Success -> return True
             liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
-                Just card -> Just $ ActionPlayMinion card pos
+                Just card -> Just $ return $ GameAction $ ActionPlayMinion card pos
         tryPlaySpell = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
@@ -468,7 +463,7 @@ autoplayAction retry = \case
                 Success -> return True
             liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
-                Just card -> Just $ ActionPlaySpell card
+                Just card -> Just $ return $ GameAction $ ActionPlaySpell card
         tryAttackMinion = do
             activeHandle <- getActivePlayerHandle
             activeMinions <- view $ getPlayer activeHandle.playerMinions
@@ -481,13 +476,11 @@ autoplayAction retry = \case
                     Success -> return True
             liftIO (pickRandom allowedPairs) >>= return . \case
                 Nothing -> Nothing
-                Just (attacker, defender) -> Just $ ActionAttackMinion attacker defender
+                Just (attacker, defender) -> Just $ return $ GameAction $ ActionAttackMinion attacker defender
 
 
-endTurnAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-endTurnAction retry = \case
-    [] -> return ActionEndTurn
-    _ -> retry
+endTurnAction :: Hearth Console ConsoleAction
+endTurnAction = return $ GameAction ActionEndTurn
 
 
 lookupIndex :: [a] -> Int -> Maybe a
@@ -497,61 +490,56 @@ lookupIndex (x:xs) n = case n == 0 of
 lookupIndex [] _ = Nothing
 
 
-readHandCard :: Hearth Console Action -> Hearth Console Action -> [Int] -> Hearth Console Action
-readHandCard quietRetry complainRetry = \case
-    [handIdx] -> do
-        handle <- getActivePlayerHandle
-        cards <- view $ getPlayer handle.playerHand.handCards
-        let mCard = lookupIndex cards $ length cards - handIdx
-        case mCard of
-            Nothing -> complainRetry
-            Just card -> do
-                liftIO $ do
-                    putStrLn $ showCard card
-                    putStrLn "ENTER TO CONTINUE"
-                    _ <- getLine
-                    return ()
-                quietRetry
-    _ -> complainRetry
+readCardInHandAction :: Int -> Hearth Console ConsoleAction
+readCardInHandAction handIdx = do
+    handle <- getActivePlayerHandle
+    cards <- view $ getPlayer handle.playerHand.handCards
+    let mCard = lookupIndex cards $ length cards - handIdx
+    case mCard of
+        Nothing -> return ComplainRetryAction
+        Just card -> do
+            liftIO $ do
+                putStrLn $ showCard card
+                putStrLn "ENTER TO CONTINUE"
+                _ <- getLine
+                return QuietRetryAction
 
 
-attackMinionAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-attackMinionAction retry = \case
-    [attackerIdx, defenderIdx] -> do
-        activePlayer <- getActivePlayerHandle
-        activeMinions <- view $ getPlayer activePlayer.playerMinions
-        nonActivePlayer <- getNonActivePlayerHandle
-        nonActiveMinions <- view $ getPlayer nonActivePlayer.playerMinions
-        let mAttacker = lookupIndex activeMinions $ attackerIdx - 1
-            mDefender = lookupIndex nonActiveMinions $ defenderIdx - 1
-        case mAttacker of
-            Nothing -> retry
-            Just attacker -> case mDefender of
-                Nothing -> retry
-                Just defender -> return $ ActionAttackMinion attacker defender
-    _ -> retry
+attackMinionAction :: Int -> Int -> Hearth Console ConsoleAction
+attackMinionAction attackerIdx defenderIdx = do
+    activePlayer <- getActivePlayerHandle
+    activeMinions <- view $ getPlayer activePlayer.playerMinions
+    nonActivePlayer <- getNonActivePlayerHandle
+    nonActiveMinions <- view $ getPlayer nonActivePlayer.playerMinions
+    let mAttacker = lookupIndex activeMinions $ attackerIdx - 1
+        mDefender = lookupIndex nonActiveMinions $ defenderIdx - 1
+    case mAttacker of
+        Nothing -> return ComplainRetryAction
+        Just attacker -> case mDefender of
+            Nothing -> return ComplainRetryAction
+            Just defender -> return $ GameAction $ ActionAttackMinion attacker defender
 
 
-playCardAction :: Hearth Console Action -> [Int] -> Hearth Console Action
-playCardAction retry = let
+playCardAction :: List Int -> Hearth Console ConsoleAction
+playCardAction = let
     go handIdx f = do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
         let mCard = lookupIndex cards $ length cards - handIdx
         case mCard of
-            Nothing -> retry
+            Nothing -> return ComplainRetryAction
             Just card -> f card
     goMinion boardIdx card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
-            False -> retry
-            True -> return $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
-    goSpell = return . ActionPlaySpell
+            False -> return ComplainRetryAction
+            True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
+    goSpell s = return $ GameAction $ ActionPlaySpell s
     in \case
-        [handIdx, boardIdx] -> go handIdx $ goMinion boardIdx
-        [handIdx] -> go handIdx goSpell
-        _ -> retry
+        List [handIdx, boardIdx] -> go handIdx $ goMinion boardIdx
+        List [handIdx] -> go handIdx goSpell
+        _ -> return ComplainRetryAction
 
 
 getAction :: GameSnapshot -> Console Action
@@ -567,17 +555,10 @@ getAction snapshot = do
 
 getAction' :: GameSnapshot -> Console Action
 getAction' snapshot = do
-    let go complain = do
+    let go = do
             renewDisplay
-            case complain of
-                True -> do
-                    liftIO $ do
-                        setSGR [SetColor Foreground Dull White]
-                        putStrLn "** UNKNOWN COMMAND **"
-                        putStrLn ""
-                    helpAction (go False) []
-                False -> presentPrompt (go True) $ actionPrompts (go False) (go True)
-    action <- localQuiet $ runQuery snapshot $ go False
+            presentPrompt "xxxx" parseActionResponse
+    action <- localQuiet $ runQuery snapshot go
     logState.undisplayedLines .= 0
     return action
 
@@ -643,8 +624,8 @@ printPlayer window p who = do
     liftIO $ setSGR [SetColor Foreground Vivid Green]
     isActive <- liftM (p^.playerHandle ==) getActivePlayerHandle
     let playerName = fromString (map toUpper $ show who) ++ case isActive of
-            True -> sgrColor (Dull, White) ++ "*" ++ sgrColor (Dull, Cyan)
-            False -> ""
+            True -> sgrColor (Dull, White) ++ fromString "*" ++ sgrColor (Dull, Cyan)
+            False -> fromString ""
         (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
         (deckLoc, handLoc, minionsLoc) = case who of
@@ -655,8 +636,8 @@ printPlayer window p who = do
     boardMinions <- boardMinionsColumn $ p^.playerMinions
     liftIO $ do
         n0 <- printColumn True (take (wx - 1) playerName) deckLoc player
-        n1 <- printColumn True "HAND" handLoc hand
-        n2 <- printColumn False "   MINIONS" minionsLoc boardMinions
+        n1 <- printColumn True (fromString "HAND") handLoc hand
+        n2 <- printColumn False (fromString "   MINIONS") minionsLoc boardMinions
         return $ maximum [n0, n1, n2]
 
 
@@ -666,7 +647,7 @@ printColumn extraLine label column strs = do
         strs' = [
             label,
             fromString $ replicate (length $ takeWhile isSpace label') ' ' ++ replicate (length $ dropWhile isSpace label') '-'
-            ] ++ (if extraLine then [""] else []) ++ strs
+            ] ++ (if extraLine then [fromString ""] else []) ++ strs
     zipWithM_ f [0..] strs'
     return $ length strs'
     where
