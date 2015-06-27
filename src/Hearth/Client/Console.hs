@@ -61,7 +61,9 @@ import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
 import System.Random.Shuffle
-import Text.LambdaOptions
+import Text.LambdaOptions.Core
+import Text.LambdaOptions.Keyword
+import Text.LambdaOptions.List
 
 
 --------------------------------------------------------------------------------
@@ -397,7 +399,7 @@ data ConsoleAction :: * where
 
 actionOptions :: Options (Hearth Console) ConsoleAction ()
 actionOptions = do
-    addOption (kw "?" `text` "Display this help text.") $
+    addOption (kw "?" `text` "Display detailed help text.") $
         helpAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
@@ -411,8 +413,8 @@ actionOptions = do
         autoplayAction
 
 
-helpAction :: HelpDescription -> Hearth Console ConsoleAction
-helpAction (HelpDescription desc) = do
+helpAction :: Hearth Console ConsoleAction
+helpAction = do
     liftIO $ do
         putStrLn ""
         putStrLn "Usage:"
@@ -422,12 +424,28 @@ helpAction (HelpDescription desc) = do
         putStrLn "> 1 4 3"
         putStrLn "> 1+4+3"
         putStrLn ""
-        putStrLn desc
+        putStrLn formattedActionOptions
         putStrLn ""
         putStrLn "ENTER TO CONTINUE"
         _ <- getLine
         return ()
     return QuietRetryAction
+    where
+
+
+formattedActionOptions :: String
+formattedActionOptions = let
+    ks = getKeywords actionOptions
+    kwLen k = length $ (concat $ args k : kwNames k)
+    maxKwLen = maximum $ map kwLen ks
+    args k = case kwArgText k of
+        [] -> ""
+        str -> ' ' : str
+    format k = let
+        name = concat $ kwNames k
+        pad = replicate (maxKwLen - kwLen k) '-'
+        in "-<" ++ name ++ args k ++ ">-" ++ pad ++ " " ++ kwText k
+    in intercalate "\n" $ map format ks
 
 
 pickRandom :: [a] -> IO (Maybe a)
@@ -557,7 +575,7 @@ getAction' :: GameSnapshot -> Console Action
 getAction' snapshot = do
     let go = do
             renewDisplay
-            presentPrompt "xxxx" parseActionResponse
+            presentPrompt formattedActionOptions parseActionResponse
     action <- localQuiet $ runQuery snapshot go
     logState.undisplayedLines .= 0
     return action
