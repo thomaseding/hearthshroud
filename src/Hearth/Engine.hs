@@ -362,8 +362,8 @@ runTurn = logCall 'runTurn $ do
     endTurn
 
 
-gainManaCrystal :: (HearthMonad m) => PlayerHandle -> CrystalState -> Hearth m ()
-gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ zoomPlayer handle $ do
+gainManaCrystal :: (HearthMonad m) => CrystalState -> PlayerHandle -> Hearth m ()
+gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ zoomPlayer handle $ do
     totalCount <- view playerTotalManaCrystals
     case totalCount of
         10 -> do
@@ -391,7 +391,7 @@ gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ zoomPlayer hand
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
-    gainManaCrystal handle CrystalFull
+    gainManaCrystal CrystalFull handle
     getPlayer handle.playerEmptyManaCrystals .= 0
     getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= Right 0
     _ <- drawCard handle
@@ -548,7 +548,7 @@ enactEffect = logCall 'enactEffect . \case
     DealDamage handle damage -> dealDamage handle damage
     Enchant handle enchantments -> enchant handle enchantments
     Give handle abilities -> giveAbilities handle abilities
-    GainManaCrystal handle crystalState -> gainManaCrystal handle crystalState
+    GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle
 
 
 giveAbilities :: (HearthMonad m) => MinionHandle -> [Ability] -> Hearth m ()

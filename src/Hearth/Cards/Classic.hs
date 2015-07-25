@@ -55,7 +55,7 @@ arcaneGolem = minion ArcaneGolem 3 4 2 [
     KeywordAbility $ Battlecry $ \this ->
         Elect $ ControllerOf this $ \controller ->
             Elect $ OpponentOf controller $ \opponent ->
-                GainManaCrystal opponent CrystalFull ]
+                GainManaCrystal CrystalFull opponent ]
 
 
 argentCommander :: DeckCard

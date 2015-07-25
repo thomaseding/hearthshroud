@@ -221,7 +221,7 @@ showEffect = \case
     DealDamage handle damage -> showDealDamage handle damage
     Enchant handle enchantments -> showEnchant handle enchantments
     Give handle abilities -> showGive handle abilities
-    GainManaCrystal handle crystalState -> showGainManaCrystal handle crystalState
+    GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
 
 
 showElect :: Elect -> ShowCard String
@@ -371,8 +371,8 @@ showGive minion abilities = do
     return $ unwords ["Give", minionStr, abilitiesStr]
 
 
-showGainManaCrystal :: PlayerHandle -> CrystalState -> ShowCard String
-showGainManaCrystal player crystalState = do
+showGainManaCrystal :: CrystalState -> PlayerHandle -> ShowCard String
+showGainManaCrystal crystalState player = do
     playerStr <- readHandle player
     let crystalStr = case crystalState of
             CrystalFull -> "a Mana Crystal"

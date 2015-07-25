@@ -118,7 +118,7 @@ frostwolfGrunt = minion FrostwolfGrunt 2 2 2 [
 innervate :: DeckCard
 innervate = spell Innervate 0 $ \this ->
     Elect $ CasterOf this $ \caster ->
-        Sequence $ replicate 2 $ GainManaCrystal caster CrystalTemporary
+        Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary caster
 
 
 ironforgeRifleman :: DeckCard
@@ -207,7 +207,7 @@ swipe = spell Swipe 4 $ \_ ->
 theCoin :: DeckCard
 theCoin = spell TheCoin 0 $ \this ->
     Elect $ CasterOf this $ \caster ->
-        GainManaCrystal caster CrystalTemporary
+        GainManaCrystal CrystalTemporary caster
 
 
 warGolem :: DeckCard
@@ -217,7 +217,7 @@ warGolem = minion WarGolem 7 7 7 []
 wildGrowth :: DeckCard
 wildGrowth = spell WildGrowth 2 $ \this ->
     Elect $ CasterOf this $ \caster ->
-        GainManaCrystal caster CrystalEmpty
+        GainManaCrystal CrystalEmpty caster
 
 
 wolfRider :: DeckCard

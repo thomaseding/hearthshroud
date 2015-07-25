@@ -127,7 +127,7 @@ data Effect :: * where
     DealDamage :: CharacterHandle -> Damage -> Effect
     Enchant :: MinionHandle -> [Enchantment] -> Effect
     Give :: MinionHandle -> [Ability] -> Effect
-    GainManaCrystal :: PlayerHandle -> CrystalState -> Effect
+    GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
     deriving (Show, Typeable)
 
 
