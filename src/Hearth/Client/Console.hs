@@ -412,7 +412,7 @@ actionOptions = do
         playCardAction
     addOption (kw "2" `argText` "M M" `text` "Attack minion.")
         attackMinionAction
-    addOption (kw "9" `text` "Read card in hand.")
+    addOption (kw "9" `argText` "H" `text` "Read card in hand.")
         readCardInHandAction
     addOption (kw "" `text` "Autoplay.")
         autoplayAction
