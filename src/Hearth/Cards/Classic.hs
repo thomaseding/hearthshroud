@@ -1,7 +1,5 @@
 module Hearth.Cards.Classic (
     cards,
-    minions,
-    spells,
 ) where
 
 
@@ -17,13 +15,7 @@ import Hearth.Names.Classic
 
 
 cards :: [DeckCard]
-cards = concat [
-    map DeckCardMinion minions,
-    map DeckCardSpell spells ]
-
-
-minions :: [Minion]
-minions = [
+cards = [
     amaniBerserker,
     arcaneGolem,
     argentCommander,
@@ -37,15 +29,11 @@ minions = [
     sunwalker ]
 
 
-spells :: [Spell]
-spells = []
-
-
 --------------------------------------------------------------------------------
 
 
-minion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
-minion name mana attack health abilities = Minion {
+minion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
+minion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
@@ -56,12 +44,12 @@ minion name mana attack health abilities = Minion {
 --------------------------------------------------------------------------------
 
 
-amaniBerserker :: Minion
+amaniBerserker :: DeckCard
 amaniBerserker = minion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [StatsDelta 3 0] ]
 
 
-arcaneGolem :: Minion
+arcaneGolem :: DeckCard
 arcaneGolem = minion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
@@ -70,25 +58,25 @@ arcaneGolem = minion ArcaneGolem 3 4 2 [
                 GainManaCrystal opponent CrystalFull ]
 
 
-argentCommander :: Minion
+argentCommander :: DeckCard
 argentCommander = minion ArgentCommander 6 4 2 [
     KeywordAbility Charge,
     KeywordAbility DivineShield ]
 
 
-argentProtector :: Minion
+argentProtector :: DeckCard
 argentProtector = minion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherFriendlyMinion this $ \target ->
             Give target [KeywordAbility DivineShield]]
 
 
-argentSquire :: Minion
+argentSquire :: DeckCard
 argentSquire = minion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
 
 
-cruelTaskmaster :: Minion
+cruelTaskmaster :: DeckCard
 cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherMinion this $ \target ->
@@ -97,31 +85,31 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
                 Enchant target [StatsDelta 2 0]]]
 
 
-ironbeakOwl :: Minion
+ironbeakOwl :: DeckCard
 ironbeakOwl = minion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherMinion this $ \target ->
             KeywordEffect $ Silence target ]
 
 
-scarletCrusader :: Minion
+scarletCrusader :: DeckCard
 scarletCrusader = minion ScarletCrusader 3 3 1 [
     KeywordAbility DivineShield ]
 
 
-silvermoonGuardian :: Minion
+silvermoonGuardian :: DeckCard
 silvermoonGuardian = minion SilvermoonGuardian 4 3 3 [
     KeywordAbility DivineShield ]
 
 
-spellbreaker :: Minion
+spellbreaker :: DeckCard
 spellbreaker = minion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherMinion this $ \target ->
             KeywordEffect $ Silence target ]
 
 
-sunwalker :: Minion
+sunwalker :: DeckCard
 sunwalker = minion Sunwalker 6 4 5 [
     KeywordAbility Taunt,
     KeywordAbility DivineShield ]

@@ -13,7 +13,7 @@ import Data.Ord
 import qualified Hearth.Cards.Basic as Basic
 import qualified Hearth.Cards.Classic as Classic
 import Hearth.Names
-import Hearth.Model (DeckCard, Minion, Spell, deckCardName)
+import Hearth.Model (DeckCard, deckCardName)
 
 
 --------------------------------------------------------------------------------
@@ -31,19 +31,6 @@ cards :: [DeckCard]
 cards = sortBy (comparing $ dropWhile (/= ' ') . show . deckCardName) $ concat [
     Basic.cards,
     Classic.cards ]
-
-
-minions :: [Minion]
-minions = concat [
-    Basic.minions,
-    Classic.minions ]
-
-
-spells :: [Spell]
-spells = concat [
-    Basic.spells,
-    Classic.spells ]
-
 
 
 

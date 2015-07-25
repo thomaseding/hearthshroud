@@ -1,7 +1,5 @@
 module Hearth.Cards.Basic (
     cards,
-    minions,
-    spells,
 ) where
 
 
@@ -17,13 +15,7 @@ import Hearth.Names.Basic
 
 
 cards :: [DeckCard]
-cards = concat [
-    map DeckCardMinion minions,
-    map DeckCardSpell spells ]
-
-
-minions :: [Minion]
-minions = [
+cards = [
     bluegillWarrior,
     bloodfenRaptor,
     boulderfistOgre,
@@ -33,36 +25,32 @@ minions = [
     elvenArcher,
     fireElemental,
     frostwolfGrunt,
+    innervate,
     ironforgeRifleman,
     magmaRager,
+    moonfire,
     murlocRaider,
     noviceEngineer,
     oasisSnapjaw,
     recklessRocketeer,
     riverCrocolisk,
     shatteredSunCleric,
+    starfire,
     stonetuskBoar,
     stormpikeCommando,
     stormwindKnight,
-    warGolem,
-    wolfRider ]
-
-
-spells :: [Spell]
-spells = [
-    innervate,
-    moonfire,
-    starfire,
     swipe,
     theCoin,
-    wildGrowth ]
+    warGolem,
+    wildGrowth,
+    wolfRider ]
 
 
 --------------------------------------------------------------------------------
 
 
-minion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
-minion name mana attack health abilities = Minion {
+minion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
+minion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
@@ -70,8 +58,8 @@ minion name mana attack health abilities = Minion {
     _minionName = BasicCardName name }
 
 
-spell :: BasicCardName -> Mana -> SpellEffect -> Spell
-spell name mana effect = Spell {
+spell :: BasicCardName -> Mana -> SpellEffect -> DeckCard
+spell name mana effect = DeckCardSpell $ Spell {
     _spellCost = ManaCost mana,
     _spellEffect = effect,
     _spellName = BasicCardName name }
@@ -80,108 +68,108 @@ spell name mana effect = Spell {
 --------------------------------------------------------------------------------
 
 
-bluegillWarrior :: Minion
+bluegillWarrior :: DeckCard
 bluegillWarrior = minion BluegillWarrior 2 2 1 [
     KeywordAbility Charge ]
 
 
-bloodfenRaptor :: Minion
+bloodfenRaptor :: DeckCard
 bloodfenRaptor = minion BloodfenRaptor 2 3 2 []
 
 
-boulderfistOgre :: Minion
+boulderfistOgre :: DeckCard
 boulderfistOgre = minion BoulderfistOgre 6 6 7 []
 
 
-chillwindYeti :: Minion
+chillwindYeti :: DeckCard
 chillwindYeti = minion ChillwindYeti 4 4 5 []
 
 
-coreHound :: Minion
+coreHound :: DeckCard
 coreHound = minion CoreHound 7 9 5 []
 
 
-dreadInfernal :: Minion
+dreadInfernal :: DeckCard
 dreadInfernal = minion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
         With $ OtherCharacters this $ \victim ->
             DealDamage victim 1 ]
 
 
-elvenArcher :: Minion
+elvenArcher :: DeckCard
 elvenArcher = minion ElvenArcher 1 1 1 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherCharacter this $ \target ->
             DealDamage target 1 ]
 
 
-fireElemental :: Minion
+fireElemental :: DeckCard
 fireElemental = minion FireElemental 6 6 5 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherCharacter this $ \target ->
             DealDamage target 3 ]
 
 
-frostwolfGrunt :: Minion
+frostwolfGrunt :: DeckCard
 frostwolfGrunt = minion FrostwolfGrunt 2 2 2 [
     KeywordAbility Taunt ]
 
 
-innervate :: Spell
+innervate :: DeckCard
 innervate = spell Innervate 0 $ \this ->
     With $ CasterOf this $ \caster ->
         Sequence $ replicate 2 $ GainManaCrystal caster CrystalTemporary
 
 
-ironforgeRifleman :: Minion
+ironforgeRifleman :: DeckCard
 ironforgeRifleman = minion IronforgeRifleman 3 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherCharacter this $ \target ->
             DealDamage target 1 ]
 
 
-magmaRager :: Minion
+magmaRager :: DeckCard
 magmaRager = minion MagmaRager 3 5 1 []
 
 
-moonfire :: Spell
+moonfire :: DeckCard
 moonfire = spell Moonfire 0 $ \_ ->
     With $ AnyCharacter $ \target ->
         DealDamage target 1
 
 
-murlocRaider :: Minion
+murlocRaider :: DeckCard
 murlocRaider = minion MurlocRaider 1 2 1 []
 
 
-noviceEngineer :: Minion
+noviceEngineer :: DeckCard
 noviceEngineer = minion NoviceEngineer 2 1 1 [
     KeywordAbility $ Battlecry $ \this ->
         With $ ControllerOf this $ \controller ->
             DrawCards controller 1 ]
 
 
-oasisSnapjaw :: Minion
+oasisSnapjaw :: DeckCard
 oasisSnapjaw = minion OasisSnapjaw 4 2 7 []
 
 
-recklessRocketeer :: Minion
+recklessRocketeer :: DeckCard
 recklessRocketeer = minion RecklessRocketeer 6 5 2 [
     KeywordAbility Charge ]
 
 
-riverCrocolisk :: Minion
+riverCrocolisk :: DeckCard
 riverCrocolisk = minion RiverCrocolisk 2 2 3 []
 
 
-shatteredSunCleric :: Minion
+shatteredSunCleric :: DeckCard
 shatteredSunCleric = minion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherFriendlyMinion this $ \target ->
             Enchant target [StatsDelta 1 1]]
 
 
-starfire :: Spell
+starfire :: DeckCard
 starfire = spell Starfire 6 $ \this ->
     Sequence [
         With $ AnyCharacter $ \target ->
@@ -190,24 +178,24 @@ starfire = spell Starfire 6 $ \this ->
             DrawCards caster 1 ]
 
 
-stonetuskBoar :: Minion
+stonetuskBoar :: DeckCard
 stonetuskBoar = minion StonetuskBoar 1 1 1 [
     KeywordAbility Charge ]
 
 
-stormpikeCommando :: Minion
+stormpikeCommando :: DeckCard
 stormpikeCommando = minion StormpikeCommando 5 4 2 [
     KeywordAbility $ Battlecry $ \this ->
         With $ AnotherCharacter this $ \target ->
             DealDamage target 2 ]
 
 
-stormwindKnight :: Minion
+stormwindKnight :: DeckCard
 stormwindKnight = minion StormwindKnight 4 2 5 [
     KeywordAbility Charge ]
 
 
-swipe :: Spell
+swipe :: DeckCard
 swipe = spell Swipe 4 $ \_ ->
     With $ AnyEnemy $ \target ->
         Sequence [
@@ -216,23 +204,23 @@ swipe = spell Swipe 4 $ \_ ->
                 DealDamage other 1 ]
 
 
-theCoin :: Spell
+theCoin :: DeckCard
 theCoin = spell TheCoin 0 $ \this ->
     With $ CasterOf this $ \caster ->
         GainManaCrystal caster CrystalTemporary
 
 
-warGolem :: Minion
+warGolem :: DeckCard
 warGolem = minion WarGolem 7 7 7 []
 
 
-wildGrowth :: Spell
+wildGrowth :: DeckCard
 wildGrowth = spell WildGrowth 2 $ \this ->
     With $ CasterOf this $ \caster ->
         GainManaCrystal caster CrystalEmpty
 
 
-wolfRider :: Minion
+wolfRider :: DeckCard
 wolfRider = minion WolfRider 3 3 1 [
     KeywordAbility Charge ]
 
