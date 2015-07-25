@@ -231,13 +231,14 @@ gameEvent = \case
         cardAttr = ("card", handCardName' card)
         resultAttr = ("result", show result)
         in tag 'PlayedCard [playerAttr, cardAttr, resultAttr]
-    HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Damage damage) -> let
-        newHealth = oldHealth - damage
+    HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Armor oldArmor) (Damage damage) -> let
+        newArmor = max 0 $ oldArmor - damage
+        armorDelta = oldArmor - newArmor
+        newHealth = oldHealth - (damage - armorDelta)
         playerAttr = ("player", show who)
-        oldAttr = ("old", show oldHealth)
-        newAttr = ("new", show newHealth)
-        dmgAttr = ("dmg", show damage)
-        in tag 'HeroTakesDamage [playerAttr, oldAttr, newAttr, dmgAttr]
+        healthAttr = ("health", show oldHealth ++ "|" ++ show newHealth)
+        armorAttr = ("armor", show oldArmor ++ "|" ++ show newArmor)
+        in tag 'HeroTakesDamage [playerAttr, healthAttr, armorAttr]
     MinionTakesDamage bm (Damage damage) -> let
         minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
         dmgAttr = ("dmg", show damage)

@@ -1,6 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
 
@@ -70,6 +72,10 @@ instance GenHandle SpellHandle where
     genHandle = liftM SpellHandle . rawGenHandle
 
 
+instance GenHandle CharacterHandle where
+    genHandle = liftM Left . genHandle
+
+
 genNumberedHandle :: (GenHandle handle) => String -> ShowCard handle
 genNumberedHandle str = do
     n <- gets handleSeed
@@ -101,6 +107,12 @@ instance ReadHandle MinionHandle where
 
 instance ReadHandle SpellHandle where
     readHandle (SpellHandle handle) = rawReadHandle handle
+
+
+instance ReadHandle CharacterHandle where
+    readHandle = \case
+        Left handle -> readHandle handle
+        Right handle -> readHandle handle
 
 
 --------------------------------------------------------------------------------
@@ -232,39 +244,39 @@ showSelection = \case
     AtRandom -> "RANDOM_"
 
 
-showOtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
-showOtherEnemies minion effectHole = do
-    others <- readHandle minion >>= \case
+showOtherEnemies :: CharacterHandle -> (CharacterHandle -> Effect) -> ShowCard String
+showOtherEnemies character effectHole = do
+    others <- readHandle character >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_ENEMIES"
         str -> genHandle ("(OTHER_ENEMIES " ++ str ++ ")")
     showEffect $ effectHole others
 
 
-showOtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
-showOtherCharacters minion effectHole = do
-    others <- readHandle minion >>= \case
+showOtherCharacters :: CharacterHandle -> (CharacterHandle -> Effect) -> ShowCard String
+showOtherCharacters character effectHole = do
+    others <- readHandle character >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_CHARACTERS"
         str -> genHandle ("(OTHER_CHARACTERS " ++ str ++ ")")
     showEffect $ effectHole others
 
 
-showAnotherCharacter :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> ShowCard String
-showAnotherCharacter selection minion effectHole = do
+showAnotherCharacter :: Selection -> CharacterHandle -> (CharacterHandle -> Effect) -> ShowCard String
+showAnotherCharacter selection character effectHole = do
     let sel = showSelection selection
-    other <- readHandle minion >>= \case
+    other <- readHandle character >>= \case
         (is this -> True) -> genNumberedHandle $ sel ++ "CHARACTER"
         str -> genHandle ("(" ++ sel ++ "ANOTHER_CHARACTER " ++ str ++ ")")
     showEffect $ effectHole other
 
 
-showAnyEnemy :: Selection -> (MinionHandle -> Effect) -> ShowCard String
+showAnyEnemy :: Selection -> (CharacterHandle -> Effect) -> ShowCard String
 showAnyEnemy selection effectHole = do
     let sel = showSelection selection
     character <- genNumberedHandle $ sel ++ "ANY_ENEMY"
     showEffect $ effectHole character
 
 
-showAnyCharacter :: Selection -> (MinionHandle -> Effect) -> ShowCard String
+showAnyCharacter :: Selection -> (CharacterHandle -> Effect) -> ShowCard String
 showAnyCharacter selection effectHole = do
     let sel = showSelection selection
     character <- genNumberedHandle $ sel ++ "ANY_CHARACTER"
@@ -339,10 +351,10 @@ showDrawCards player amount = do
     return $ unwords [playerStr, drawStr, show amount, cardStr]
 
 
-showDealDamage :: MinionHandle -> Damage -> ShowCard String
-showDealDamage minion (Damage amount) = do
-    minionStr <- readHandle minion
-    return $ unwords ["Deal", show amount, "damage to", minionStr]
+showDealDamage :: CharacterHandle -> Damage -> ShowCard String
+showDealDamage character (Damage amount) = do
+    characterStr <- readHandle character
+    return $ unwords ["Deal", show amount, "damage to", characterStr]
 
 
 showEnchant :: MinionHandle -> [Enchantment] -> ShowCard String

@@ -23,7 +23,7 @@ data GameEvent :: * where
     DeckShuffled :: PlayerHandle -> Deck -> GameEvent
     CardDrawn :: PlayerHandle -> Either DeckCard HandCard -> Deck -> GameEvent
     PlayedCard :: PlayerHandle -> HandCard -> Result -> GameEvent
-    HeroTakesDamage :: PlayerHandle -> Health -> Damage -> GameEvent
+    HeroTakesDamage :: PlayerHandle -> Health -> Armor -> Damage -> GameEvent
     MinionTakesDamage :: BoardMinion -> Damage -> GameEvent
     MinionDied :: BoardMinion -> GameEvent
     AttackMinion :: BoardMinion -> BoardMinion -> GameEvent

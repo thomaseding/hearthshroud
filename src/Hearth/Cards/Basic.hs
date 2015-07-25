@@ -92,21 +92,21 @@ coreHound = minion CoreHound 7 9 5 []
 dreadInfernal :: DeckCard
 dreadInfernal = minion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ OtherCharacters this $ \victim ->
+        Elect $ OtherCharacters (Right this) $ \victim ->
             DealDamage victim 1 ]
 
 
 elvenArcher :: DeckCard
 elvenArcher = minion ElvenArcher 1 1 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted this $ \target ->
+        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
             DealDamage target 1 ]
 
 
 fireElemental :: DeckCard
 fireElemental = minion FireElemental 6 6 5 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted this $ \target ->
+        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
             DealDamage target 3 ]
 
 
@@ -124,7 +124,7 @@ innervate = spell Innervate 0 $ \this ->
 ironforgeRifleman :: DeckCard
 ironforgeRifleman = minion IronforgeRifleman 3 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted this $ \target ->
+        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
             DealDamage target 1 ]
 
 
@@ -186,7 +186,7 @@ stonetuskBoar = minion StonetuskBoar 1 1 1 [
 stormpikeCommando :: DeckCard
 stormpikeCommando = minion StormpikeCommando 5 4 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted this $ \target ->
+        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
             DealDamage target 2 ]
 
 

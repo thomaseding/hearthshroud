@@ -80,6 +80,9 @@ newtype PlayerHandle = PlayerHandle RawHandle
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+type CharacterHandle = Either PlayerHandle MinionHandle
+
+
 data CrystalState :: * where
     CrystalFull :: CrystalState
     CrystalEmpty :: CrystalState
@@ -102,13 +105,13 @@ data Elect :: * where
     CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Elect
     OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Elect
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
-    AnyCharacter :: Selection -> (MinionHandle -> Effect) -> Elect
-    AnyEnemy :: Selection -> (MinionHandle -> Effect) -> Elect
-    AnotherCharacter :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnyCharacter :: Selection -> (CharacterHandle -> Effect) -> Elect
+    AnyEnemy :: Selection -> (CharacterHandle -> Effect) -> Elect
+    AnotherCharacter :: Selection -> CharacterHandle -> (CharacterHandle -> Effect) -> Elect
     AnotherMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
     AnotherFriendlyMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
-    OtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> Elect
-    OtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    OtherCharacters :: CharacterHandle -> (CharacterHandle -> Effect) -> Elect
+    OtherEnemies :: CharacterHandle -> (CharacterHandle -> Effect) -> Elect
     deriving (Typeable)
 
 
@@ -121,7 +124,7 @@ data Effect :: * where
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
-    DealDamage :: MinionHandle -> Damage -> Effect
+    DealDamage :: CharacterHandle -> Damage -> Effect
     Enchant :: MinionHandle -> [Enchantment] -> Effect
     Give :: MinionHandle -> [Ability] -> Effect
     GainManaCrystal :: PlayerHandle -> CrystalState -> Effect
