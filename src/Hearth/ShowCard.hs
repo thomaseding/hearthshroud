@@ -209,7 +209,9 @@ showKeywordAbility = \case
 
 
 showBattlecry :: (MinionHandle -> Effect) -> ShowCard String
-showBattlecry effectHole = genHandle this >>= showEffect . effectHole
+showBattlecry effectHole = do
+    effectStr <- genHandle this >>= showEffect . effectHole
+    return $ "Battlecry: " ++ effectStr
 
 
 showEffect :: Effect -> ShowCard String
