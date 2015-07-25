@@ -53,8 +53,8 @@ arcaneGolem :: DeckCard
 arcaneGolem = minion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
-        With $ ControllerOf this $ \controller ->
-            With $ OpponentOf controller $ \opponent ->
+        Elect $ ControllerOf this $ \controller ->
+            Elect $ OpponentOf controller $ \opponent ->
                 GainManaCrystal opponent CrystalFull ]
 
 
@@ -67,7 +67,7 @@ argentCommander = minion ArgentCommander 6 4 2 [
 argentProtector :: DeckCard
 argentProtector = minion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        With $ AnotherFriendlyMinion this $ \target ->
+        Elect $ AnotherFriendlyMinion Targeted this $ \target ->
             Give target [KeywordAbility DivineShield]]
 
 
@@ -79,7 +79,7 @@ argentSquire = minion ArgentSquire 1 1 1 [
 cruelTaskmaster :: DeckCard
 cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        With $ AnotherMinion this $ \target ->
+        Elect $ AnotherMinion Targeted this $ \target ->
             Sequence [
                 DealDamage target 1,
                 Enchant target [StatsDelta 2 0]]]
@@ -88,7 +88,7 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
 ironbeakOwl :: DeckCard
 ironbeakOwl = minion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
-        With $ AnotherMinion this $ \target ->
+        Elect $ AnotherMinion Targeted this $ \target ->
             KeywordEffect $ Silence target ]
 
 
@@ -105,7 +105,7 @@ silvermoonGuardian = minion SilvermoonGuardian 4 3 3 [
 spellbreaker :: DeckCard
 spellbreaker = minion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
-        With $ AnotherMinion this $ \target ->
+        Elect $ AnotherMinion Targeted this $ \target ->
             KeywordEffect $ Silence target ]
 
 

@@ -92,15 +92,21 @@ data Cost :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+data Selection :: * where
+    Targeted :: Selection
+    AtRandom :: Selection
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 data Elect :: * where
     CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Elect
     OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Elect
     ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
-    AnyCharacter :: (MinionHandle -> Effect) -> Elect
-    AnyEnemy :: (MinionHandle -> Effect) -> Elect
-    AnotherCharacter :: MinionHandle -> (MinionHandle -> Effect) -> Elect
-    AnotherMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
-    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnyCharacter :: Selection -> (MinionHandle -> Effect) -> Elect
+    AnyEnemy :: Selection -> (MinionHandle -> Effect) -> Elect
+    AnotherCharacter :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnotherMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
+    AnotherFriendlyMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
     OtherCharacters :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     OtherEnemies :: MinionHandle -> (MinionHandle -> Effect) -> Elect
     deriving (Typeable)
@@ -111,7 +117,7 @@ instance Show Elect where
 
 
 data Effect :: * where
-    With :: Elect -> Effect
+    Elect :: Elect -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
