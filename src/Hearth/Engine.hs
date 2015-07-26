@@ -1,35 +1,27 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.Engine where
+module Hearth.Engine (
+    module Hearth.Engine,
+    module Hearth.Engine.Data,
+) where
 
 
 --------------------------------------------------------------------------------
 
 
-import Control.Applicative
 import Control.Error
 import Control.Lens
 import Control.Lens.Helper
-import Control.Lens.Internal.Zoom (Zoomed, Focusing)
+import Control.Lens.Internal.Zoom (Zoomed)
 import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.State.Local
-import Data.Data
 import Data.Either.Combinators
 import Data.Function
 import Data.List
@@ -38,74 +30,17 @@ import Data.Maybe
 import qualified Data.NonEmpty as NonEmpty
 import Hearth.Action
 import Hearth.Cards (cardByName)
-import Hearth.DebugEvent
 import Hearth.DeckToHand
+import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.HandToDeck
 import Hearth.Model
 import Hearth.Names (CardName(BasicCardName))
 import Hearth.Names.Basic (BasicCardName(TheCoin))
 import Hearth.Prompt
-import Language.Haskell.TH.Syntax (Name)
 
 
 --------------------------------------------------------------------------------
-
-
-type Pair a = (a, a)
-
-
-newtype Hearth' st m a = Hearth {
-    unHearth :: StateT st m a
-} deriving (Functor, Applicative, Monad, MonadState st, MonadIO, MonadTrans)
-
-
-instance (Monad m) => MonadReader st (Hearth' st m) where
-    ask = get
-    local = stateLocal
-
-
-type Hearth = Hearth' GameState
-type HearthMonad m = MonadPrompt HearthPrompt m
-
-
-type instance Zoomed (Hearth' st m) = Focusing m
-
-
-instance Monad m => Zoom (Hearth' st m) (Hearth' st' m) st st' where
-    zoom l = Hearth . zoom l . unHearth
-
-
-instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where
-    prompt = lift . prompt
-
-
-class LogCall a where
-    logCall :: Name -> a -> a
-
-
-instance (HearthMonad m) => LogCall (Hearth' st m a) where
-    logCall funcName m = do
-        prompt $ PromptDebugEvent $ FunctionEntered funcName
-        x <- m
-        prompt $ PromptDebugEvent $ FunctionExited funcName
-        return x
-
-
-instance (HearthMonad m) => LogCall (a -> Hearth' st m z) where
-    logCall msg f = logCall msg . f
-
-
-instance (HearthMonad m) => LogCall (a -> b -> Hearth' st m z) where
-    logCall msg f = logCall msg . f
-
-
-instance (HearthMonad m) => LogCall (a -> b -> c -> Hearth' st m z) where
-    logCall msg f = logCall msg . f
-
-
-data PlayerData = PlayerData Hero Deck
-    deriving (Show, Typeable)
 
 
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> Bool) -> m a
