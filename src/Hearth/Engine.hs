@@ -899,9 +899,6 @@ hasRemainingAttacks c = liftM2 (<) (getAttackCount c) (dynamicMaxAttackCount c)
 
 enactAttack :: (HearthMonad m) => CharacterHandle -> CharacterHandle -> Hearth m Result
 enactAttack attacker defender = logCall 'enactAttack $ do
-    let _ = attacker
-    let _ = defender
-    _ <- controllerOf defender
     let attackerHandle = characterHandle attacker
         defenderHandle = characterHandle defender
         defenderHasTaunt = case defender of
