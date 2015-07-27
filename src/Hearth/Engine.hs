@@ -114,11 +114,12 @@ getPlayer pHandle = lens getter setter
             in st & gamePlayers %~ map f
 
 
-getMinion :: PlayerHandle -> MinionHandle -> Lens' GameState BoardMinion
-getMinion pHandle bmHandle = lens getter setter
+getMinion :: MinionHandle -> Lens' GameState BoardMinion
+getMinion bmHandle = lens getter setter
     where
         getter st = let
-            minions = st^.getPlayer pHandle.playerMinions
+            players = st^.gamePlayers
+            minions = players >>= \p -> p^.playerMinions
             in case find (\bm -> bm^.boardMinionHandle == bmHandle) minions of
                 Just bm -> bm
                 Nothing -> $logicError 'getMinion "Non-existent handle."
@@ -126,7 +127,7 @@ getMinion pHandle bmHandle = lens getter setter
             f bm = case bm^.boardMinionHandle == bmHandle of
                 True -> bm'
                 False -> bm
-            in st & getPlayer pHandle . playerMinions %~ map f
+            in st & gamePlayers.traversed.playerMinions.traversed %~ f
 
 
 getActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
@@ -518,8 +519,7 @@ enactSpell spell = let
 
 enactAnyBattleCries :: (HearthMonad m) => MinionHandle -> Hearth m ()
 enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
-    pHandle <- controllerOf bmHandle
-    bm <- view $ getMinion pHandle bmHandle
+    bm <- view $ getMinion bmHandle
     forM_ (bm^.boardMinionAbilities) $ \case
         KeywordAbility (Battlecry effect) -> enactBattlecry bmHandle effect
         _ -> return ()
@@ -579,8 +579,10 @@ deactivateEnrage :: (HearthMonad m) => BoardMinion -> Hearth m ()
 deactivateEnrage _ = logCall 'deactivateEnrage $ $todo 'deactivateEnrage "xxx"
 
 
-allEnchantments :: BoardMinion -> [Enchantment]
-allEnchantments bm = bm^.boardMinionEnrageEnchantments ++ bm^.boardMinionEnchantments
+dynamicEnchantments :: (HearthMonad m) => MinionHandle -> Hearth m [Enchantment]
+dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
+    bm <- view $ getMinion bmHandle
+    return $ bm^.boardMinionEnrageEnchantments ++ bm^.boardMinionEnchantments
 
 
 class (Controllable a) => CharacterTraits a where
@@ -596,29 +598,26 @@ class (Controllable a) => CharacterTraits a where
 instance CharacterTraits MinionHandle where
     characterHandle = Right
     dynamicAttack bmHandle = logCall 'dynamicAttack $ do
-        pHandle <- controllerOf bmHandle
-        bm <- view $ getMinion pHandle bmHandle
-        let delta = sum $ flip mapMaybe (allEnchantments bm) $ \case
+        bm <- view $ getMinion bmHandle
+        enchantments <- dynamicEnchantments bmHandle
+        let delta = sum $ flip mapMaybe enchantments $ \case
                 StatsDelta a _ -> Just a
         return $ bm^.boardMinion.minionAttack + delta
     dynamicHealth bmHandle = logCall 'dynamicHealth $ do
-        pHandle <- controllerOf bmHandle
-        bm <- view $ getMinion pHandle bmHandle
-        let delta = sum $ flip mapMaybe (allEnchantments bm) $ \case
+        bm <- view $ getMinion bmHandle
+        enchantments <- dynamicEnchantments bmHandle
+        let delta = sum $ flip mapMaybe enchantments $ \case
                 StatsDelta _ h -> Just h
         return $ bm^.boardMinion.minionHealth + delta
     bumpAttackCount bmHandle = logCall 'bumpAttackCount $ do
-        pHandle <- controllerOf bmHandle
-        getMinion pHandle bmHandle.boardMinionAttackCount += 1
+        getMinion bmHandle.boardMinionAttackCount += 1
     getAttackCount bmHandle = logCall 'getAttackCount $ do
-        pHandle <- controllerOf bmHandle
-        bm <- view $ getMinion pHandle bmHandle
+        bm <- view $ getMinion bmHandle
         return $ bm^.boardMinionAttackCount
     dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
         return 1
     hasSummoningSickness bmHandle = logCall 'hasSummoningSickness $ do
-        pHandle <- controllerOf bmHandle
-        bm <- view $ getMinion pHandle bmHandle
+        bm <- view $ getMinion bmHandle
         case bm^.boardMinionNewlySummoned of
             False -> return False
             True -> liftM not $ dynamicHasCharge bmHandle
@@ -860,8 +859,7 @@ clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
 
 dynamicHasAbility :: (HearthMonad m) => (Ability -> Bool) -> MinionHandle -> Hearth m Bool
 dynamicHasAbility predicate bmHandle = logCall 'dynamicHasAbility $ do
-    pHandle <- controllerOf bmHandle
-    bm <- view $ getMinion pHandle bmHandle
+    bm <- view $ getMinion bmHandle
     return $ any predicate $ bm^.boardMinionAbilities
 
 
