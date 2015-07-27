@@ -274,9 +274,6 @@ gameEvent = \case
     LostDivineShield bm -> let
         minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
         in tag 'LostDivineShield [minionAttr]
-    EnrageActivated bm -> let
-        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
-        in tag 'EnrageActivated [minionAttr]
     Silenced bm -> let
         minionAttr = ("minion", show bm)
         in tag 'Silenced [minionAttr]

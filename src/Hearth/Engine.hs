@@ -552,6 +552,17 @@ isDamaged :: BoardMinion -> Bool
 isDamaged bm = bm^.boardMinionDamage > 0
 
 
+isEnraged :: (HearthMonad m) => MinionHandle -> Hearth m Bool
+isEnraged bmHandle = do
+    bm <- view $ getMinion bmHandle
+    abilities <- dynamicAbilities bmHandle
+    return $ isDamaged bm && any isEnrage abilities
+    where
+        isEnrage = \case
+            KeywordAbility (Enrage {}) -> True
+            _ -> False
+
+
 dynamicAbilities :: (HearthMonad m) => MinionHandle -> Hearth m [Ability]
 dynamicAbilities bmHandle = do
     bm <- view $ getMinion bmHandle
