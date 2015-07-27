@@ -190,7 +190,8 @@ data BoardMinion = BoardMinion {
     _boardMinionEnchantments :: [Enchantment],
     _boardMinionEnrageEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
-    _boardMinionAttackCount :: Either Int Int,
+    _boardMinionAttackCount :: Int,
+    _boardMinionNewlySummoned :: Bool,
     _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Show, Typeable)

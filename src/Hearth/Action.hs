@@ -19,7 +19,7 @@ data Action :: * where
     ActionEndTurn :: Action
     ActionPlayMinion :: HandCard -> BoardPos -> Action
     ActionPlaySpell :: HandCard -> Action
-    ActionAttackMinion :: BoardMinion -> BoardMinion -> Action
+    ActionAttack :: CharacterHandle -> CharacterHandle -> Action
     deriving (Show)
 
 

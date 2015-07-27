@@ -26,7 +26,7 @@ data GameEvent :: * where
     HeroTakesDamage :: PlayerHandle -> Health -> Armor -> Damage -> GameEvent
     MinionTakesDamage :: BoardMinion -> Damage -> GameEvent
     MinionDied :: BoardMinion -> GameEvent
-    AttackMinion :: BoardMinion -> BoardMinion -> GameEvent
+    EnactAttack :: CharacterHandle -> CharacterHandle -> GameEvent
     GainsManaCrystal :: PlayerHandle -> Maybe CrystalState -> GameEvent
     ManaCrystalsRefill :: PlayerHandle -> Int -> GameEvent
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent

@@ -246,10 +246,10 @@ gameEvent = \case
     MinionDied bm -> let
         minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
         in tag 'MinionDied [minionAttr]
-    AttackMinion attacker defender -> let
-        attackerAttr = ("attacker", showCardName $ attacker^.boardMinion.minionName)
-        defenderAttr = ("defender", showCardName $ defender^.boardMinion.minionName)
-        in tag 'AttackMinion [attackerAttr, defenderAttr]
+    EnactAttack attacker defender -> let
+        attackerAttr = ("attacker", show attacker)
+        defenderAttr = ("defender", show defender)
+        in tag 'EnactAttack [attackerAttr, defenderAttr]
     GainsManaCrystal (viewPlayer -> who) mCrystalState -> let
         playerAttr = ("player", show who)
         varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
@@ -411,7 +411,7 @@ actionOptions = do
     addOption (kw "1" `argText` "H B" `text` "Plays the card.")
         playCardAction
     addOption (kw "2" `argText` "M M" `text` "Attack minion.")
-        attackMinionAction
+        attackMinionMinionAction
     addOption (kw "9" `argText` "H" `text` "Read card in hand.")
         readCardInHandAction
     addOption (kw "" `text` "Autoplay.")
@@ -465,7 +465,7 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             m : ms -> m >>= \case
                 Nothing -> decideAction ms
                 Just action -> action
-        activities = [tryPlayMinion, tryPlaySpell, tryAttackMinion]
+        activities = [tryPlayMinion, tryPlaySpell, tryAttackMinionMinion]
         tryPlayMinion = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
@@ -487,19 +487,22 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlaySpell card
-        tryAttackMinion = do
+        tryAttackMinionMinion = do
             activeHandle <- getActivePlayerHandle
             activeMinions <- view $ getPlayer activeHandle.playerMinions
             nonActiveHandle <- getNonActivePlayerHandle
             nonActiveMinions <- view $ getPlayer nonActiveHandle.playerMinions
             let pairs = [(a, na) | a <- activeMinions, na <- nonActiveMinions]
             allowedPairs <- flip filterM pairs $ \(activeMinion, nonActiveMinion) -> do
-                local id $ attackMinion activeMinion nonActiveMinion >>= \case
+                local id $ enactAttack activeMinion nonActiveMinion >>= \case
                     Failure -> return False
                     Success -> return True
             liftIO (pickRandom allowedPairs) >>= return . \case
                 Nothing -> Nothing
-                Just (attacker, defender) -> Just $ return $ GameAction $ ActionAttackMinion attacker defender
+                Just (attacker, defender) -> let
+                    attacker' = Right $ attacker^.boardMinionHandle
+                    defender' = Right $ defender^.boardMinionHandle
+                    in Just $ return $ GameAction $ ActionAttack attacker' defender'
 
 
 endTurnAction :: Hearth Console ConsoleAction
@@ -528,8 +531,8 @@ readCardInHandAction handIdx = do
                 return QuietRetryAction
 
 
-attackMinionAction :: Int -> Int -> Hearth Console ConsoleAction
-attackMinionAction attackerIdx defenderIdx = do
+attackMinionMinionAction :: Int -> Int -> Hearth Console ConsoleAction
+attackMinionMinionAction attackerIdx defenderIdx = do
     activePlayer <- getActivePlayerHandle
     activeMinions <- view $ getPlayer activePlayer.playerMinions
     nonActivePlayer <- getNonActivePlayerHandle
@@ -540,7 +543,10 @@ attackMinionAction attackerIdx defenderIdx = do
         Nothing -> return ComplainRetryAction
         Just attacker -> case mDefender of
             Nothing -> return ComplainRetryAction
-            Just defender -> return $ GameAction $ ActionAttackMinion attacker defender
+            Just defender -> let
+                attacker' = Right $ attacker^.boardMinionHandle
+                defender' = Right $ defender^.boardMinionHandle
+                in return $ GameAction $ ActionAttack attacker' defender'
 
 
 playCardAction :: List Int -> Hearth Console ConsoleAction
