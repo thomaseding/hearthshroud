@@ -107,11 +107,10 @@ getPlayer pHandle = lens getter setter
         getter st = case find (\p -> p^.playerHandle == pHandle) $ st^.gamePlayers of
             Just p -> p
             Nothing -> $logicError 'getPlayer "Non-existent handle."
-        setter st p' = let
-            f p = case p^.playerHandle == pHandle of
+        setter st p' = st & gamePlayers.traversed %~ \p ->
+            case p^.playerHandle == pHandle of
                 True -> p'
                 False -> p
-            in st & gamePlayers %~ map f
 
 
 getMinion :: MinionHandle -> Lens' GameState BoardMinion
@@ -123,11 +122,10 @@ getMinion bmHandle = lens getter setter
             in case find (\bm -> bm^.boardMinionHandle == bmHandle) minions of
                 Just bm -> bm
                 Nothing -> $logicError 'getMinion "Non-existent handle."
-        setter st bm' = let
-            f bm = case bm^.boardMinionHandle == bmHandle of
+        setter st bm' = st & gamePlayers.traversed.playerMinions.traversed %~ \bm ->
+            case bm^.boardMinionHandle == bmHandle of
                 True -> bm'
                 False -> bm
-            in st & gamePlayers.traversed.playerMinions.traversed %~ f
 
 
 getActivePlayerHandle :: (HearthMonad m) => Hearth m PlayerHandle
