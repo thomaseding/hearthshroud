@@ -126,7 +126,7 @@ data Effect :: * where
     KeywordEffect :: KeywordEffect -> Effect
     DealDamage :: CharacterHandle -> Damage -> Effect
     Enchant :: MinionHandle -> [Enchantment] -> Effect
-    Give :: MinionHandle -> [Ability] -> Effect
+    GiveAbility :: MinionHandle -> [Ability] -> Effect
     GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
     deriving (Show, Typeable)
 
@@ -145,7 +145,7 @@ data KeywordAbility :: * where
     Battlecry :: (MinionHandle -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
-    Enrage :: [Enchantment] -> KeywordAbility
+    Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
     Taunt :: KeywordAbility
     deriving (Typeable)
 
@@ -188,7 +188,6 @@ makeLenses ''Minion
 data BoardMinion = BoardMinion {
     _boardMinionDamage :: Damage,
     _boardMinionEnchantments :: [Enchantment],
-    _boardMinionEnrageEnchantments :: [Enchantment],
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,

@@ -204,8 +204,15 @@ showKeywordAbility = \case
     Battlecry effectHole -> showBattlecry effectHole
     Charge -> return "Charge"
     DivineShield -> return "Divine Shield"
-    Enrage enchantments -> liftM ("Enrage: " ++) $ showEnchantments enchantments
+    Enrage abilities enchantments -> showEnrage abilities enchantments
     Taunt -> return "Taunt"
+
+
+showEnrage :: [Ability] -> [Enchantment] -> ShowCard String
+showEnrage abilities enchantments = do
+    asStr <- mapM showAbility abilities
+    esStr <- mapM showEnchantment enchantments
+    return $ "Enrage: " ++ itemize (asStr ++ esStr)
 
 
 showBattlecry :: (MinionHandle -> Effect) -> ShowCard String
@@ -222,7 +229,7 @@ showEffect = \case
     KeywordEffect effect -> showKeywordEffect effect
     DealDamage handle damage -> showDealDamage handle damage
     Enchant handle enchantments -> showEnchant handle enchantments
-    Give handle abilities -> showGive handle abilities
+    GiveAbility handle abilities -> showGiveAbility handle abilities
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
 
 
@@ -366,8 +373,8 @@ showEnchant minion enchantments = do
     return $ unwords ["Give", minionStr, enchantmentsStr]
 
 
-showGive :: MinionHandle -> [Ability] -> ShowCard String
-showGive minion abilities = do
+showGiveAbility :: MinionHandle -> [Ability] -> ShowCard String
+showGiveAbility minion abilities = do
     minionStr <- readHandle minion
     abilitiesStr <- showAbilities abilities
     return $ unwords ["Give", minionStr, abilitiesStr]

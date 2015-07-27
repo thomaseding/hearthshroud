@@ -432,7 +432,6 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionDamage = 0,
             _boardMinionEnchantments = [],
             _boardMinionAbilities = minion^.minionAbilities,
-            _boardMinionEnrageEnchantments = [],
             _boardMinionAttackCount = 0,
             _boardMinionNewlySummoned = True,
             _boardMinionHandle = minionHandle,
@@ -519,8 +518,8 @@ enactSpell spell = let
 
 enactAnyBattleCries :: (HearthMonad m) => MinionHandle -> Hearth m ()
 enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
-    bm <- view $ getMinion bmHandle
-    forM_ (bm^.boardMinionAbilities) $ \case
+    abilities <- dynamicAbilities bmHandle
+    forM_ abilities $ \case
         KeywordAbility (Battlecry effect) -> enactBattlecry bmHandle effect
         _ -> return ()
 
@@ -537,52 +536,44 @@ enactEffect = logCall 'enactEffect . \case
     KeywordEffect effect -> enactKeywordEffect effect
     DealDamage handle damage -> receiveDamage handle damage
     Enchant handle enchantments -> enchant handle enchantments
-    Give handle abilities -> giveAbilities handle abilities
+    GiveAbility handle abilities -> giveAbilities handle abilities
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle
 
 
 giveAbilities :: (HearthMonad m) => MinionHandle -> [Ability] -> Hearth m ()
-giveAbilities handle abilities = logCall 'giveAbilities $ withMinions $ \bm -> let
-    in return $ Just $ case bm^.boardMinionHandle == handle of
-        False -> bm
-        True -> bm & boardMinionAbilities %~ (abilities ++)
+giveAbilities handle abilities = logCall 'giveAbilities $ do
+    getMinion handle.boardMinionAbilities %= (abilities ++)
 
 
 enchant :: (HearthMonad m) => MinionHandle -> [Enchantment] -> Hearth m ()
-enchant handle enchantments = logCall 'enchant $ withMinions $ \bm -> let
-    in return $ Just $ case bm^.boardMinionHandle == handle of
-        False -> bm
-        True -> bm & boardMinionEnchantments %~ (enchantments ++)
+enchant handle enchantments = logCall 'enchant $ do
+    getMinion handle.boardMinionEnchantments %= (enchantments ++)
 
 
-activateEnrage :: (HearthMonad m) => MinionHandle -> Hearth m ()
-activateEnrage handle = logCall 'activateEnrage $ do
-    withMinions $ liftM Just . \bm -> case bm^.boardMinionHandle == handle of
-        False -> return bm
-        True -> case bm^.boardMinionDamage == 0 of
-            True -> return bm
-            False -> case bm^.boardMinionEnrageEnchantments of
-                [] -> let
-                    enchantments = concat $ flip mapMaybe (bm^.boardMinionAbilities) $ \case
-                        KeywordAbility (Enrage es) -> Just es
-                        _ -> Nothing
-                    bm' = bm & boardMinionEnrageEnchantments .~ enchantments
-                    in case enchantments of
-                         [] -> return bm
-                         _ -> do
-                            prompt $ PromptGameEvent $ EnrageActivated bm'
-                            return bm'
-                _ -> return bm
+isDamaged :: BoardMinion -> Bool
+isDamaged bm = bm^.boardMinionDamage > 0
 
 
-deactivateEnrage :: (HearthMonad m) => BoardMinion -> Hearth m ()
-deactivateEnrage _ = logCall 'deactivateEnrage $ $todo 'deactivateEnrage "xxx"
+dynamicAbilities :: (HearthMonad m) => MinionHandle -> Hearth m [Ability]
+dynamicAbilities bmHandle = do
+    bm <- view $ getMinion bmHandle
+    return $ bm^.boardMinionAbilities >>= \ability -> case ability of
+        KeywordAbility (Enrage abilities _) -> case isDamaged bm of
+            True -> ability : abilities  -- TODO: Need to check correct interleaving.
+            False -> [ability]
+        _ -> [ability]
 
 
 dynamicEnchantments :: (HearthMonad m) => MinionHandle -> Hearth m [Enchantment]
 dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     bm <- view $ getMinion bmHandle
-    return $ bm^.boardMinionEnrageEnchantments ++ bm^.boardMinionEnchantments
+    let baseEnchantments = bm^.boardMinionEnchantments
+        enrageEnchantments = case isDamaged bm of
+            False -> []
+            True -> bm^.boardMinionAbilities >>= \case
+                KeywordAbility (Enrage _ es) -> es
+                _ -> []
+    return $ baseEnchantments ++ enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
 class (Controllable a) => CharacterTraits a where
@@ -662,18 +653,15 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
                     _boardHeroArmor = armor' }
             prompt $ PromptGameEvent $ HeroTakesDamage handle health armor damage
         Right handle -> do
-            withMinions $ \bm -> do
-                liftM Just $ case bm^.boardMinionHandle == handle of
-                    False -> return bm
-                    True -> case loseDivineShield bm of
-                        Just bm' -> do
-                            prompt $ PromptGameEvent $ LostDivineShield bm'
-                            return bm'
-                        Nothing -> do
-                            let bm' = bm & boardMinionDamage +~ damage
-                            prompt $ PromptGameEvent $ MinionTakesDamage bm damage
-                            return bm'
-            activateEnrage handle
+            bm <- view $ getMinion handle
+            case loseDivineShield bm of
+                Just bm' -> do
+                    getMinion handle .= bm'
+                    prompt $ PromptGameEvent $ LostDivineShield bm'
+                Nothing -> do
+                    let bm' = bm & boardMinionDamage +~ damage
+                    getMinion handle .= bm'
+                    prompt $ PromptGameEvent $ MinionTakesDamage bm damage
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
@@ -859,8 +847,8 @@ clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
 
 dynamicHasAbility :: (HearthMonad m) => (Ability -> Bool) -> MinionHandle -> Hearth m Bool
 dynamicHasAbility predicate bmHandle = logCall 'dynamicHasAbility $ do
-    bm <- view $ getMinion bmHandle
-    return $ any predicate $ bm^.boardMinionAbilities
+    abilities <- dynamicAbilities bmHandle
+    return $ any predicate abilities
 
 
 dynamicHasTaunt :: (HearthMonad m) => MinionHandle -> Hearth m Bool

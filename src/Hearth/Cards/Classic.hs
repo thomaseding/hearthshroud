@@ -46,7 +46,7 @@ minion name mana attack health abilities = DeckCardMinion $ Minion {
 
 amaniBerserker :: DeckCard
 amaniBerserker = minion AmaniBerserker 2 2 3 [
-    KeywordAbility $ Enrage [StatsDelta 3 0] ]
+    KeywordAbility $ Enrage [] [StatsDelta 3 0] ]
 
 
 arcaneGolem :: DeckCard
@@ -68,7 +68,7 @@ argentProtector :: DeckCard
 argentProtector = minion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         Elect $ AnotherFriendlyMinion Targeted this $ \target ->
-            Give target [KeywordAbility DivineShield]]
+            GiveAbility target [KeywordAbility DivineShield]]
 
 
 argentSquire :: DeckCard
