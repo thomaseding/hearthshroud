@@ -671,18 +671,17 @@ enactKeywordEffect = logCall 'enactKeywordEffect . \case
 
 silence :: (HearthMonad m) => MinionHandle -> Hearth m ()
 silence victim = logCall 'silence $ do
-    withMinions $ \bm -> case bm^.boardMinionHandle == victim of
-        False -> return $ Just bm
-        True -> do
-            health <- dynamicHealth victim
-            let bm' = bm & boardMinionAbilities .~ [] & boardMinionEnchantments .~ []
-                health' = bm^.boardMinion.minionHealth
-                delta = Damage $ unHealth $ health' - health
-                bm'' = case delta < 0 of
-                    True -> bm' & boardMinionDamage %~ max 0 . (+ delta)
-                    False -> bm'
-            prompt $ PromptGameEvent $ Silenced bm''
-            return $ Just bm''
+    health <- dynamicHealth victim
+    zoom (getMinion victim) $ do
+        boardMinionAbilities .= []
+        boardMinionEnchantments .= []
+    health' <- dynamicHealth victim
+    getMinion victim %= \bm -> let
+        delta = Damage $ unHealth $ health' - health
+        in case delta < 0 of
+            True -> bm & boardMinionDamage %~ max 0 . (+ delta)
+            False -> bm
+    prompt $ PromptGameEvent $ Silenced victim
 
 
 enactElect :: (HearthMonad m) => Elect -> Hearth m ()

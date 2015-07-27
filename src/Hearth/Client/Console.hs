@@ -278,7 +278,7 @@ gameEvent = \case
         minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
         in tag 'EnrageActivated [minionAttr]
     Silenced bm -> let
-        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        minionAttr = ("minion", show bm)
         in tag 'Silenced [minionAttr]
     where
         viewPlayer (PlayerHandle (RawHandle who)) = who
