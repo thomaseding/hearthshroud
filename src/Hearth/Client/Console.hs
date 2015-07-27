@@ -194,7 +194,7 @@ verbosityGate name m = do
         isLight = (`notElem` lightBanList)
         lightBanList = map nameBase [
             'dynamicAttack,
-            'dynamicHealth,
+            'dynamicMaxHealth,
             'getActivePlayerHandle,
             'controllerOf,
             'withMinions ]

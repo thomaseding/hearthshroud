@@ -20,7 +20,6 @@ module Hearth.Engine (
 import Control.Error
 import Control.Lens
 import Control.Lens.Helper
-import Control.Lens.Internal.Zoom (Zoomed)
 import Control.Monad.Loops
 import Control.Monad.Prompt
 import Control.Monad.Reader
@@ -96,8 +95,9 @@ mkPlayer handle (PlayerData hero deck) = Player {
 
 mkBoardHero :: Hero -> BoardHero
 mkBoardHero hero = BoardHero {
-    _boardHeroCurrHealth = _heroHealth hero,
+    _boardHeroDamage = 0,
     _boardHeroArmor = 0,
+    _boardHeroAttackCount = 0,
     _boardHero = hero }
 
 
@@ -166,14 +166,6 @@ instance Controllable MinionHandle where
         case players' of
             [player] -> return $ player^.playerHandle
             _ -> $logicError 'controllerOf "Invalid handle."
-
-
-zoomPlayer :: (Zoom m n Player GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
-zoomPlayer = zoom . getPlayer
-
-
-zoomHero :: (Zoom m n BoardHero GameState, Functor (Zoomed m c), Zoomed n ~ Zoomed m) => PlayerHandle -> m c -> n c
-zoomHero handle = zoom (getPlayer handle.playerHero)
 
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
@@ -291,14 +283,12 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
             True -> promptDraw $ Right c'
 
 
-isPlayerHeroDead :: (HearthMonad m) => PlayerHandle -> Hearth m Bool
-isPlayerHeroDead handle = logCall 'isPlayerHeroDead $ do
-    health <- view $ getPlayer handle.playerHero.boardHeroCurrHealth
-    return $ health <= 0
+isDead :: (HearthMonad m) => CharacterHandle -> Hearth m Bool
+isDead = logCall 'isDead $ liftM (<= 0) . dynamicRemainingHealth
 
 
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
-shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
+shuffleDeck handle = logCall 'shuffleDeck $ zoom (getPlayer handle) $ do
     Deck deck <- view playerDeck
     deck' <- let
         f = sort . map deckCardName
@@ -310,7 +300,7 @@ shuffleDeck handle = logCall 'shuffleDeck $ zoomPlayer handle $ do
 isGameOver :: (HearthMonad m) => Hearth m Bool
 isGameOver = logCall 'isGameOver $ do
     handles <- getPlayerHandles
-    anyM isPlayerHeroDead handles
+    anyM (isDead . Left) handles
 
 
 tickTurn :: (HearthMonad m) => Hearth m ()
@@ -329,7 +319,7 @@ runTurn = logCall 'runTurn $ do
 
 
 gainManaCrystal :: (HearthMonad m) => CrystalState -> PlayerHandle -> Hearth m ()
-gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ zoomPlayer handle $ do
+gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ zoom (getPlayer handle) $ do
     totalCount <- view playerTotalManaCrystals
     case totalCount of
         10 -> do
@@ -358,9 +348,11 @@ beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
     gainManaCrystal CrystalFull handle
-    getPlayer handle.playerEmptyManaCrystals .= 0
-    getPlayer handle.playerMinions.traversed.boardMinionAttackCount .= 0
-    getPlayer handle.playerMinions.traversed.boardMinionNewlySummoned .= False
+    zoom (getPlayer handle) $ do
+        playerEmptyManaCrystals .= 0
+        playerHero.boardHeroAttackCount .= 0
+        playerMinions.traversed.boardMinionAttackCount .= 0
+        playerMinions.traversed.boardMinionNewlySummoned .= False
     _ <- drawCard handle
     return ()
 
@@ -368,7 +360,7 @@ beginTurn = logCall 'beginTurn $ do
 endTurn :: (HearthMonad m) => Hearth m ()
 endTurn = logCall 'endTurn $ do
     handle <- getActivePlayerHandle
-    zoomPlayer handle $ do
+    zoom (getPlayer handle) $ do
         tempCount <- view playerTemporaryManaCrystals
         playerTotalManaCrystals %= max 0 . subtract tempCount
         playerEmptyManaCrystals %= max 0 . subtract tempCount
@@ -587,35 +579,54 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
 
 class (Controllable a) => CharacterTraits a where
     characterHandle :: a -> CharacterHandle
+    getDamage :: (HearthMonad m) => a -> Hearth m Damage
     dynamicAttack :: (HearthMonad m) => a -> Hearth m Attack
-    dynamicHealth :: (HearthMonad m) => a -> Hearth m Health
-    bumpAttackCount :: (HearthMonad m) => a -> Hearth m ()
-    getAttackCount :: (HearthMonad m) => a -> Hearth m Int
+    dynamicMaxHealth :: (HearthMonad m) => a -> Hearth m Health
     dynamicMaxAttackCount :: (HearthMonad m) => a -> Hearth m Int
+    getAttackCount :: (HearthMonad m) => a -> Hearth m Int
+    bumpAttackCount :: (HearthMonad m) => a -> Hearth m ()
     hasSummoningSickness :: (HearthMonad m) => a -> Hearth m Bool
+
+
+instance CharacterTraits PlayerHandle where
+    characterHandle = Left
+    getDamage pHandle = logCall 'getDamage $ do
+        view $ getPlayer pHandle.playerHero.boardHeroDamage
+    dynamicAttack pHandle = logCall 'dynamicAttack $ do
+        view $ getPlayer pHandle.playerHero.boardHero.heroAttack
+    dynamicMaxHealth pHandle = logCall 'dynamicMaxHealth $ do
+        view $ getPlayer pHandle.playerHero.boardHero.heroHealth
+    dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
+        return 1
+    getAttackCount pHandle = logCall 'getAttackCount $ do
+        view $ getPlayer pHandle.playerHero.boardHeroAttackCount
+    bumpAttackCount pHandle = logCall 'bumpAttackCount $ do
+        getPlayer pHandle.playerHero.boardHeroAttackCount += 1
+    hasSummoningSickness _ = return False
 
 
 instance CharacterTraits MinionHandle where
     characterHandle = Right
+    getDamage bmHandle = logCall 'getDamage $ do
+        view $ getMinion bmHandle.boardMinionDamage
     dynamicAttack bmHandle = logCall 'dynamicAttack $ do
         bm <- view $ getMinion bmHandle
         enchantments <- dynamicEnchantments bmHandle
         let delta = sum $ flip mapMaybe enchantments $ \case
                 StatsDelta a _ -> Just a
         return $ bm^.boardMinion.minionAttack + delta
-    dynamicHealth bmHandle = logCall 'dynamicHealth $ do
+    dynamicMaxHealth bmHandle = logCall 'dynamicMaxHealth $ do
         bm <- view $ getMinion bmHandle
         enchantments <- dynamicEnchantments bmHandle
         let delta = sum $ flip mapMaybe enchantments $ \case
                 StatsDelta _ h -> Just h
         return $ bm^.boardMinion.minionHealth + delta
-    bumpAttackCount bmHandle = logCall 'bumpAttackCount $ do
-        getMinion bmHandle.boardMinionAttackCount += 1
-    getAttackCount bmHandle = logCall 'getAttackCount $ do
-        bm <- view $ getMinion bmHandle
-        return $ bm^.boardMinionAttackCount
     dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
         return 1
+    getAttackCount bmHandle = logCall 'getAttackCount $ do
+        view $ getMinion bmHandle.boardMinionAttackCount
+    bumpAttackCount bmHandle = logCall 'bumpAttackCount $ do
+        getMinion bmHandle.boardMinionAttackCount += 1
     hasSummoningSickness bmHandle = logCall 'hasSummoningSickness $ do
         bm <- view $ getMinion bmHandle
         case bm^.boardMinionNewlySummoned of
@@ -625,24 +636,34 @@ instance CharacterTraits MinionHandle where
 
 instance CharacterTraits CharacterHandle where
     characterHandle = id
+    getDamage = logCall 'getDamage $ \case
+        Left h -> getDamage h
+        Right h -> getDamage h
     dynamicAttack = logCall 'dynamicAttack $ \case
-        Left p -> $todo 'dynamicAttack $ show p
-        Right bm -> dynamicAttack bm
-    dynamicHealth = logCall 'dynamicHealth $ \case
-        Left p -> $todo 'dynamicHealth $ show p
-        Right bm -> dynamicHealth bm
-    bumpAttackCount = logCall 'bumpAttackCount $ \case
-        Left p -> $todo 'bumpAttackCount $ show p
-        Right bm -> bumpAttackCount bm
-    getAttackCount = logCall 'getAttackCount $ \case
-        Left p -> $todo 'getAttackCount $ show p
-        Right bm -> getAttackCount bm
+        Left h -> dynamicAttack h
+        Right h -> dynamicAttack h
+    dynamicMaxHealth = logCall 'dynamicMaxHealth $ \case
+        Left h -> dynamicMaxHealth h
+        Right h -> dynamicMaxHealth h
     dynamicMaxAttackCount = logCall 'dynamicMaxAttackCount $ \case
-        Left p -> $todo 'dynamicMaxAttackCount $ show p
-        Right bm -> dynamicMaxAttackCount bm
+        Left h -> dynamicMaxAttackCount h
+        Right h -> dynamicMaxAttackCount h
+    getAttackCount = logCall 'getAttackCount $ \case
+        Left h -> getAttackCount h
+        Right h -> getAttackCount h
+    bumpAttackCount = logCall 'bumpAttackCount $ \case
+        Left h -> bumpAttackCount h
+        Right h -> bumpAttackCount h
     hasSummoningSickness = logCall 'hasSummoningSickness $ \case
-        Left p -> $todo 'hasSummoningSickness $ show p
-        Right bm -> hasSummoningSickness bm
+        Left h -> hasSummoningSickness h
+        Right h -> hasSummoningSickness h
+
+
+dynamicRemainingHealth :: (HearthMonad m) => CharacterHandle -> Hearth m Health
+dynamicRemainingHealth h = do
+    damage <- getDamage h
+    health <- dynamicMaxHealth h
+    return $ health - Health (unDamage damage)
 
 
 receiveDamage :: (HearthMonad m) => CharacterHandle -> Damage -> Hearth m ()
@@ -651,15 +672,15 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
     False -> case ch of
         Left handle -> do
             bh <- view $ getPlayer handle.playerHero
+            health <- dynamicMaxHealth handle
             let dmg = unDamage damage
                 armor = bh^.boardHeroArmor
-                health = bh^.boardHeroCurrHealth
                 armor' = max 0 $ armor - Armor dmg
-                armorDelta = unArmor $ armor - armor'
-                health' = health - Health (dmg - armorDelta)
-            getPlayer handle.playerHero .= bh {
-                    _boardHeroCurrHealth = health',
-                    _boardHeroArmor = armor' }
+                armorDamage = Damage $ unArmor $ armor - armor'
+                healthDamage = damage - armorDamage
+            zoom (getPlayer handle.playerHero) $ do
+                boardHeroDamage += healthDamage
+                boardHeroArmor .= armor'
             prompt $ PromptGameEvent $ HeroTakesDamage handle health armor damage
         Right handle -> do
             bm <- view $ getMinion handle
@@ -680,11 +701,11 @@ enactKeywordEffect = logCall 'enactKeywordEffect . \case
 
 silence :: (HearthMonad m) => MinionHandle -> Hearth m ()
 silence victim = logCall 'silence $ do
-    health <- dynamicHealth victim
+    health <- dynamicMaxHealth victim
     zoom (getMinion victim) $ do
         boardMinionAbilities .= []
         boardMinionEnchantments .= []
-    health' <- dynamicHealth victim
+    health' <- dynamicMaxHealth victim
     getMinion victim %= \bm -> let
         delta = Damage $ unHealth $ health' - health
         in case delta < 0 of
@@ -821,7 +842,7 @@ payCost who = logCall 'payCost $  \case
 
 
 payManaCost :: (HearthMonad m) => PlayerHandle -> Mana -> Hearth m Result
-payManaCost who (Mana cost) = logCall 'payManaCost $ zoomPlayer who $ do
+payManaCost who (Mana cost) = logCall 'payManaCost $ zoom (getPlayer who) $ do
     totalMana <- view playerTotalManaCrystals
     emptyMana <- view playerEmptyManaCrystals
     let availableMana = totalMana - emptyMana
@@ -844,11 +865,10 @@ withMinions f = logCall 'withMinions $ do
 
 clearDeadMinions :: (HearthMonad m) => Hearth m ()
 clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
-    threshold <- liftM (Damage . unHealth) $ dynamicHealth $ bm^.boardMinionHandle
-    let alive = bm^.boardMinionDamage < threshold
-    case alive of
-        True -> return $ Just bm
-        False -> do
+    dead <- isDead $ Right $ bm^.boardMinionHandle
+    case dead of
+        False -> return $ Just bm
+        True -> do
             prompt $ PromptGameEvent $ MinionDied bm
             return Nothing
 

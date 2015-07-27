@@ -12,6 +12,7 @@ module Hearth.Client.Console.Render.PlayerColumn (
 --------------------------------------------------------------------------------
 
 
+import Control.Lens
 import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.Render.BoardHeroColumn
@@ -24,19 +25,17 @@ import Hearth.Client.Console.SGRString
 
 
 playerColumn :: (HearthMonad m) => Player -> Hearth m [SGRString]
-playerColumn = return . concat . withEach [
-    deckColumn . _playerDeck,
-    txt "",
-    manaColumn,
-    txt "",
-    boardHeroColumn . _playerHero ]
+playerColumn player = do
+    bhc <- boardHeroColumn player
+    return $ concat [
+        deckColumn $ player^.playerDeck,
+        txt "",
+        manaColumn player,
+        txt "",
+        bhc ]
     where
-        txt str = return . const str
+        txt str = [str]
 
-
-
-withEach :: [a -> b] -> a -> [b]
-withEach = flip $ \a -> map ($ a)
 
 
 

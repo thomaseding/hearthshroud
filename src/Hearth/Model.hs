@@ -221,8 +221,9 @@ makeLenses ''Hero
 
 
 data BoardHero = BoardHero {
-    _boardHeroCurrHealth :: Health,
+    _boardHeroDamage :: Damage,
     _boardHeroArmor :: Armor,
+    _boardHeroAttackCount :: Int,
     _boardHero :: Hero
 } deriving (Show, Typeable)
 makeLenses ''BoardHero
