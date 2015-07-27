@@ -35,8 +35,8 @@ boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) .
 
 boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m [SGRString]
 boardMinionColumn (idx, bm) = do
-    dynAttack <- liftM unAttack $ dynamicAttack bm
-    dynHealth <- liftM unHealth $ dynamicHealth bm
+    dynAttack <- liftM unAttack $ dynamicAttack $ bm^.boardMinionHandle
+    dynHealth <- liftM unHealth $ dynamicHealth $ bm^.boardMinionHandle
     let minion = _boardMinion bm
         nameColor = case hasDivineShield bm of
             True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]

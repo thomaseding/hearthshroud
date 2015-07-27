@@ -36,6 +36,7 @@ import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Char
 import Data.Either
+import Data.Function
 import Data.List
 import Data.Maybe
 import Data.NonEmpty
@@ -195,12 +196,17 @@ verbosityGate name m = do
             'dynamicAttack,
             'dynamicHealth,
             'getActivePlayerHandle,
-            'getControllerOf,
+            'controllerOf,
             'withMinions ]
 
 
 debugEvent :: DebugEvent -> Console ()
 debugEvent e = case e of
+    DiagnosticMessage message -> let
+        name = showName 'DiagnosticMessage
+        in verbosityGate name $ do
+            openTag name [("message", message)]
+            closeTag name
     FunctionEntered name -> let
         name' = showName name
         in verbosityGate name' $ openTag name' []
@@ -226,11 +232,14 @@ gameEvent = \case
         cardAttr = ("card", either deckCardName' handCardName' eCard)
         resultAttr = ("result", show $ either (const Failure) (const Success) eCard)
         in tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
-    PlayedCard (viewPlayer -> who) card result -> let
+    PlayedMinion (viewPlayer -> who) bmHandle -> let
         playerAttr = ("player", show who)
-        cardAttr = ("card", handCardName' card)
-        resultAttr = ("result", show result)
-        in tag 'PlayedCard [playerAttr, cardAttr, resultAttr]
+        cardAttr = ("handle", show bmHandle)
+        in tag 'PlayedMinion [playerAttr, cardAttr]
+    PlayedSpell (viewPlayer -> who) card -> let
+        playerAttr = ("player", show who)
+        cardAttr = ("card", handCardName' $ HandCardSpell card)
+        in tag 'PlayedSpell [playerAttr, cardAttr]
     HeroTakesDamage (viewPlayer -> who) (Health oldHealth) (Armor oldArmor) (Damage damage) -> let
         newArmor = max 0 $ oldArmor - damage
         armorDelta = oldArmor - newArmor
@@ -494,7 +503,7 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             nonActiveMinions <- view $ getPlayer nonActiveHandle.playerMinions
             let pairs = [(a, na) | a <- activeMinions, na <- nonActiveMinions]
             allowedPairs <- flip filterM pairs $ \(activeMinion, nonActiveMinion) -> do
-                local id $ enactAttack activeMinion nonActiveMinion >>= \case
+                local id $ on enactAttack (Right . _boardMinionHandle) activeMinion nonActiveMinion >>= \case
                     Failure -> return False
                     Success -> return True
             liftIO (pickRandom allowedPairs) >>= return . \case
