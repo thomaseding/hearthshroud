@@ -920,19 +920,23 @@ enactAttack attacker defender = logCall 'enactAttack $ do
             Right m -> dynamicHasTaunt m
     result <- isAlly attacker >>= \case
         False -> return Failure
-        True -> isEnemy defender >>= \case
-            False -> return Failure
-            True -> hasSummoningSickness attacker >>= \case
+        True -> do
+            attack <- dynamicAttack attacker
+            case attack <= 0 of
                 True -> return Failure
-                False -> hasRemainingAttacks attacker >>= \case
+                False -> isEnemy defender >>= \case
                     False -> return Failure
-                    True -> defenderHasTaunt >>= \case
-                        True -> return Success
-                        False -> do
-                            defenderController <- controllerOf defender
-                            hasTauntMinions defenderController >>= return . \case
-                                True -> Failure
-                                False -> Success
+                    True -> hasSummoningSickness attacker >>= \case
+                        True -> return Failure
+                        False -> hasRemainingAttacks attacker >>= \case
+                            False -> return Failure
+                            True -> defenderHasTaunt >>= \case
+                                True -> return Success
+                                False -> do
+                                    defenderController <- controllerOf defender
+                                    hasTauntMinions defenderController >>= return . \case
+                                        True -> Failure
+                                        False -> Success
     case result of
         Failure -> return Failure
         Success -> do
