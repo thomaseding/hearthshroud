@@ -330,8 +330,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
     liftIO clearScreen
     window <- liftIO getWindowSize
     renewLogWindow window 0
-    _ <- liftIO getLine
-    return ()
+    liftIO enterToContinue
     where
         st = ConsoleState {
             _logState = LogState {
@@ -391,8 +390,9 @@ presentPrompt promptMessage responseParser = do
             . concatMap (\case
                 '+' -> " +"
                 '-' -> " -"
-                '/' -> "?"
+                '.' -> "?"
                 c -> [c] )
+            . map toUpper
             . filter (not . isSpace)
     responseParser $ case tokenizeResponse response of
         [] -> [""]
@@ -409,7 +409,7 @@ parseActionResponse response = case runOptions actionOptions response of
         _ -> process ComplainRetryAction
     where
         process = \case
-            QuitAction -> $todo 'parseActionResponse "QuitAction"
+            QuitAction -> liftM ActionPlayerConceded getActivePlayerHandle
             GameAction action -> return action
             QuietRetryAction -> getAction'
             ComplainRetryAction -> helpAction >>= process
@@ -459,6 +459,8 @@ actionOptions :: Options (Hearth Console) ConsoleAction ()
 actionOptions = do
     addOption (kw "" `argText` "" `text` "Autoplay.")
         autoplayAction
+    addOption (kw "Q" `text` "Concede and quit.")
+        quitAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
     addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.")
@@ -471,13 +473,27 @@ actionOptions = do
         readCardInHandAction
     addOption (kw "?" `text` "Display detailed help text.")
         helpAction
-    addOption (kw "/" `text` "An alias for (?).")
+    addOption (kw "." `text` "An alias for (?).")
         nonParseable
+
+
+enterToContinue :: IO ()
+enterToContinue = do
+    setSGR [SetColor Foreground Dull White]
+    putStrLn "*** PRESS ENTER TO CONTINUE ***"
+    _ <- getLine
+    return ()
+
+
+quitAction :: Hearth Console ConsoleAction
+quitAction = return QuitAction
 
 
 helpAction :: Hearth Console ConsoleAction
 helpAction = do
     liftIO $ do
+        setCursorPosition 0 0
+        clearScreen
         putStrLn ""
         putStrLn "Usage:"
         putStrLn "> COMMAND+ARG1+ARG2+ARG3+..."
@@ -498,9 +514,7 @@ helpAction = do
         putStrLn "- Example: Play Fireball (hand spell 3) against own hero."
         putStrLn "> 1+3+0"
         putStrLn ""
-        putStrLn "*** PRESS ENTER TO CONTINUE ***"
-        _ <- getLine
-        return ()
+        enterToContinue
     return QuietRetryAction
 
 
@@ -513,11 +527,13 @@ cmpKeyword =  comparing $ \k -> let
             '?' -> 50 + case kwArgText k of
                 "" -> 1
                 _ -> 0
-            '/' -> 999
+            '.' -> 999
             _ -> case isDigit c of
-                True -> ord c - ord '0'
-                False -> -2
-        _ -> -2
+                True -> 30 + ord c - ord '0'
+                False -> case isAlpha c of
+                    True -> ord c - ord 'A'
+                    False -> -666
+        _ -> -666
 
 
 formattedActionOptions :: String
@@ -631,9 +647,10 @@ readCardInHandAction (SignedInt sign handIdx) = do
         Nothing -> return ComplainRetryAction
         Just card -> do
             liftIO $ do
+                setCursorPosition 0 0
+                clearScreen
                 putStrLn $ showCard card
-                putStrLn "ENTER TO CONTINUE"
-                _ <- getLine
+                enterToContinue
                 return QuietRetryAction
 
 

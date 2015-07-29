@@ -376,8 +376,9 @@ pumpTurn :: (HearthMonad m) => Hearth m ()
 pumpTurn = logCall 'pumpTurn $ do
     let cond = \case
             Nothing -> True
-            Just EndTurn -> True
-            Just ContinueTurn -> False
+            Just evo -> case evo of
+                EndTurn -> True
+                ContinueTurn -> False
     _ <- iterateUntil cond pumpTurn'
     return ()
 
@@ -398,11 +399,17 @@ performAction = logCall 'performAction $ do
     
 enactAction :: (HearthMonad m) => Action -> Hearth m TurnEvolution
 enactAction = logCall 'enactAction . \case
-    ActionPlayerConceded _ -> $todo 'pumpTurn' "concede"
+    ActionPlayerConceded p -> concede p >> return ContinueTurn
     ActionPlayMinion card pos -> actionPlayMinion card pos
     ActionPlaySpell card -> actionPlaySpell card
     ActionAttack attacker defender -> actionAttack attacker defender
     ActionEndTurn -> return EndTurn
+
+
+concede :: (HearthMonad m) => PlayerHandle -> Hearth m ()
+concede p = do
+    health <- dynamicMaxHealth p
+    getPlayer p.playerHero.boardHeroDamage .= Damage (unHealth health)
 
 
 isCardInHand :: (HearthMonad m) => PlayerHandle -> HandCard -> Hearth m Bool
