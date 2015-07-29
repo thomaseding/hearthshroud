@@ -277,6 +277,9 @@ gameEvent = \case
     Silenced bm -> let
         minionAttr = ("minion", show bm)
         in tag 'Silenced [minionAttr]
+    AttackFailed reason -> let
+        reasonAttr = ("reason", show reason)
+        in tag 'AttackFailed [reasonAttr]
     where
         viewPlayer (PlayerHandle (RawHandle who)) = who
         tag name attrs = let

@@ -33,9 +33,18 @@ data GameEvent :: * where
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
     LostDivineShield :: BoardMinion -> GameEvent
     Silenced :: MinionHandle -> GameEvent
+    AttackFailed :: AttackFailedReason -> GameEvent
     deriving (Show, Typeable)
 
 
+data AttackFailedReason :: * where
+    AttackWithEnemy :: AttackFailedReason
+    DefendWithFriendly :: AttackFailedReason
+    ZeroAttack :: AttackFailedReason
+    DoesNotHaveCharge :: AttackFailedReason
+    OutOfAttacks :: AttackFailedReason
+    TauntsExist :: AttackFailedReason
+    deriving (Show, Typeable)
 
 
 

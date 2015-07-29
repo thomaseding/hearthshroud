@@ -919,24 +919,36 @@ enactAttack attacker defender = logCall 'enactAttack $ do
             Left _ -> return False
             Right m -> dynamicHasTaunt m
     result <- isAlly attacker >>= \case
-        False -> return Failure
+        False -> do
+            prompt $ PromptGameEvent $ AttackFailed AttackWithEnemy
+            return Failure
         True -> do
             attack <- dynamicAttack attacker
             case attack <= 0 of
-                True -> return Failure
+                True -> do
+                    prompt $ PromptGameEvent $ AttackFailed ZeroAttack
+                    return Failure
                 False -> isEnemy defender >>= \case
-                    False -> return Failure
+                    False -> do
+                        prompt $ PromptGameEvent $ AttackFailed DefendWithFriendly
+                        return Failure
                     True -> hasSummoningSickness attacker >>= \case
-                        True -> return Failure
+                        True -> do
+                            prompt $ PromptGameEvent $ AttackFailed DoesNotHaveCharge
+                            return Failure
                         False -> hasRemainingAttacks attacker >>= \case
-                            False -> return Failure
+                            False -> do
+                                prompt $ PromptGameEvent $ AttackFailed OutOfAttacks
+                                return Failure
                             True -> defenderHasTaunt >>= \case
                                 True -> return Success
                                 False -> do
                                     defenderController <- controllerOf defender
-                                    hasTauntMinions defenderController >>= return . \case
-                                        True -> Failure
-                                        False -> Success
+                                    hasTauntMinions defenderController >>= \case
+                                        True -> do
+                                            prompt $ PromptGameEvent $ AttackFailed TauntsExist
+                                            return Failure
+                                        False -> return Success
     case result of
         Failure -> return Failure
         Success -> do
