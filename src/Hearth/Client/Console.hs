@@ -42,6 +42,7 @@ import Data.Function
 import Data.List
 import Data.Maybe
 import Data.NonEmpty
+import Data.Ord
 import Data.String
 import Hearth.Action
 import qualified Hearth.Cards as Universe
@@ -387,7 +388,11 @@ presentPrompt promptMessage responseParser = do
         putStr "> "
         getLine
     let tokenizeResponse = words
-            . concatMap (\case { '+' -> " +"; '-' -> " -"; c -> [c] })
+            . concatMap (\case
+                '+' -> " +"
+                '-' -> " -"
+                '/' -> "?"
+                c -> [c] )
             . filter (not . isSpace)
     responseParser $ case tokenizeResponse response of
         [] -> [""]
@@ -452,19 +457,22 @@ nonParseable _ = $logicError 'nonParseable "This function should not be called."
 
 actionOptions :: Options (Hearth Console) ConsoleAction ()
 actionOptions = do
-    addOption (kw "?" `text` "Display detailed help text.") $
-        helpAction
+    addOption (kw "" `argText` "" `text` "Autoplay.")
+        autoplayAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
-    addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.") nonParseable
+    addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.")
+        nonParseable
     addOption (kw "1" `argText` "SPELL TARGETS*" `text` "Plays SPELL from your hand.")
         playCardAction
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
         attackAction
-    addOption (kw "9" `argText` "CARD" `text` "Read CARD from a player's hand.")
+    addOption (kw "?" `argText` "CARD" `text` "Read CARD from a player's hand.")
         readCardInHandAction
-    addOption (kw "" `argText` "" `text` "Autoplay.")
-        autoplayAction
+    addOption (kw "?" `text` "Display detailed help text.")
+        helpAction
+    addOption (kw "/" `text` "An alias for (?).")
+        nonParseable
 
 
 helpAction :: Hearth Console ConsoleAction
@@ -490,12 +498,26 @@ helpAction = do
         putStrLn "- Example: Play Fireball (hand spell 3) against own hero."
         putStrLn "> 1+3+0"
         putStrLn ""
-        putStrLn formattedActionOptions
-        putStrLn ""
-        putStrLn "ENTER TO CONTINUE"
+        putStrLn "*** PRESS ENTER TO CONTINUE ***"
         _ <- getLine
         return ()
     return QuietRetryAction
+
+
+cmpKeyword :: Keyword -> Keyword -> Ordering
+cmpKeyword =  comparing $ \k -> let
+    name = concat $ kwNames k
+    in case name of
+        "" -> -1
+        [c] -> case c of
+            '?' -> 50 + case kwArgText k of
+                "" -> 1
+                _ -> 0
+            '/' -> 999
+            _ -> case isDigit c of
+                True -> ord c - ord '0'
+                False -> -2
+        _ -> -2
 
 
 formattedActionOptions :: String
@@ -505,7 +527,7 @@ formattedActionOptions = let
         n -> case kwArgText k of
             [] -> n
             _ -> n ++ " "
-    ks = getKeywords actionOptions
+    ks = sortBy cmpKeyword $ getKeywords actionOptions
     kwLen k = length $ name k ++ kwArgText k
     maxKwLen = maximum $ map kwLen ks
     format k = let
