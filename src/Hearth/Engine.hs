@@ -577,8 +577,27 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     return $ baseEnchantments ++ enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
-class (Controllable a) => CharacterTraits a where
+class GetCharacterHandle a where
     characterHandle :: a -> CharacterHandle
+
+
+instance GetCharacterHandle PlayerHandle where
+    characterHandle = Left
+
+
+instance GetCharacterHandle MinionHandle where
+    characterHandle = Right
+
+
+instance GetCharacterHandle CharacterHandle where
+    characterHandle = id
+
+
+instance GetCharacterHandle BoardMinion where
+    characterHandle = Right . _boardMinionHandle
+
+
+class (Controllable a, GetCharacterHandle a) => CharacterTraits a where
     getDamage :: (HearthMonad m) => a -> Hearth m Damage
     dynamicAttack :: (HearthMonad m) => a -> Hearth m Attack
     dynamicMaxHealth :: (HearthMonad m) => a -> Hearth m Health
@@ -589,7 +608,6 @@ class (Controllable a) => CharacterTraits a where
 
 
 instance CharacterTraits PlayerHandle where
-    characterHandle = Left
     getDamage pHandle = logCall 'getDamage $ do
         view $ getPlayer pHandle.playerHero.boardHeroDamage
     dynamicAttack pHandle = logCall 'dynamicAttack $ do
@@ -606,7 +624,6 @@ instance CharacterTraits PlayerHandle where
 
 
 instance CharacterTraits MinionHandle where
-    characterHandle = Right
     getDamage bmHandle = logCall 'getDamage $ do
         view $ getMinion bmHandle.boardMinionDamage
     dynamicAttack bmHandle = logCall 'dynamicAttack $ do
@@ -635,7 +652,6 @@ instance CharacterTraits MinionHandle where
 
 
 instance CharacterTraits CharacterHandle where
-    characterHandle = id
     getDamage = logCall 'getDamage $ \case
         Left h -> getDamage h
         Right h -> getDamage h

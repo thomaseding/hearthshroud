@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
@@ -35,6 +36,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Char
+import Data.Data
 import Data.Either
 import Data.Function
 import Data.List
@@ -65,6 +67,8 @@ import System.Random.Shuffle
 import Text.LambdaOptions.Core
 import Text.LambdaOptions.Keyword
 import Text.LambdaOptions.List
+import Text.LambdaOptions.Parseable
+import Text.Read (readMaybe)
 
 
 --------------------------------------------------------------------------------
@@ -382,7 +386,9 @@ presentPrompt promptMessage responseParser = do
         putStrLn ""
         putStr "> "
         getLine
-    let tokenizeResponse = words . map (\case { '+' -> ' '; c -> c })
+    let tokenizeResponse = words
+            . concatMap (\case { '+' -> " +"; '-' -> " -"; c -> [c] })
+            . filter (not . isSpace)
     responseParser $ case tokenizeResponse response of
         [] -> [""]
         args -> args
@@ -411,19 +417,53 @@ data ConsoleAction :: * where
     ComplainRetryAction :: ConsoleAction
 
 
+data Sign = Positive | Negative
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+data SignedInt = SignedInt Sign Int
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+instance Parseable SignedInt where
+    parse = simpleParse $ \case
+        s : c : cs -> case isDigit c of
+            False -> Nothing
+            True -> let
+                f = case s of
+                    '+' -> fmap $ SignedInt Positive
+                    '-' -> fmap $ SignedInt Negative
+                    _ -> const Nothing
+                in f $ readMaybe $ c : cs
+        _ -> Nothing
+
+
+data NonParseable = NonParseable
+    deriving (Data, Typeable)
+
+
+instance Parseable NonParseable where
+    parse _ = (Nothing, 0)
+
+
+nonParseable :: (Monad m) => NonParseable -> m ConsoleAction
+nonParseable _ = $logicError 'nonParseable "This function should not be called."
+
+
 actionOptions :: Options (Hearth Console) ConsoleAction ()
 actionOptions = do
     addOption (kw "?" `text` "Display detailed help text.") $
         helpAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
-    addOption (kw "1" `argText` "H B" `text` "Plays the card.")
+    addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.") nonParseable
+    addOption (kw "1" `argText` "SPELL TARGETS*" `text` "Plays SPELL from your hand.")
         playCardAction
-    addOption (kw "2" `argText` "M M" `text` "Attack minion.")
-        attackMinionMinionAction
-    addOption (kw "9" `argText` "H" `text` "Read card in hand.")
+    addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
+        attackAction
+    addOption (kw "9" `argText` "CARD" `text` "Read CARD from a player's hand.")
         readCardInHandAction
-    addOption (kw "" `text` "Autoplay.")
+    addOption (kw "" `argText` "" `text` "Autoplay.")
         autoplayAction
 
 
@@ -433,32 +473,39 @@ helpAction = do
         putStrLn ""
         putStrLn "Usage:"
         putStrLn "> COMMAND ARG1 ARG2 ARG3 ..."
-        putStrLn "Spaces and pluses are used to delimit arguments."
-        putStrLn "Example: Summon minion 4H to board position 3B"
-        putStrLn "> 1 4 3"
+        putStrLn "`+' and `-' are used to delimit arguments and affect the following arguments' signs."
+        putStrLn "Positive arguments denote friendly or neutral choices. Negative arguments denote enemy choices."
+        putStrLn "Players are denoted by the number 0."
+        putStrLn "- Example: Summon minion 4 to board position 3."
         putStrLn "> 1+4+3"
-        putStrLn ""
+        putStrLn "- Example: Attack with minion 1 against opponent."
+        putStrLn "> 2 1 0"
+        putStrLn "- Example: Play Fireball (hand card #3) against opposing hero."
+        putStrLn "> 1 3 -3"
+        putStrLn "- Example: Play Fireball (hand card #3) against own hero."
+        putStrLn "> 1 3 +3"
         putStrLn formattedActionOptions
         putStrLn ""
         putStrLn "ENTER TO CONTINUE"
         _ <- getLine
         return ()
     return QuietRetryAction
-    where
 
 
 formattedActionOptions :: String
 formattedActionOptions = let
+    name k = case concat $ kwNames k of
+        "" -> " "
+        n -> case kwArgText k of
+            [] -> n
+            _ -> n ++ " "
     ks = getKeywords actionOptions
-    kwLen k = length $ (concat $ args k : kwNames k)
+    kwLen k = length $ name k ++ kwArgText k
     maxKwLen = maximum $ map kwLen ks
-    args k = case kwArgText k of
-        [] -> ""
-        str -> ' ' : str
     format k = let
-        name = concat $ kwNames k
+        nameArgs = name k ++ kwArgText k
         pad = replicate (maxKwLen - kwLen k) '-'
-        in "-<" ++ name ++ args k ++ ">-" ++ pad ++ " " ++ kwText k
+        in "-- " ++ nameArgs ++ " --" ++ pad ++ " " ++ kwText k
     in intercalate "\n" $ map format ks
 
 
@@ -474,7 +521,13 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             m : ms -> m >>= \case
                 Nothing -> decideAction ms
                 Just action -> action
-        activities = [tryPlayMinion, tryPlaySpell, tryAttackMinionMinion]
+        activities = [
+            tryPlayMinion,
+            tryPlaySpell,
+            tryAttackPlayerPlayer,
+            tryAttackPlayerMinion,
+            tryAttackMinionPlayer,
+            tryAttackMinionMinion ]
         tryPlayMinion = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
@@ -496,22 +549,36 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             liftIO (pickRandom allowedCards) >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlaySpell card
-        tryAttackMinionMinion = do
+        tryAttack predicate = do
             activeHandle <- getActivePlayerHandle
-            activeMinions <- view $ getPlayer activeHandle.playerMinions
+            activeMinions' <- view $ getPlayer activeHandle.playerMinions
             nonActiveHandle <- getNonActivePlayerHandle
-            nonActiveMinions <- view $ getPlayer nonActiveHandle.playerMinions
-            let pairs = [(a, na) | a <- activeMinions, na <- nonActiveMinions]
-            allowedPairs <- flip filterM pairs $ \(activeMinion, nonActiveMinion) -> do
-                local id $ on enactAttack (Right . _boardMinionHandle) activeMinion nonActiveMinion >>= \case
+            nonActiveMinions' <- view $ getPlayer nonActiveHandle.playerMinions
+            let activeMinions = map characterHandle activeMinions'
+                nonActiveMinions = map characterHandle nonActiveMinions'
+                pairs = filter predicate $ (Left activeHandle, Left nonActiveHandle)
+                     : [(a, na) | a <- activeMinions, na <- nonActiveMinions]
+                    ++ [(Left activeHandle, na) | na <- nonActiveMinions]
+                    ++ [(a, Left nonActiveHandle) | a <- activeMinions]
+            allowedPairs <- flip filterM pairs $ \(activeChar, nonActiveChar) -> do
+                local id $ enactAttack activeChar nonActiveChar >>= \case
                     Failure -> return False
                     Success -> return True
             liftIO (pickRandom allowedPairs) >>= return . \case
                 Nothing -> Nothing
-                Just (attacker, defender) -> let
-                    attacker' = Right $ attacker^.boardMinionHandle
-                    defender' = Right $ defender^.boardMinionHandle
-                    in Just $ return $ GameAction $ ActionAttack attacker' defender'
+                Just (attacker, defender) -> Just $ return $ GameAction $ ActionAttack attacker defender
+        tryAttackPlayerPlayer = tryAttack $ \case
+            (Left _, Left _) -> True
+            _ -> False
+        tryAttackPlayerMinion = tryAttack $ \case
+            (Left _, Right _) -> True
+            _ -> False
+        tryAttackMinionPlayer = tryAttack $ \case
+            (Right _, Left _) -> True
+            _ -> False
+        tryAttackMinionMinion = tryAttack $ \case
+            (Right _, Right _) -> True
+            _ -> False
 
 
 endTurnAction :: Hearth Console ConsoleAction
@@ -525,9 +592,11 @@ lookupIndex (x:xs) n = case n == 0 of
 lookupIndex [] _ = Nothing
 
 
-readCardInHandAction :: Int -> Hearth Console ConsoleAction
-readCardInHandAction handIdx = do
-    handle <- getActivePlayerHandle
+readCardInHandAction :: SignedInt -> Hearth Console ConsoleAction
+readCardInHandAction (SignedInt sign handIdx) = do
+    handle <- case sign of
+        Positive -> getActivePlayerHandle
+        Negative -> getNonActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
     let mCard = lookupIndex cards $ length cards - handIdx
     case mCard of
@@ -540,25 +609,27 @@ readCardInHandAction handIdx = do
                 return QuietRetryAction
 
 
-attackMinionMinionAction :: Int -> Int -> Hearth Console ConsoleAction
-attackMinionMinionAction attackerIdx defenderIdx = do
-    activePlayer <- getActivePlayerHandle
-    activeMinions <- view $ getPlayer activePlayer.playerMinions
-    nonActivePlayer <- getNonActivePlayerHandle
-    nonActiveMinions <- view $ getPlayer nonActivePlayer.playerMinions
-    let mAttacker = lookupIndex activeMinions $ attackerIdx - 1
-        mDefender = lookupIndex nonActiveMinions $ defenderIdx - 1
+fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe CharacterHandle)
+fetchCharacterHandle (SignedInt sign idx) = do
+    p <- case sign of
+        Positive -> getActivePlayerHandle
+        Negative -> getNonActivePlayerHandle
+    ms <- view $ getPlayer p.playerMinions
+    return $ lookupIndex (Left p : map characterHandle ms) idx
+
+
+attackAction :: SignedInt -> SignedInt -> Hearth Console ConsoleAction
+attackAction attackerIdx defenderIdx = do
+    mAttacker <- fetchCharacterHandle attackerIdx
+    mDefender <- fetchCharacterHandle defenderIdx
     case mAttacker of
         Nothing -> return ComplainRetryAction
         Just attacker -> case mDefender of
             Nothing -> return ComplainRetryAction
-            Just defender -> let
-                attacker' = Right $ attacker^.boardMinionHandle
-                defender' = Right $ defender^.boardMinionHandle
-                in return $ GameAction $ ActionAttack attacker' defender'
+            Just defender -> return $ GameAction $ ActionAttack attacker defender
 
 
-playCardAction :: List Int -> Hearth Console ConsoleAction
+playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
     go handIdx f = do
         handle <- getActivePlayerHandle
@@ -575,8 +646,8 @@ playCardAction = let
             True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
     goSpell s = return $ GameAction $ ActionPlaySpell s
     in \case
-        List [handIdx, boardIdx] -> go handIdx $ goMinion boardIdx
-        List [handIdx] -> go handIdx goSpell
+        List [SignedInt Positive handIdx, SignedInt Positive boardIdx] -> go handIdx $ goMinion boardIdx
+        List [SignedInt Positive handIdx] -> go handIdx goSpell
         _ -> return ComplainRetryAction
 
 
