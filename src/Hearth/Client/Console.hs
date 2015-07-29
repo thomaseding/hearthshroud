@@ -489,11 +489,32 @@ quitAction :: Hearth Console ConsoleAction
 quitAction = return QuitAction
 
 
+banner :: String
+banner = unlines [
+      ""
+    , "    _____________________"
+    , "  +/----------|----------\\+"
+    , "  ||*`      ( . )      `*||"
+    , "  ||` \\   (   ^   )   / `||"
+    , "  ||  (Hearth{@}Shroud)  ||"
+    , "  ||, /    (  v  )    \\ ,||"
+    , "  ||*,      ( ' )      ,*||"
+    , "  ++----------|----------++"
+    , "   \\+-------------------+/"
+    , "" ]
+
+
+printBanner :: IO ()
+printBanner = putStrLn banner
+
+
 helpAction :: Hearth Console ConsoleAction
 helpAction = do
     liftIO $ do
         setCursorPosition 0 0
         clearScreen
+        printBanner
+        putStrLn formattedActionOptions
         putStrLn ""
         putStrLn "Usage:"
         putStrLn "> COMMAND+ARG1+ARG2+ARG3+..."
@@ -649,6 +670,7 @@ readCardInHandAction (SignedInt sign handIdx) = do
             liftIO $ do
                 setCursorPosition 0 0
                 clearScreen
+                printBanner
                 putStrLn $ showCard card
                 enterToContinue
                 return QuietRetryAction
