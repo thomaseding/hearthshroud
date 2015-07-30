@@ -695,7 +695,6 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
     False -> case ch of
         Left handle -> do
             bh <- view $ getPlayer handle.playerHero
-            health <- dynamicMaxHealth handle
             let dmg = unDamage damage
                 armor = bh^.boardHeroArmor
                 armor' = max 0 $ armor - Armor dmg
@@ -704,7 +703,7 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
             zoom (getPlayer handle.playerHero) $ do
                 boardHeroDamage += healthDamage
                 boardHeroArmor .= armor'
-            prompt $ PromptGameEvent $ HeroTakesDamage handle health armor damage
+            prompt $ PromptGameEvent $ HeroTakesDamage handle damage
         Right handle -> do
             bm <- view $ getMinion handle
             case loseDivineShield bm of

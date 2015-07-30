@@ -24,7 +24,7 @@ data GameEvent :: * where
     CardDrawn :: PlayerHandle -> Either DeckCard HandCard -> Deck -> GameEvent
     PlayedMinion :: PlayerHandle -> MinionHandle -> GameEvent
     PlayedSpell :: PlayerHandle -> Spell -> GameEvent   -- TODO: Should take a SpellHandle instead of Spell
-    HeroTakesDamage :: PlayerHandle -> Health -> Armor -> Damage -> GameEvent
+    HeroTakesDamage :: PlayerHandle -> Damage -> GameEvent
     MinionTakesDamage :: BoardMinion -> Damage -> GameEvent
     MinionDied :: BoardMinion -> GameEvent
     EnactAttack :: CharacterHandle -> CharacterHandle -> GameEvent
