@@ -379,6 +379,9 @@ presentPrompt promptMessage responseParser = do
     response <- liftM (map toLower) $ liftIO $ do
         setSGR [SetColor Foreground Dull White]
         putStrLn promptMessage
+        liftIO $ do
+            cursorUpLine $ 1 + length (lines promptMessage)
+            printBanner 75
         putStrLn ""
         putStr "> "
         getLine
@@ -485,32 +488,63 @@ quitAction :: Hearth Console ConsoleAction
 quitAction = return QuitAction
 
 
-banner :: String
-banner = unlines [
+rawBanner :: [String]
+rawBanner = [
       ""
     , "    _____________________"
-    , "  +/----------|----------\\+"
-    , "  ||*`      ( . )      `*||"
-    , "  ||` \\   (   ^   )   / `||"
-    , "  ||  (Hearth{@}Shroud)  ||"
-    , "  ||, /    (  v  )    \\ ,||"
-    , "  ||*,      ( ' )      ,*||"
-    , "  ++----------|----------++"
-    , "   \\+-------------------+/"
+    , "  +/7777777777|77777777772+"
+    , "  |1*`  2   ( . )   /  `*1|"
+    , "  |1` 2   (   ^   )   / `1|"
+    , "  |1  (Hearth{@}Shroud)  1|"
+    , "  |1, /    (  v  )    2 ,1|"
+    , "  |1*,  /   ( ' )   2  ,*1|"
+    , "  ++7777777777|7777777777++"
+    , "   2+-------------------+/"
     , "" ]
 
 
-printBanner :: IO ()
-printBanner = putStrLn banner
+sgrBanner :: [SGRString]
+sgrBanner = flip map rawBanner $ concatMap $ \case
+    '2' -> f '\\' Dull Green
+    '/' -> f '/' Dull Green
+    '1' -> f '|' Vivid Red
+    '|' -> f '|' Vivid Yellow
+    '7' -> f '-' Vivid Red
+    '-' -> f '-' Vivid Yellow
+    '_' -> f '_' Vivid Yellow
+    '+' -> f '+' Vivid Yellow
+    '*' -> f '*' Vivid Magenta
+    '.' -> f '.' Vivid Green
+    '\''-> f '\'' Vivid Green
+    '(' -> f '(' Vivid Green
+    ')' -> f ')' Vivid Green
+    '@' -> sgr [SetColor Background Vivid Blue] ++ f '@' Dull Black ++ sgr [SetColor Background Dull Black]
+    '{' -> f '(' Vivid Black
+    '}' -> f ')' Vivid Black
+    '^' -> f '^' Dull Cyan
+    'v' -> f 'v' Dull Cyan
+    c -> f c Dull White
+    where
+        f ch intensity color = sgrColor (intensity, color) ++ [Right ch]
+
+
+printBanner :: Int -> IO ()
+printBanner columnOffset = do
+    setSGR [SetColor Foreground Vivid Black]
+    forM_ sgrBanner $ \str -> do
+        setCursorColumn columnOffset
+        putSGRString $ str ++ [Right '\n']
+    setSGR [SetColor Foreground Dull White]
 
 
 helpAction :: Hearth Console ConsoleAction
 helpAction = do
     liftIO $ do
-        setCursorPosition 0 0
+        setCursorPosition 1 0
         clearScreen
-        printBanner
         putStrLn formattedActionOptions
+        cursorUpLine $ 1 + length (lines formattedActionOptions)
+        printBanner 75
         putStrLn ""
         putStrLn "Usage:"
         putStrLn "> COMMAND+ARG1+ARG2+ARG3+..."
@@ -664,10 +698,18 @@ readCardInHandAction (SignedInt sign handIdx) = do
         Nothing -> return ComplainRetryAction
         Just card -> do
             liftIO $ do
-                setCursorPosition 0 0
+                let cardStr = showCard card
+                setCursorPosition 2 0
                 clearScreen
-                printBanner
-                putStrLn $ showCard card
+                putStrLn "  __________________ "
+                putStrLn " /                  \\"
+                putStrLn " | CARD INFORMATION |"
+                putStrLn " \\__________________/"
+                putStrLn ""
+                forM_ (lines cardStr) $ \ln -> putStrLn $ "  " ++ ln
+                cursorUpLine $ 7 + length (lines cardStr)
+                printBanner 75
+                putStrLn ""
                 enterToContinue
                 return QuietRetryAction
 
