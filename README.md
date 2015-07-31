@@ -10,7 +10,7 @@ Sample game client is `Hearth.Client.Console` and can be seen in action by
 ```haskell
 Hearth.Client.Console.main :: IO ()
 ```
-![screenshot](https://cloud.githubusercontent.com/assets/6971794/8890688/a28745fe-32be-11e5-924f-78451873f826.png)
+![screenshot](https://cloud.githubusercontent.com/assets/6971794/9003372/5e749994-3722-11e5-8bb1-d0e7b80e8909.png)
 
 
 Goals
