@@ -64,6 +64,7 @@ import Prelude hiding (pi, log)
 import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
+import System.Environment
 import System.Random.Shuffle
 import Text.LambdaOptions.Core
 import Text.LambdaOptions.Keyword
@@ -76,7 +77,7 @@ import Text.Read (readMaybe)
 
 
 defaultVerbosity :: Verbosity
-defaultVerbosity = DebugLight
+defaultVerbosity = GameEventsOnly
 
 
 data Verbosity
@@ -84,7 +85,11 @@ data Verbosity
     | GameEventsOnly
     | DebugLight
     | DebugExhaustive
-    deriving (Show, Eq, Ord)
+    deriving (Show, Read, Eq, Ord, Enum, Data, Typeable)
+
+
+instance Parseable Verbosity where
+    parse = simpleParse readMaybe
 
 
 data LogState = LogState {
@@ -99,6 +104,7 @@ makeLenses ''LogState
 
 
 data ConsoleState = ConsoleState {
+    _runGame :: Bool,
     _logState :: LogState
 } deriving (Show, Eq, Ord)
 makeLenses ''ConsoleState
@@ -314,6 +320,44 @@ instance MonadPrompt HearthPrompt Console where
         PromptMulligan _ xs -> return xs
 
 
+enums :: (Enum a) => [a]
+enums = enumFrom $ toEnum 0
+
+
+data Conjunction = And | Or
+
+
+itemize :: (Show a) => Conjunction -> [a] -> String
+itemize conj = \case
+    [] -> ""
+    [x] -> show x
+    [x, y] -> show x ++ " and " ++ show y
+    [x, y, z] -> show x ++ ", " ++ show y ++ ", " ++ conjStr ++ " " ++ show z
+    x : rest -> show x ++ ", " ++ itemize conj rest
+    where
+        conjStr = case conj of
+            And -> "and"
+            Or -> "or"
+
+
+programHelp :: HelpDescription -> Console ()
+programHelp (HelpDescription desc) = do
+    runGame .= False
+    liftIO $ do
+        let desc' = "\n HearthShroud\n\n" ++ desc
+        putStrLn desc'
+        cursorUpLine $ 1 + length (lines desc')
+        printBanner 75
+
+
+consoleOptions :: Options Console () ()
+consoleOptions = do
+    addOption (kw ["-h", "--help"] `text` "Display this help text.")
+        programHelp
+    addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity])))
+        (logState.verbosity .=)
+
+
 main :: IO ()
 main = finally runTestGame $ do
     setSGR [SetColor Background Dull Black]
@@ -322,13 +366,22 @@ main = finally runTestGame $ do
 
 runTestGame :: IO ()
 runTestGame = flip evalStateT st $ unConsole $ do
-    _ <- runHearth (player1, player2)
-    liftIO clearScreen
-    window <- liftIO getWindowSize
-    renewLogWindow window 0
-    liftIO enterToContinue
+    args <- liftIO getArgs
+    case runOptions consoleOptions args of
+        Left (ParseFailed msg _ _) -> liftIO $ do
+            putStrLn msg
+            putStrLn $ getHelpDescription consoleOptions
+        Right ms -> sequence_ ms >> view runGame >>= \case
+            False -> return ()
+            True -> do
+                _ <- runHearth (player1, player2)
+                liftIO clearScreen
+                window <- liftIO getWindowSize
+                renewLogWindow window 0
+                liftIO enterToContinue
     where
         st = ConsoleState {
+            _runGame = True,
             _logState = LogState {
                 _loggedLines = [""],
                 _totalLines = 1,

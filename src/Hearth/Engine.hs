@@ -61,7 +61,7 @@ runQuery snapshot query = evalStateT (unHearth query') $ snapshot^.snapshotGameS
 
 
 runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
-runHearth = evalStateT (unHearth runGame) . mkGameState
+runHearth = evalStateT (unHearth runHearth') . mkGameState
 
 
 newHandle :: (HearthMonad m) => Hearth m RawHandle
@@ -191,8 +191,8 @@ instance GenHandle SpellHandle where
     genHandle = liftM SpellHandle genRawHandle
 
 
-runGame :: (HearthMonad m) => Hearth m GameResult
-runGame = logCall 'runGame $ do
+runHearth' :: (HearthMonad m) => Hearth m GameResult
+runHearth' = logCall 'runHearth' $ do
     prompt $ PromptGameEvent GameBegins
     initGame
     tickTurn
