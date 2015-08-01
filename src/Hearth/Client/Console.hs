@@ -523,9 +523,9 @@ actionOptions = do
         quitAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
-    addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.")
+    addOption (kw "1" `argText` "MINION POS" `text` "Plays MINION from your hand to board POS.")
         nonParseable
-    addOption (kw "1" `argText` "SPELL TARGETS*" `text` "Plays SPELL from your hand.")
+    addOption (kw "1" `argText` "SPELL" `text` "Plays SPELL from your hand.")
         playCardAction
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
         attackAction
