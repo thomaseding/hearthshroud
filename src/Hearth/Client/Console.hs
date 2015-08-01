@@ -65,6 +65,7 @@ import System.Console.ANSI
 import System.Console.Terminal.Size (Window)
 import qualified System.Console.Terminal.Size as Window
 import System.Environment
+import System.Random
 import System.Random.Shuffle
 import Text.LambdaOptions.Core
 import Text.LambdaOptions.Keyword
@@ -104,6 +105,7 @@ makeLenses ''LogState
 
 
 data ConsoleState = ConsoleState {
+    _gameSeed :: Maybe Int,
     _runGame :: Bool,
     _logState :: LogState
 } deriving (Show, Eq, Ord)
@@ -356,6 +358,8 @@ consoleOptions = do
         programHelp
     addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity])))
         (logState.verbosity .=)
+    addOption (kw "--seed" `argText` "INT" `text` "Sets the random number seed to INT.")
+        ((gameSeed .=) . Just)
 
 
 main :: IO ()
@@ -374,6 +378,9 @@ runTestGame = flip evalStateT st $ unConsole $ do
         Right ms -> sequence_ ms >> view runGame >>= \case
             False -> return ()
             True -> do
+                view gameSeed >>= \case
+                    Nothing -> return ()
+                    Just n -> liftIO $ setStdGen $ mkStdGen n
                 _ <- runHearth (player1, player2)
                 liftIO clearScreen
                 window <- liftIO getWindowSize
@@ -381,6 +388,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 liftIO enterToContinue
     where
         st = ConsoleState {
+            _gameSeed = Nothing,
             _runGame = True,
             _logState = LogState {
                 _loggedLines = [""],
