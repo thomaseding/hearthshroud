@@ -316,7 +316,7 @@ instance MonadPrompt HearthPrompt Console where
         PromptGameEvent e -> gameEvent e
         PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> return xs
-        PromptPickRandom (NonEmpty x _) -> return x
+        PromptPickRandom xs -> pickRandom xs
         PromptMulligan _ xs -> return xs
 
 
@@ -657,8 +657,18 @@ formattedActionOptions = let
     in intercalate "\n" $ map format ks
 
 
-pickRandom :: [a] -> IO (Maybe a)
-pickRandom = liftM listToMaybe . shuffleM
+class PickRandom l a | l -> a where
+    pickRandom :: (MonadIO m) => l -> m a
+
+
+instance PickRandom [a] (Maybe a) where
+    pickRandom = liftIO . liftM listToMaybe . shuffleM
+
+
+instance PickRandom (NonEmpty a) a where
+    pickRandom (NonEmpty x xs) = pickRandom (x : xs) >>= \case
+        Just y -> return y
+        Nothing -> $logicError 'pickRandom "Can't pick from (NonEmpty a)?"
 
 
 autoplayAction :: Hearth Console ConsoleAction
@@ -685,7 +695,7 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             allowedCards <- flip filterM (reverse cards) $ \card -> local id (playMinion handle card pos) >>= \case
                 Failure -> return False
                 Success -> return True
-            liftIO (pickRandom allowedCards) >>= return . \case
+            pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlayMinion card pos
         tryPlaySpell = do
@@ -694,7 +704,7 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
             allowedCards <- flip filterM (reverse cards) $ \card -> local id (playSpell handle card) >>= \case
                 Failure -> return False
                 Success -> return True
-            liftIO (pickRandom allowedCards) >>= return . \case
+            pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlaySpell card
         tryAttack predicate = do
@@ -712,7 +722,7 @@ autoplayAction = liftIO (shuffleM activities) >>= decideAction
                 local id $ enactAttack activeChar nonActiveChar >>= \case
                     Failure -> return False
                     Success -> return True
-            liftIO (pickRandom allowedPairs) >>= return . \case
+            pickRandom allowedPairs >>= return . \case
                 Nothing -> Nothing
                 Just (attacker, defender) -> Just $ return $ GameAction $ ActionAttack attacker defender
         tryAttackPlayerPlayer = tryAttack $ \case
