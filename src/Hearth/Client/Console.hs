@@ -26,7 +26,7 @@ module Hearth.Client.Console (
 
 
 import Control.Applicative
-import Control.Error
+import Control.Error.TH
 import Control.Exception hiding (handle)
 import Control.Lens
 import Control.Lens.Helper

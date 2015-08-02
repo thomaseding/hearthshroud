@@ -16,7 +16,7 @@ module Hearth.ShowCard (
 
 
 import Control.Applicative
-import Control.Error
+import Control.Error.TH
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map

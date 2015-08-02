@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 
-module Control.Error (
+module Control.Error.TH (
     todo,
     logicError,
     debugShow,

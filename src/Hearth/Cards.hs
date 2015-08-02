@@ -7,7 +7,7 @@ module Hearth.Cards where
 --------------------------------------------------------------------------------
 
 
-import Control.Error
+import Control.Error.TH
 import Data.List
 import Data.Ord
 import qualified Hearth.Cards.Basic as Basic

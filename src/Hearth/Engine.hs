@@ -18,7 +18,7 @@ module Hearth.Engine (
 --------------------------------------------------------------------------------
 
 
-import Control.Error
+import Control.Error.TH
 import Control.Lens
 import Control.Lens.Helper
 import Control.Monad.Loops
