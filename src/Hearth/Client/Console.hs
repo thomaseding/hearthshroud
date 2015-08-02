@@ -93,6 +93,43 @@ instance Parseable Verbosity where
     parse = simpleParse readMaybe
 
 
+data Sign = Positive | Negative
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+data SignedInt = SignedInt Sign Int -- The Int part should never be negative.
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+instance Parseable SignedInt where
+    parse = simpleParse $ \case
+        s : c : cs -> case isDigit c of
+            False -> Nothing
+            True -> let
+                f = case s of
+                    '+' -> fmap $ SignedInt Positive
+                    '-' -> fmap $ SignedInt Negative
+                    _ -> const Nothing
+                in f $ readMaybe $ c : cs
+        _ -> Nothing
+
+
+data NonParseable = NonParseable
+    deriving (Data, Typeable)
+
+
+instance Parseable NonParseable where
+    parse _ = (Nothing, 0)
+
+
+nonParseable :: (Monad m) => NonParseable -> m a
+nonParseable _ = $logicError 'nonParseable "This function should not be called."
+
+
+data TargetType = TargetMinion | TargetPlayer | TargetCharacter
+    deriving (Show, Eq, Ord)
+
+
 data LogState = LogState {
     _loggedLines :: [String],
     _totalLines :: !Int,
@@ -107,6 +144,7 @@ makeLenses ''LogState
 data ConsoleState = ConsoleState {
     _gameSeed :: Maybe Int,
     _runGame :: Bool,
+    _pendingTargets :: [SignedInt],
     _logState :: LogState
 } deriving (Show, Eq, Ord)
 makeLenses ''ConsoleState
@@ -318,8 +356,39 @@ instance MonadPrompt HearthPrompt Console where
         PromptGameEvent e -> gameEvent e
         PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> return xs
-        PromptPickRandom xs -> pickRandom xs
+        PromptPickMinion snapshot selection xs -> pickMinion snapshot selection xs
+        PromptPickPlayer snapshot selection xs -> pickPlayer snapshot selection xs
+        PromptPickCharacter snapshot selection xs -> pickCharacter snapshot selection xs
         PromptMulligan _ xs -> return xs
+
+
+mkPick :: (Eq a) => (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> Selection -> NonEmpty a -> Console a
+mkPick fromSignedInt snapshot selection candidates = case selection of
+    AtRandom -> pickRandom candidates
+    Targeted' -> view pendingTargets >>= \case
+        [] -> escape
+        pendingTarget : rest -> do
+            pendingTargets .= rest
+            mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
+            case mTarget of
+                Nothing -> escape
+                Just target -> case target `elem` toList candidates of
+                    False -> escape
+                    True -> return target
+    where
+        escape = $todo 'mkPick "Need to use a continuation to escape to before card is played."
+
+
+pickMinion :: GameSnapshot -> Selection -> NonEmpty MinionHandle -> Console MinionHandle
+pickMinion = mkPick fetchMinionHandle
+
+
+pickPlayer :: GameSnapshot -> Selection -> NonEmpty PlayerHandle -> Console PlayerHandle
+pickPlayer = mkPick fetchPlayerHandle
+
+
+pickCharacter :: GameSnapshot -> Selection -> NonEmpty CharacterHandle -> Console CharacterHandle
+pickCharacter = mkPick fetchCharacterHandle
 
 
 enums :: (Enum a) => [a]
@@ -390,6 +459,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
         st = ConsoleState {
             _gameSeed = Nothing,
             _runGame = True,
+            _pendingTargets = [],
             _logState = LogState {
                 _loggedLines = [""],
                 _totalLines = 1,
@@ -480,39 +550,6 @@ data ConsoleAction :: * where
     GameAction :: Action -> ConsoleAction
     QuietRetryAction :: ConsoleAction
     ComplainRetryAction :: ConsoleAction
-
-
-data Sign = Positive | Negative
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-data SignedInt = SignedInt Sign Int
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-instance Parseable SignedInt where
-    parse = simpleParse $ \case
-        s : c : cs -> case isDigit c of
-            False -> Nothing
-            True -> let
-                f = case s of
-                    '+' -> fmap $ SignedInt Positive
-                    '-' -> fmap $ SignedInt Negative
-                    _ -> const Nothing
-                in f $ readMaybe $ c : cs
-        _ -> Nothing
-
-
-data NonParseable = NonParseable
-    deriving (Data, Typeable)
-
-
-instance Parseable NonParseable where
-    parse _ = (Nothing, 0)
-
-
-nonParseable :: (Monad m) => NonParseable -> m ConsoleAction
-nonParseable _ = $logicError 'nonParseable "This function should not be called."
 
 
 actionOptions :: Options (Hearth Console) ConsoleAction ()
@@ -785,6 +822,25 @@ readCardInHandAction (SignedInt sign handIdx) = do
                 return QuietRetryAction
 
 
+fetchPlayerHandle :: SignedInt -> Hearth Console (Maybe PlayerHandle)
+fetchPlayerHandle (SignedInt sign idx) = case idx of
+    0 -> liftM Just $ case sign of
+        Positive -> getActivePlayerHandle
+        Negative -> getNonActivePlayerHandle
+    _ -> return Nothing
+
+
+fetchMinionHandle :: SignedInt -> Hearth Console (Maybe MinionHandle)
+fetchMinionHandle (SignedInt sign idx) = case idx of
+    0 -> return Nothing
+    _ -> do
+        p <- case sign of
+            Positive -> getActivePlayerHandle
+            Negative -> getNonActivePlayerHandle
+        ms <- view $ getPlayer p.playerMinions
+        return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1
+
+
 fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe CharacterHandle)
 fetchCharacterHandle (SignedInt sign idx) = do
     p <- case sign of
@@ -807,23 +863,28 @@ attackAction attackerIdx defenderIdx = do
 
 playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
-    go handIdx f = do
-        handle <- getActivePlayerHandle
-        cards <- view $ getPlayer handle.playerHand.handCards
-        let mCard = lookupIndex cards $ length cards - handIdx
-        case mCard of
-            Nothing -> return ComplainRetryAction
-            Just card -> f card
+
     goMinion boardIdx card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
             False -> return ComplainRetryAction
             True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
+
     goSpell s = return $ GameAction $ ActionPlaySpell s
+
+    go handIdx consoleTargets continuation = do
+        handle <- getActivePlayerHandle
+        cards <- view $ getPlayer handle.playerHand.handCards
+        let mCard = lookupIndex cards $ length cards - handIdx
+        case mCard of
+            Nothing -> return ComplainRetryAction
+            Just card -> do
+                lift $ pendingTargets .= consoleTargets
+                continuation card
     in \case
-        List [SignedInt Positive handIdx, SignedInt Positive boardIdx] -> go handIdx $ goMinion boardIdx
-        List [SignedInt Positive handIdx] -> go handIdx goSpell
+        List (SignedInt Positive handIdx : SignedInt Positive boardIdx : consoleTargets) -> go handIdx consoleTargets $ goMinion boardIdx
+        List (SignedInt Positive handIdx : consoleTargets) -> go handIdx consoleTargets goSpell
         _ -> return ComplainRetryAction
 
 
