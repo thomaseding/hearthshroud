@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 
 
 module Hearth.Prompt where
@@ -19,21 +20,45 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-data Selection = Targeted' | AtRandom
+data HearthError
+    = InvalidMulligan
+    | InvalidShuffle
+    | InvalidMinion
+    | InvalidPlayer
+    | InvalidCharacter
     deriving (Show, Eq, Ord)
+
+
+data family PickResult s a
+
+
+data instance PickResult AtRandom a
+    = RandomPick a
+
+
+data instance PickResult Targeted a
+    = TargetPick a
+    | AbortTargetPick
 
 
 data HearthPrompt :: * -> * where
     PromptDebugEvent :: DebugEvent -> HearthPrompt ()
+    PromptError :: HearthError -> HearthPrompt ()
     PromptGameEvent :: GameEvent -> HearthPrompt ()
     PromptAction :: GameSnapshot -> HearthPrompt Action
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
-    PromptPickMinion :: GameSnapshot -> Selection -> NonEmpty MinionHandle -> HearthPrompt MinionHandle
-    PromptPickPlayer :: GameSnapshot -> Selection -> NonEmpty PlayerHandle -> HearthPrompt PlayerHandle
-    PromptPickCharacter :: GameSnapshot -> Selection -> NonEmpty CharacterHandle -> HearthPrompt CharacterHandle
-
+    PromptPickAtRandom :: PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
+    PromptPickTargeted :: PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
 deriving instance (Show a) => Show (HearthPrompt a)
+
+
+data PromptPick :: * -> * -> * where
+    PickMinion :: GameSnapshot -> NonEmpty MinionHandle -> PromptPick s MinionHandle
+    PickPlayer :: GameSnapshot -> NonEmpty PlayerHandle -> PromptPick s PlayerHandle
+    PickCharacter :: GameSnapshot -> NonEmpty CharacterHandle -> PromptPick s CharacterHandle
+deriving instance Show (PromptPick s a)
+
 
 
 

@@ -350,44 +350,60 @@ deckCardName' :: DeckCard -> String
 deckCardName' = showCardName . deckCardName
 
 
+promptError :: HearthError -> Console ()
+promptError e = $logicError 'promptError $ show e
+
+
 instance MonadPrompt HearthPrompt Console where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
+        PromptError e -> promptError e
         PromptGameEvent e -> gameEvent e
         PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> return xs
-        PromptPickMinion snapshot selection xs -> pickMinion snapshot selection xs
-        PromptPickPlayer snapshot selection xs -> pickPlayer snapshot selection xs
-        PromptPickCharacter snapshot selection xs -> pickCharacter snapshot selection xs
+        PromptPickAtRandom p -> handlePromptPick p
+        PromptPickTargeted p -> handlePromptPick p
         PromptMulligan _ xs -> return xs
 
 
-mkPick :: (Eq a) => (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> Selection -> NonEmpty a -> Console a
-mkPick fromSignedInt snapshot selection candidates = case selection of
-    AtRandom -> pickRandom candidates
-    Targeted' -> view pendingTargets >>= \case
-        [] -> escape
-        pendingTarget : rest -> do
-            pendingTargets .= rest
-            mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
-            case mTarget of
-                Nothing -> escape
-                Just target -> case target `elem` toList candidates of
-                    False -> escape
-                    True -> return target
-    where
-        escape = $todo 'mkPick "Need to use a continuation to escape to before card is played."
+handlePromptPick :: (MakePick s) => PromptPick s a -> Console (PickResult s a)
+handlePromptPick = \case
+    PickMinion snapshot xs -> pickMinion snapshot xs
+    PickPlayer snapshot xs -> pickPlayer snapshot xs
+    PickCharacter snapshot xs -> pickCharacter snapshot xs
 
 
-pickMinion :: GameSnapshot -> Selection -> NonEmpty MinionHandle -> Console MinionHandle
+class MakePick s where
+    mkPick :: (Eq a) => (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> NonEmpty a -> Console (PickResult s a)
+
+
+instance MakePick AtRandom where
+    mkPick _ _ = liftM RandomPick . pickRandom
+
+
+instance MakePick Targeted where
+    mkPick fromSignedInt snapshot candidates = do
+        view pendingTargets >>= \case
+            [] -> return AbortTargetPick
+            pendingTarget : rest -> do
+                pendingTargets .= rest
+                mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
+                case mTarget of
+                    Nothing -> return AbortTargetPick
+                    Just target -> case target `elem` toList candidates of
+                        True -> return $ TargetPick target
+                        False -> return AbortTargetPick
+
+
+pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty MinionHandle -> Console (PickResult s MinionHandle)
 pickMinion = mkPick fetchMinionHandle
 
 
-pickPlayer :: GameSnapshot -> Selection -> NonEmpty PlayerHandle -> Console PlayerHandle
+pickPlayer :: (MakePick s) => GameSnapshot -> NonEmpty PlayerHandle -> Console (PickResult s PlayerHandle)
 pickPlayer = mkPick fetchPlayerHandle
 
 
-pickCharacter :: GameSnapshot -> Selection -> NonEmpty CharacterHandle -> Console CharacterHandle
+pickCharacter :: (MakePick s) => GameSnapshot -> NonEmpty CharacterHandle -> Console (PickResult s CharacterHandle)
 pickCharacter = mkPick fetchCharacterHandle
 
 
