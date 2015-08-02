@@ -95,32 +95,42 @@ data Cost :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-data Selection :: * where
-    Targeted :: Selection
-    AtRandom :: Selection
-    deriving (Show, Eq, Ord, Data, Typeable)
+data Targeted
+data AtRandom
 
 
-data Elect :: * where
-    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Elect
-    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Elect
-    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Elect
-    AnyCharacter :: Selection -> (CharacterHandle -> Effect) -> Elect
-    AnyEnemy :: Selection -> (CharacterHandle -> Effect) -> Elect
-    AnotherCharacter :: Selection -> CharacterHandle -> (CharacterHandle -> Effect) -> Elect
-    AnotherMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
-    AnotherFriendlyMinion :: Selection -> MinionHandle -> (MinionHandle -> Effect) -> Elect
-    OtherCharacters :: CharacterHandle -> (CharacterHandle -> Effect) -> Elect
-    OtherEnemies :: CharacterHandle -> (CharacterHandle -> Effect) -> Elect
+data family ElectCont a :: *
+
+
+data instance ElectCont Targeted
+    = Targeted (Elect Targeted)
+    | Effect Effect
+
+
+newtype instance ElectCont AtRandom
+    = FromRandom Effect
+
+
+data Elect :: * -> * where
+    CasterOf :: SpellHandle -> (PlayerHandle -> ElectCont a) -> Elect a
+    OpponentOf :: PlayerHandle -> (PlayerHandle -> ElectCont a) -> Elect a
+    ControllerOf :: MinionHandle -> (PlayerHandle -> ElectCont a) -> Elect a
+    AnyCharacter :: (CharacterHandle -> ElectCont a) -> Elect a
+    AnyEnemy :: (CharacterHandle -> ElectCont a) -> Elect a
+    AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
+    AnotherMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
+    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
+    OtherCharacters :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
+    OtherEnemies :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
     deriving (Typeable)
 
 
-instance Show Elect where
+instance Show (Elect a) where
     show _ = "Elect"
 
 
 data Effect :: * where
-    Elect :: Elect -> Effect
+    Elect :: Elect AtRandom -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
@@ -142,7 +152,7 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    Battlecry :: (MinionHandle -> Effect) -> KeywordAbility
+    Battlecry :: (MinionHandle -> ElectCont Targeted) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
@@ -160,7 +170,7 @@ data Enchantment :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-type SpellEffect = SpellHandle -> Effect
+type SpellEffect = SpellHandle -> ElectCont Targeted
 
 
 instance Show SpellEffect where

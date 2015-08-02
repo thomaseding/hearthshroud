@@ -19,14 +19,19 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
+data Selection = Targeted' | AtRandom
+    deriving (Show, Eq, Ord)
+
+
 data HearthPrompt :: * -> * where
     PromptDebugEvent :: DebugEvent -> HearthPrompt ()
     PromptGameEvent :: GameEvent -> HearthPrompt ()
     PromptAction :: GameSnapshot -> HearthPrompt Action
-    --PromptQuery :: HearthPrompt Query
     PromptShuffle :: [a] -> HearthPrompt [a]
-    PromptPickRandom :: NonEmpty a -> HearthPrompt a
     PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
+    PromptPickMinion :: GameSnapshot -> Selection -> NonEmpty MinionHandle -> HearthPrompt MinionHandle
+    PromptPickPlayer :: GameSnapshot -> Selection -> NonEmpty PlayerHandle -> HearthPrompt PlayerHandle
+    PromptPickCharacter :: GameSnapshot -> Selection -> NonEmpty CharacterHandle -> HearthPrompt CharacterHandle
 
 deriving instance (Show a) => Show (HearthPrompt a)
 

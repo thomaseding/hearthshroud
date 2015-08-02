@@ -53,9 +53,9 @@ arcaneGolem :: DeckCard
 arcaneGolem = minion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ ControllerOf this $ \controller ->
-            Elect $ OpponentOf controller $ \opponent ->
-                GainManaCrystal CrystalFull opponent ]
+        Targeted $ ControllerOf this $ \controller ->
+            Targeted $ OpponentOf controller $ \opponent ->
+                Effect $ GainManaCrystal CrystalFull opponent ]
 
 
 argentCommander :: DeckCard
@@ -67,8 +67,8 @@ argentCommander = minion ArgentCommander 6 4 2 [
 argentProtector :: DeckCard
 argentProtector = minion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherFriendlyMinion Targeted this $ \target ->
-            GiveAbility target [KeywordAbility DivineShield]]
+        Targeted $ AnotherFriendlyMinion this $ \target ->
+            Effect $ GiveAbility target [KeywordAbility DivineShield]]
 
 
 argentSquire :: DeckCard
@@ -79,8 +79,8 @@ argentSquire = minion ArgentSquire 1 1 1 [
 cruelTaskmaster :: DeckCard
 cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherMinion Targeted this $ \target ->
-            Sequence [
+        Targeted $ AnotherMinion this $ \target ->
+            Effect $ Sequence [
                 DealDamage (Right target) 1,
                 Enchant target [StatsDelta 2 0]]]
 
@@ -88,8 +88,8 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
 ironbeakOwl :: DeckCard
 ironbeakOwl = minion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherMinion Targeted this $ \target ->
-            KeywordEffect $ Silence target ]
+        Targeted $ AnotherMinion this $ \target ->
+            Effect $ KeywordEffect $ Silence target ]
 
 
 scarletCrusader :: DeckCard
@@ -105,8 +105,8 @@ silvermoonGuardian = minion SilvermoonGuardian 4 3 3 [
 spellbreaker :: DeckCard
 spellbreaker = minion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherMinion Targeted this $ \target ->
-            KeywordEffect $ Silence target ]
+        Targeted $ AnotherMinion this $ \target ->
+            Effect $ KeywordEffect $ Silence target ]
 
 
 sunwalker :: DeckCard

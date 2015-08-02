@@ -92,22 +92,22 @@ coreHound = minion CoreHound 7 9 5 []
 dreadInfernal :: DeckCard
 dreadInfernal = minion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ OtherCharacters (Right this) $ \victim ->
-            DealDamage victim 1 ]
+        Targeted $ OtherCharacters (Right this) $ \victim ->
+            Effect $ DealDamage victim 1 ]
 
 
 elvenArcher :: DeckCard
 elvenArcher = minion ElvenArcher 1 1 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
-            DealDamage target 1 ]
+        Targeted $ AnotherCharacter (Right this) $ \target ->
+            Effect $ DealDamage target 1 ]
 
 
 fireElemental :: DeckCard
 fireElemental = minion FireElemental 6 6 5 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
-            DealDamage target 3 ]
+        Targeted $ AnotherCharacter (Right this) $ \target ->
+            Effect $ DealDamage target 3 ]
 
 
 frostwolfGrunt :: DeckCard
@@ -117,15 +117,15 @@ frostwolfGrunt = minion FrostwolfGrunt 2 2 2 [
 
 innervate :: DeckCard
 innervate = spell Innervate 0 $ \this ->
-    Elect $ CasterOf this $ \caster ->
-        Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary caster
+    Targeted $ CasterOf this $ \caster ->
+        Effect $ Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary caster
 
 
 ironforgeRifleman :: DeckCard
 ironforgeRifleman = minion IronforgeRifleman 3 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
-            DealDamage target 1 ]
+        Targeted $ AnotherCharacter (Right this) $ \target ->
+            Effect $ DealDamage target 1 ]
 
 
 magmaRager :: DeckCard
@@ -134,8 +134,8 @@ magmaRager = minion MagmaRager 3 5 1 []
 
 moonfire :: DeckCard
 moonfire = spell Moonfire 0 $ \_ ->
-    Elect $ AnyCharacter Targeted $ \target ->
-        DealDamage target 1
+    Targeted $ AnyCharacter $ \target ->
+        Effect $ DealDamage target 1
 
 
 murlocRaider :: DeckCard
@@ -145,8 +145,8 @@ murlocRaider = minion MurlocRaider 1 2 1 []
 noviceEngineer :: DeckCard
 noviceEngineer = minion NoviceEngineer 2 1 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ ControllerOf this $ \controller ->
-            DrawCards controller 1 ]
+        Targeted $ ControllerOf this $ \controller ->
+            Effect $ DrawCards controller 1 ]
 
 
 oasisSnapjaw :: DeckCard
@@ -165,17 +165,17 @@ riverCrocolisk = minion RiverCrocolisk 2 2 3 []
 shatteredSunCleric :: DeckCard
 shatteredSunCleric = minion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherFriendlyMinion Targeted this $ \target ->
-            Enchant target [StatsDelta 1 1]]
+        Targeted $ AnotherFriendlyMinion this $ \target ->
+            Effect $ Enchant target [StatsDelta 1 1]]
 
 
 starfire :: DeckCard
 starfire = spell Starfire 6 $ \this ->
-    Sequence [
-        Elect $ AnyCharacter Targeted $ \target ->
-            DealDamage target 5,
-        Elect $ CasterOf this $ \caster ->
-            DrawCards caster 1 ]
+    Targeted $ AnyCharacter $ \target ->
+        Targeted $ CasterOf this $ \caster ->
+            Effect $ Sequence [
+                DealDamage target 5,
+                DrawCards caster 1 ]
 
 
 stonetuskBoar :: DeckCard
@@ -186,8 +186,8 @@ stonetuskBoar = minion StonetuskBoar 1 1 1 [
 stormpikeCommando :: DeckCard
 stormpikeCommando = minion StormpikeCommando 5 4 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Elect $ AnotherCharacter Targeted (Right this) $ \target ->
-            DealDamage target 2 ]
+        Targeted $ AnotherCharacter (Right this) $ \target ->
+            Effect $ DealDamage target 2 ]
 
 
 stormwindKnight :: DeckCard
@@ -197,17 +197,17 @@ stormwindKnight = minion StormwindKnight 4 2 5 [
 
 swipe :: DeckCard
 swipe = spell Swipe 4 $ \_ ->
-    Elect $ AnyEnemy Targeted $ \target ->
-        Sequence [
-            DealDamage target 4,
-            Elect $ OtherEnemies target $ \other ->
+    Targeted $ AnyEnemy $ \target ->
+        Targeted $ OtherEnemies target $ \other ->
+            Effect $ Sequence [
+                DealDamage target 4,
                 DealDamage other 1 ]
 
 
 theCoin :: DeckCard
 theCoin = spell TheCoin 0 $ \this ->
-    Elect $ CasterOf this $ \caster ->
-        GainManaCrystal CrystalTemporary caster
+    Targeted $ CasterOf this $ \caster ->
+        Effect $ GainManaCrystal CrystalTemporary caster
 
 
 warGolem :: DeckCard
@@ -216,8 +216,8 @@ warGolem = minion WarGolem 7 7 7 []
 
 wildGrowth :: DeckCard
 wildGrowth = spell WildGrowth 2 $ \this ->
-    Elect $ CasterOf this $ \caster ->
-        GainManaCrystal CrystalEmpty caster
+    Targeted $ CasterOf this $ \caster ->
+        Effect $ GainManaCrystal CrystalEmpty caster
 
 
 wolfRider :: DeckCard

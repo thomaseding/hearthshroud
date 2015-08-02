@@ -4,6 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
@@ -21,14 +22,16 @@ import Control.Error
 import Control.Lens
 import Control.Lens.Helper
 import Control.Monad.Loops
-import Control.Monad.Prompt
+import Control.Monad.Prompt hiding (Effect)
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Function
 import Data.List
 import Data.List.Ordered
 import Data.Maybe
+import Data.NonEmpty (NonEmpty)
 import qualified Data.NonEmpty as NonEmpty
+import Data.Proxy
 import Hearth.Action
 import Hearth.Cards (cardByName)
 import Hearth.DeckToHand
@@ -210,7 +213,8 @@ initGame = logCall 'initGame $ do
 
 flipCoin :: (HearthMonad m) => Hearth m ()
 flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
-    handle <- prompt $ PromptPickRandom $ NonEmpty.fromList handles
+    snap <- gets GameSnapshot
+    handle <- prompt $ PromptPickPlayer snap AtRandom $ NonEmpty.fromList handles
     let handles' = dropWhile (/= handle) $ cycle handles
     gamePlayerTurnOrder .= handles'
 
@@ -510,7 +514,7 @@ playSpell' handle card = logCall 'playSpell' $ playCommon handle card >>= \case
 enactSpell :: (HearthMonad m) => Spell -> Hearth m ()
 enactSpell spell = let
     f = spell^.spellEffect
-    in genHandle >>= enactEffect . f
+    in genHandle >>= enactElectCont . f
 
 
 enactAnyBattleCries :: (HearthMonad m) => MinionHandle -> Hearth m ()
@@ -521,8 +525,8 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
         _ -> return ()
 
 
-enactBattlecry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
-enactBattlecry handle = logCall 'enactBattlecry . enactEffect . ($ handle)
+enactBattlecry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> ElectCont Targeted) -> Hearth m ()
+enactBattlecry handle = logCall 'enactBattlecry . enactElectCont . ($ handle)
 
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m ()
@@ -736,21 +740,38 @@ silence victim = logCall 'silence $ do
     prompt $ PromptGameEvent $ Silenced victim
 
 
-enactElect :: (HearthMonad m) => Elect -> Hearth m ()
+class EnactElect a where
+    enactElectCont :: (HearthMonad m) => ElectCont a -> Hearth m ()
+    runtimeSelection :: Proxy a -> Selection
+
+
+instance EnactElect Targeted where
+    enactElectCont = \case
+        Targeted elect -> enactElect elect
+        Effect effect -> enactEffect effect
+    runtimeSelection _ = Targeted'
+
+
+instance EnactElect AtRandom where
+    enactElectCont (FromRandom effect) = enactEffect effect
+    runtimeSelection _ = AtRandom
+
+
+enactElect :: (HearthMonad m, EnactElect a) => Elect a -> Hearth m ()
 enactElect = logCall 'enactElect . \case
-    CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
-    OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
-    ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
-    AnyCharacter selection f -> anyCharacter selection f
-    AnyEnemy selection f -> anyEnemy selection f
-    AnotherCharacter selection bannedMinion f -> anotherCharacter selection bannedMinion f
-    AnotherMinion selection bannedMinion f -> anotherMinion selection bannedMinion f
-    AnotherFriendlyMinion selection bannedMinion f -> anotherFriendlyMinion selection bannedMinion f
+    CasterOf _ f -> getActivePlayerHandle >>= enactElectCont . f
+    OpponentOf _ f -> getNonActivePlayerHandle >>= enactElectCont . f
+    ControllerOf minionHandle f -> controllerOf minionHandle >>= enactElectCont . f
+    AnyCharacter f -> anyCharacter f
+    AnyEnemy f -> anyEnemy f
+    AnotherCharacter bannedMinion f -> anotherCharacter bannedMinion f
+    AnotherMinion bannedMinion f -> anotherMinion bannedMinion f
+    AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-otherEnemies :: (HearthMonad m) => CharacterHandle -> (CharacterHandle -> Effect) -> Hearth m ()
+otherEnemies :: (HearthMonad m, EnactElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> Hearth m ()
 otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
@@ -759,10 +780,10 @@ otherEnemies bannedHandle f = logCall 'otherEnemies $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) [Left opponentHandle]
         candidates = playerCandidates ++ minionCandidates
-    forM_ candidates $ enactEffect . f
+    forM_ candidates $ enactElectCont . f
 
 
-otherCharacters :: (HearthMonad m) => CharacterHandle -> (CharacterHandle -> Effect) -> Hearth m ()
+otherCharacters :: (HearthMonad m, EnactElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> Hearth m ()
 otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -771,11 +792,11 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
         candidates = playerCandidates ++ minionCandidates
-    forM_ candidates $ enactEffect . f
+    forM_ candidates $ enactElectCont . f
 
 
-anotherCharacter :: (HearthMonad m) => Selection -> CharacterHandle -> (CharacterHandle -> Effect) -> Hearth m ()
-anotherCharacter selection bannedHandle f = logCall 'anotherCharacter $ do
+anotherCharacter :: forall m a. (HearthMonad m, EnactElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> Hearth m ()
+anotherCharacter bannedHandle f = logCall 'anotherCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
@@ -783,66 +804,88 @@ anotherCharacter selection bannedHandle f = logCall 'anotherCharacter $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
         candidates = playerCandidates ++ minionCandidates
+        selection = runtimeSelection (Proxy :: Proxy a)
     pickFrom selection candidates >>= \case
         Nothing -> return ()
-        Just candidate -> enactEffect $ f candidate
+        Just candidate -> enactElectCont $ f candidate
 
 
-anyEnemy :: (HearthMonad m) => Selection -> (CharacterHandle -> Effect) -> Hearth m ()
-anyEnemy selection f = logCall 'anyEnemy $ do
+anyEnemy :: forall m a. (HearthMonad m, EnactElect a) => (CharacterHandle -> ElectCont a) -> Hearth m ()
+anyEnemy f = logCall 'anyEnemy $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
         bms <- view $ getPlayer opponentHandle.playerMinions
         return $ map (\bm -> Right $ bm^.boardMinionHandle) bms
     let playerCandidates = [Left opponentHandle]
         candidates = playerCandidates ++ minionCandidates
+        selection = runtimeSelection (Proxy :: Proxy a)
     pickFrom selection candidates >>= \case
         Nothing -> return ()
-        Just candidate -> enactEffect $ f candidate
+        Just candidate -> enactElectCont $ f candidate
 
 
-anyCharacter :: (HearthMonad m) => Selection -> (CharacterHandle -> Effect) -> Hearth m ()
-anyCharacter selection f = logCall 'anyCharacter $ do
+anyCharacter :: forall m a. (HearthMonad m, EnactElect a) => (CharacterHandle -> ElectCont a) -> Hearth m ()
+anyCharacter f = logCall 'anyCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         return $ map (\bm -> Right $ bm^.boardMinionHandle) bms
     let playerCandidates = map Left pHandles
         candidates = playerCandidates ++ minionCandidates
+        selection = runtimeSelection (Proxy :: Proxy a)
     pickFrom selection candidates >>= \case
         Nothing -> return ()
-        Just candidate -> enactEffect $ f candidate
+        Just candidate -> enactElectCont $ f candidate
 
 
-anotherMinion :: (HearthMonad m) => Selection -> MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
-anotherMinion selection bannedHandle f = logCall 'anotherMinion $ do
+anotherMinion :: forall m a. (HearthMonad m, EnactElect a) => MinionHandle -> (MinionHandle -> ElectCont a) -> Hearth m ()
+anotherMinion bannedHandle f = logCall 'anotherMinion $ do
     handles <- getPlayerHandles
     candidates <- liftM concat $ forM handles $ \handle -> do
         bms <- view $ getPlayer handle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
         return $ filter (/= bannedHandle) bmHandles
+    let selection = runtimeSelection (Proxy :: Proxy a)
     pickFrom selection candidates >>= \case
         Nothing -> return ()
-        Just candidate -> enactEffect $ f candidate
+        Just candidate -> enactElectCont $ f candidate
 
 
-anotherFriendlyMinion :: (HearthMonad m) => Selection -> MinionHandle -> (MinionHandle -> Effect) -> Hearth m ()
-anotherFriendlyMinion selection bannedHandle f = logCall 'anotherFriendlyMinion $ do
+anotherFriendlyMinion :: forall m a. (HearthMonad m, EnactElect a) => MinionHandle -> (MinionHandle -> ElectCont a) -> Hearth m ()
+anotherFriendlyMinion bannedHandle f = logCall 'anotherFriendlyMinion $ do
     controller <- controllerOf bannedHandle
     candidates <- do
         bms <- view $ getPlayer controller.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
         return $ filter (/= bannedHandle) bmHandles
+    let selection = runtimeSelection (Proxy :: Proxy a)
     pickFrom selection candidates >>= \case
         Nothing -> return ()
-        Just candidate -> enactEffect $ f candidate
+        Just candidate -> enactElectCont $ f candidate
 
 
-pickFrom :: (HearthMonad m, Eq a) => Selection -> [a] -> Hearth m (Maybe a)
-pickFrom _ = logCall 'pickFrom . \case
+class (Eq a) => Pickable a where
+    promptPick :: GameSnapshot -> Selection -> NonEmpty a -> HearthPrompt a
+
+
+instance Pickable MinionHandle where
+    promptPick = PromptPickMinion
+
+
+instance Pickable PlayerHandle where
+    promptPick = PromptPickPlayer
+
+
+instance Pickable CharacterHandle where
+    promptPick = PromptPickCharacter
+
+
+pickFrom :: (HearthMonad m, Pickable a) => Selection -> [a] -> Hearth m (Maybe a)
+pickFrom selection = logCall 'pickFrom . \case
     [] -> return Nothing
     xs -> do
-        x <- guardedPrompt (PromptPickRandom $ NonEmpty.fromList xs) (`elem` xs)
+        snap <- gets GameSnapshot
+        x <- guardedPrompt (promptPick snap selection $ NonEmpty.fromList xs) (`elem` xs)
         return $ Just x
 
 
