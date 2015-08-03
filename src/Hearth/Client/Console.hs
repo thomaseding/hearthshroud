@@ -145,6 +145,8 @@ data ConsoleState = ConsoleState {
     _gameSeed :: Maybe Int,
     _runGame :: Bool,
     _pendingTargets :: [SignedInt],
+    _playedMinionIdx :: Maybe Int,
+    _isAutoplay :: Bool,
     _logState :: LogState
 } deriving (Show, Eq, Ord)
 makeLenses ''ConsoleState
@@ -378,21 +380,25 @@ class MakePick s where
 
 
 instance MakePick AtRandom where
-    mkPick _ _ = liftM RandomPick . pickRandom
+    mkPick _ _ = liftM AtRandomPick . pickRandom
 
 
 instance MakePick Targeted where
     mkPick fromSignedInt snapshot candidates = do
-        view pendingTargets >>= \case
-            [] -> return AbortTargetPick
-            pendingTarget : rest -> do
-                pendingTargets .= rest
-                mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
-                case mTarget of
-                    Nothing -> return AbortTargetPick
-                    Just target -> case target `elem` toList candidates of
-                        True -> return $ TargetPick target
-                        False -> return AbortTargetPick
+        view isAutoplay >>= \case
+            True -> liftM TargetedPick $ pickRandom candidates
+            False -> let
+                abort = return AbortTargetedPick
+                in view pendingTargets >>= \case
+                    [] -> abort
+                    pendingTarget : rest -> do
+                        pendingTargets .= rest
+                        mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
+                        case mTarget of
+                            Nothing -> abort
+                            Just target -> case target `elem` toList candidates of
+                                True -> return $ TargetedPick target
+                                False -> abort
 
 
 pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty MinionHandle -> Console (PickResult s MinionHandle)
@@ -476,6 +482,8 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _gameSeed = Nothing,
             _runGame = True,
             _pendingTargets = [],
+            _playedMinionIdx = Nothing,
+            _isAutoplay = False,
             _logState = LogState {
                 _loggedLines = [""],
                 _totalLines = 1,
@@ -546,13 +554,17 @@ presentPrompt promptMessage responseParser = do
 
 
 parseActionResponse :: [String] -> Hearth Console Action
-parseActionResponse response = case runOptions actionOptions response of
-    Left (ParseFailed err _ _) -> do
-        liftIO $ putStrLn err
-        process ComplainRetryAction
-    Right ms -> case ms of
-        [m] -> m >>= process
-        _ -> process ComplainRetryAction
+parseActionResponse response = do
+    lift $ do
+        isAutoplay .= False
+        playedMinionIdx .= Nothing
+    case runOptions actionOptions response of
+        Left (ParseFailed err _ _) -> do
+            liftIO $ putStrLn err
+            process ComplainRetryAction
+        Right ms -> case ms of
+            [m] -> m >>= process
+            _ -> process ComplainRetryAction
     where
         process = \case
             QuitAction -> liftM ActionPlayerConceded getActivePlayerHandle
@@ -576,9 +588,9 @@ actionOptions = do
         quitAction
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
-    addOption (kw "1" `argText` "MINION POS" `text` "Plays MINION from your hand to board POS.")
+    addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.")
         nonParseable
-    addOption (kw "1" `argText` "SPELL" `text` "Plays SPELL from your hand.")
+    addOption (kw "1" `argText` "SPELL TARGETS*" `text` "Plays SPELL from your hand.")
         playCardAction
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
         attackAction
@@ -733,7 +745,7 @@ instance PickRandom (NonEmpty a) a where
 
 
 autoplayAction :: Hearth Console ConsoleAction
-autoplayAction = liftIO (shuffleM activities) >>= decideAction
+autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= decideAction
     where
         decideAction = \case
             [] -> endTurnAction
@@ -850,20 +862,24 @@ fetchMinionHandle :: SignedInt -> Hearth Console (Maybe MinionHandle)
 fetchMinionHandle (SignedInt sign idx) = case idx of
     0 -> return Nothing
     _ -> do
+        mStradleIdx <- lift $ view playedMinionIdx
         p <- case sign of
             Positive -> getActivePlayerHandle
             Negative -> getNonActivePlayerHandle
         ms <- view $ getPlayer p.playerMinions
-        return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1
+        return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1 + case sign of
+            Negative -> 0
+            Positive -> case mStradleIdx of
+                Nothing -> 0
+                Just stradleIdx -> case idx < stradleIdx of
+                    True -> 0
+                    False -> 1
 
 
 fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe CharacterHandle)
-fetchCharacterHandle (SignedInt sign idx) = do
-    p <- case sign of
-        Positive -> getActivePlayerHandle
-        Negative -> getNonActivePlayerHandle
-    ms <- view $ getPlayer p.playerMinions
-    return $ lookupIndex (Left p : map characterHandle ms) idx
+fetchCharacterHandle idx = fetchPlayerHandle idx >>= \case
+    Just handle -> return $ Just $ Left handle
+    Nothing -> liftM (liftM Right) $ fetchMinionHandle idx
 
 
 attackAction :: SignedInt -> SignedInt -> Hearth Console ConsoleAction
@@ -880,24 +896,44 @@ attackAction attackerIdx defenderIdx = do
 playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
 
+    goMinion :: Int -> HandCard -> Hearth Console ConsoleAction
     goMinion boardIdx card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
+        lift $ playedMinionIdx .= Just boardIdx
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
             False -> return ComplainRetryAction
             True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
 
-    goSpell s = return $ GameAction $ ActionPlaySpell s
+    goSpell :: HandCard -> Hearth Console ConsoleAction
+    goSpell card = return $ GameAction $ ActionPlaySpell card
 
+    go :: Int -> [SignedInt] -> (HandCard -> Hearth Console ConsoleAction) -> Hearth Console ConsoleAction
     go handIdx consoleTargets continuation = do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
         let mCard = lookupIndex cards $ length cards - handIdx
         case mCard of
             Nothing -> return ComplainRetryAction
-            Just card -> do
-                lift $ pendingTargets .= consoleTargets
-                continuation card
+            Just card -> continuation card >>= \case
+                GameAction action -> do
+                    lift $ pendingTargets .= consoleTargets
+                    result <- local id $ do
+                        v <- lift $ view $ logState.verbosity
+                        lift $ logState.verbosity .= Quiet
+                        result <- enactAction action >>= return . \case
+                            Right EndTurn -> Failure   -- This should never get hit.
+                            Left result -> result
+                        lift $ logState.verbosity .= v
+                        return result
+                    case result of
+                        Success -> lift (view pendingTargets) >>= \case
+                            [] -> do
+                                lift $ pendingTargets .= consoleTargets
+                                return $ GameAction action
+                            _ -> return ComplainRetryAction
+                        Failure -> return ComplainRetryAction
+                action -> return action
     in \case
         List (SignedInt Positive handIdx : SignedInt Positive boardIdx : consoleTargets) -> go handIdx consoleTargets $ goMinion boardIdx
         List (SignedInt Positive handIdx : consoleTargets) -> go handIdx consoleTargets goSpell

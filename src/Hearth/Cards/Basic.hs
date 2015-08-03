@@ -198,10 +198,10 @@ stormwindKnight = minion StormwindKnight 4 2 5 [
 swipe :: DeckCard
 swipe = spell Swipe 4 $ \_ ->
     Targeted $ AnyEnemy $ \target ->
-        Targeted $ OtherEnemies target $ \other ->
-            Effect $ Sequence [
-                DealDamage target 4,
-                DealDamage other 1 ]
+        Effect $ Sequence [
+            DealDamage target 4,
+            Elect $ OtherEnemies target $ \other ->
+                FromRandom $ DealDamage other 1 ]
 
 
 theCoin :: DeckCard

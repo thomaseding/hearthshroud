@@ -33,12 +33,14 @@ data family PickResult s a
 
 
 data instance PickResult AtRandom a
-    = RandomPick a
+    = AtRandomPick a
+    deriving (Show, Eq, Ord)
 
 
 data instance PickResult Targeted a
-    = TargetPick a
-    | AbortTargetPick
+    = TargetedPick a
+    | AbortTargetedPick
+    deriving (Show, Eq, Ord)
 
 
 data HearthPrompt :: * -> * where

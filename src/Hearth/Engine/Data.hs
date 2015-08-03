@@ -44,7 +44,7 @@ instance (Monad m) => MonadReader st (Hearth' st m) where
 
 
 type Hearth = Hearth' GameState
-type HearthMonad m = MonadPrompt HearthPrompt m
+type HearthMonad m = (MonadPrompt HearthPrompt m)
 
 
 type instance Zoomed (Hearth' st m) = Focusing m
