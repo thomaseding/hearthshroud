@@ -565,26 +565,26 @@ enactEffect = logCall 'enactEffect . \case
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
     With with -> enactWith with
+    For for -> enactFor for
     where
         success = purePick ()
 
 
 enactWith :: (HearthMonad m, EnactElectCont s) => With -> Hearth m (Maybe (PickResult s ()))
 enactWith = logCall 'enactWith $ \case
-    Each x -> enactEach x
-    Others x -> enactOthers x
-    Of x -> enactOf x
+    All x -> enactAll x
+    Only x -> enactOnly x
 
 
-enactEach :: (HearthMonad m, EnactElectCont s) => Each -> Hearth m (Maybe (PickResult s ()))
-enactEach = logCall 'enactEach $ \case
-    EachMinion handles cont -> enactWithEach handles cont
-    EachPlayer handles cont -> enactWithEach handles cont
-    EachCharacter handles cont -> enactWithEach handles cont
+enactFor :: (HearthMonad m, EnactElectCont s) => For -> Hearth m (Maybe (PickResult s ()))
+enactFor = logCall 'enactFor $ \case
+    EachMinion handles cont -> enactForEach handles cont
+    EachPlayer handles cont -> enactForEach handles cont
+    EachCharacter handles cont -> enactForEach handles cont
 
 
-enactWithEach :: (HearthMonad m, EnactElectCont s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
-enactWithEach handles cont = logCall 'enactWithEach $ do
+enactForEach :: (HearthMonad m, EnactElectCont s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
+enactForEach handles cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
@@ -830,14 +830,14 @@ enactElect = logCall 'enactElect . \case
     AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
 
 
-enactOthers :: (HearthMonad m, EnactElectCont s) => Others -> Hearth m (Maybe (PickResult s ()))
-enactOthers = logCall 'enactOthers . \case
+enactAll :: (HearthMonad m, EnactElectCont s) => All -> Hearth m (Maybe (PickResult s ()))
+enactAll = logCall 'enactAll . \case
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-enactOf :: (HearthMonad m, EnactElectCont s) => Of -> Hearth m (Maybe (PickResult s ()))
-enactOf = logCall 'enactElect . \case
+enactOnly :: (HearthMonad m, EnactElectCont s) => Only -> Hearth m (Maybe (PickResult s ()))
+enactOnly = logCall 'enactOnly . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f

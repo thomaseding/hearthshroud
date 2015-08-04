@@ -53,8 +53,8 @@ arcaneGolem :: DeckCard
 arcaneGolem = minion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
-        Effect $ With $ Of $ ControllerOf this $ \controller ->
-            With $ Of $ OpponentOf controller $ \opponent ->
+        Effect $ With $ Only $ ControllerOf this $ \controller ->
+            With $ Only $ OpponentOf controller $ \opponent ->
                 GainManaCrystal CrystalFull opponent ]
 
 

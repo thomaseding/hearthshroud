@@ -24,7 +24,7 @@ module Hearth.Model where
 
 import Control.Lens hiding (Each)
 import Data.Data
-import Data.Monoid
+import Data.Monoid (Monoid)
 import Hearth.Names
 import GHC.Generics
 
@@ -123,6 +123,7 @@ data Elect :: * -> * where
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
     With :: With -> Effect
+    For :: For -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
@@ -133,27 +134,26 @@ data Effect :: * where
     deriving (Typeable)
 
 
-data Each :: * where
-    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> Each
-    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> Each
-    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> Each
+data For :: * where
+    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> For
+    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> For
+    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> For
 
 
-data Others :: * where
-    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> Others
-    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> Others
+data All :: * where
+    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
+    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
 
 
-data Of :: * where
-    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Of
-    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Of
-    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Of
+data Only :: * where
+    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Only
+    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Only
+    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Only
 
 
 data With :: * where
-    Each :: Each -> With
-    Others :: Others -> With
-    Of :: Of -> With
+    All :: All -> With
+    Only :: Only -> With
 
 
 data KeywordEffect :: * where

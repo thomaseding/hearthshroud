@@ -235,29 +235,29 @@ showEffect = \case
     GiveAbility handle abilities -> showGiveAbility handle abilities
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
     With with -> showWith with
+    For for -> showFor for
 
 
 showWith :: With -> ShowCard String
 showWith = \case
-    Each x -> showEach x
-    Others x -> showOthers x
-    Of x -> showOf x
+    All x -> showAll x
+    Only x -> showOnly x
 
 
-showEach :: Each -> ShowCard String
-showEach = \case
-    EachMinion handles cont -> showWithEach handles cont
-    EachPlayer handles cont -> showWithEach handles cont
-    EachCharacter handles cont -> showWithEach handles cont
+showFor :: For -> ShowCard String
+showFor = \case
+    EachMinion handles cont -> showForEach handles cont
+    EachPlayer handles cont -> showForEach handles cont
+    EachCharacter handles cont -> showForEach handles cont
 
 
-showWithEach :: (ReadHandle a) => [a] -> (a -> Effect) -> ShowCard String
-showWithEach handles cont = case handles of
+showForEach :: (ReadHandle a) => [a] -> (a -> Effect) -> ShowCard String
+showForEach handles cont = case handles of
     [handle] -> do
         str <- readHandle handle
         effectStr <- showEffect $ cont handle
-        return $ "WithEach " ++ str ++ "s: " ++ effectStr
-    _ -> $logicError 'showWithEach "xxx"
+        return $ "ForEach " ++ str ++ "s: " ++ effectStr
+    _ -> $logicError 'showForEach "xxx"
 
 
 showElect :: (ShowElect a) => Elect a -> ShowCard String
@@ -269,15 +269,15 @@ showElect = \case
     AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
 
 
-showOf :: Of -> ShowCard String
-showOf = \case
+showOnly :: Only -> ShowCard String
+showOnly = \case
     CasterOf handle effectHole -> showCasterOf handle effectHole
     OpponentOf handle effectHole -> showOpponentOf handle effectHole
     ControllerOf handle effectHole -> showControllerOf handle effectHole
 
 
-showOthers :: Others -> ShowCard String
-showOthers = \case
+showAll :: All -> ShowCard String
+showAll = \case
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
     OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
 
