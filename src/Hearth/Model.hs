@@ -163,7 +163,7 @@ data KeywordEffect :: * where
 
 data Ability :: * where
     KeywordAbility :: KeywordAbility -> Ability
-    deriving (Show, Typeable)
+    deriving (Typeable)
 
 
 data KeywordAbility :: * where
@@ -175,10 +175,6 @@ data KeywordAbility :: * where
     deriving (Typeable)
 
 
-instance Show KeywordAbility where
-    show _ = "KeywordAbility"
-
-
 data Enchantment :: * where
     StatsDelta :: Attack -> Health -> Enchantment
     --FrozenUntil :: Turn -> Enchantment
@@ -188,15 +184,11 @@ data Enchantment :: * where
 type SpellEffect = SpellHandle -> ElectCont Targeted
 
 
-instance Show SpellEffect where
-    show _ = "SpellEffect"
-
-
 data Spell = Spell {
     _spellCost :: Cost,
     _spellEffect :: SpellEffect,
     _spellName :: CardName
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''Spell
 
 
@@ -206,7 +198,7 @@ data Minion = Minion {
     _minionHealth :: Health,
     _minionAbilities :: [Ability],
     _minionName :: CardName
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''Minion
 
 
@@ -225,7 +217,7 @@ makeLenses ''BoardMinion
 data DeckMinion = DeckMinion {
     _deckMinion :: Minion,
     _deckSpell :: Spell
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''DeckMinion
 
 
@@ -260,24 +252,24 @@ makeLenses ''BoardHero
 data HandCard :: * where
     HandCardMinion ::Minion -> HandCard
     HandCardSpell :: Spell -> HandCard
-    deriving (Show, Typeable)
+    deriving (Typeable)
 
 
 data DeckCard :: * where
     DeckCardMinion :: Minion -> DeckCard
     DeckCardSpell :: Spell -> DeckCard
-    deriving (Show, Typeable)
+    deriving (Typeable)
 
 
 newtype Hand = Hand {
     _handCards :: [HandCard]
-} deriving (Show, Monoid, Generic, Typeable)
+} deriving (Monoid, Generic, Typeable)
 makeLenses ''Hand
 
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
-} deriving (Show, Monoid, Generic, Typeable)
+} deriving (Monoid, Generic, Typeable)
 makeLenses ''Deck
 
 

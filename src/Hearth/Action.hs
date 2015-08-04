@@ -20,7 +20,6 @@ data Action :: * where
     ActionPlayMinion :: HandCard -> BoardPos -> Action
     ActionPlaySpell :: HandCard -> Action
     ActionAttack :: CharacterHandle -> CharacterHandle -> Action
-    deriving (Show)
 
 
 

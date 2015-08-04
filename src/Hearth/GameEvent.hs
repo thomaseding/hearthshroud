@@ -34,7 +34,7 @@ data GameEvent :: * where
     LostDivineShield :: MinionHandle -> GameEvent
     Silenced :: MinionHandle -> GameEvent
     AttackFailed :: AttackFailedReason -> GameEvent
-    deriving (Show, Typeable)
+    deriving (Typeable)
 
 
 data AttackFailedReason :: * where
