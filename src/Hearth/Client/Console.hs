@@ -837,14 +837,14 @@ readCardInHandAction (SignedInt sign handIdx) = do
                 let cardStr = showCard card
                 setCursorPosition 2 0
                 clearScreen
+                printBanner 75
+                cursorUpLine 10
                 putStrLn "  __________________ "
                 putStrLn " /                  \\"
                 putStrLn " | CARD INFORMATION |"
                 putStrLn " \\__________________/"
                 putStrLn ""
                 forM_ (lines cardStr) $ \ln -> putStrLn $ "  " ++ ln
-                cursorUpLine $ 7 + length (lines cardStr)
-                printBanner 75
                 putStrLn ""
                 enterToContinue
                 return QuietRetryAction
