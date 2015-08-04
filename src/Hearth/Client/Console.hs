@@ -77,6 +77,14 @@ import Text.Read (readMaybe)
 --------------------------------------------------------------------------------
 
 
+simpleParse :: (String -> Maybe a) -> [String] -> (Maybe a, Int)
+simpleParse parser args = case args of
+        [] -> (Nothing, 0)
+        s : _ -> case parser s of
+            Nothing -> (Nothing, 0)
+            Just x -> (Just x, 1)
+
+
 defaultVerbosity :: Verbosity
 defaultVerbosity = GameEventsOnly
 
