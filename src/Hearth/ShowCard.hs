@@ -239,6 +239,13 @@ showEffect = \case
 
 showWith :: With -> ShowCard String
 showWith = \case
+    Each x -> showEach x
+    Others x -> showOthers x
+    Of x -> showOf x
+
+
+showEach :: Each -> ShowCard String
+showEach = \case
     EachMinion handles cont -> showWithEach handles cont
     EachPlayer handles cont -> showWithEach handles cont
     EachCharacter handles cont -> showWithEach handles cont
@@ -255,14 +262,22 @@ showWithEach handles cont = case handles of
 
 showElect :: (ShowElect a) => Elect a -> ShowCard String
 showElect = \case
-    CasterOf handle effectHole -> showCasterOf handle effectHole
-    OpponentOf handle effectHole -> showOpponentOf handle effectHole
-    ControllerOf handle effectHole -> showControllerOf handle effectHole
     AnyCharacter effectHole -> showAnyCharacter effectHole
     AnyEnemy effectHole -> showAnyEnemy effectHole
     AnotherCharacter handle effectHole -> showAnotherCharacter handle effectHole
     AnotherMinion handle effectHole -> showAnotherMinion handle effectHole
     AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
+
+
+showOf :: Of -> ShowCard String
+showOf = \case
+    CasterOf handle effectHole -> showCasterOf handle effectHole
+    OpponentOf handle effectHole -> showOpponentOf handle effectHole
+    ControllerOf handle effectHole -> showControllerOf handle effectHole
+
+
+showOthers :: Others -> ShowCard String
+showOthers = \case
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
     OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
 
@@ -284,20 +299,20 @@ instance ShowElect AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showOtherEnemies :: (ShowElect a) => CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> ShowCard String
+showOtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
 showOtherEnemies character effectHole = do
     other <- readHandle character >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_ENEMY"
         str -> genHandle ("(OTHER_ENEMY " ++ str ++ ")")
-    showElectCont $ effectHole [other]
+    showEffect $ effectHole [other]
 
 
-showOtherCharacters :: (ShowElect a) => CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> ShowCard String
+showOtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
 showOtherCharacters character effectHole = do
     other <- readHandle character >>= \case
         (is this -> True) -> genNumberedHandle "OTHER_CHARACTER"
         str -> genHandle ("(OTHER_CHARACTER " ++ str ++ ")")
-    showElectCont $ effectHole [other]
+    showEffect $ effectHole [other]
 
 
 showAnotherCharacter :: forall a. (ShowElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> ShowCard String
@@ -341,28 +356,28 @@ showAnotherFriendlyMinion minion effectHole = do
     showElectCont $ effectHole other
 
 
-showCasterOf :: (ShowElect a) => SpellHandle -> (PlayerHandle -> ElectCont a) -> ShowCard String
+showCasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showCasterOf spell effectHole = do
     player <- readHandle spell >>= \case
         (is this -> True) -> genHandle you
         str -> genHandle ("(CASTER_OF " ++ str ++ ")")
-    showElectCont $ effectHole player
+    showEffect $ effectHole player
 
 
-showControllerOf :: (ShowElect a) => MinionHandle -> (PlayerHandle -> ElectCont a) -> ShowCard String
+showControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showControllerOf minion effectHole = do
     player <- readHandle minion >>= \case
         (is this -> True) -> genHandle you
         str -> genHandle ("(CONTROLLER_OF " ++ str ++ ")")
-    showElectCont $ effectHole player
+    showEffect $ effectHole player
 
 
-showOpponentOf :: (ShowElect a) => PlayerHandle -> (PlayerHandle -> ElectCont a) -> ShowCard String
+showOpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> ShowCard String
 showOpponentOf minion effectHole = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
         str -> genHandle ("(OPPONENT_OF " ++ str ++ ")")
-    showElectCont $ effectHole player
+    showEffect $ effectHole player
 
 
 showSequence :: [Effect] -> ShowCard String

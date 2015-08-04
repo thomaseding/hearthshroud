@@ -21,7 +21,7 @@ module Hearth.Engine (
 
 
 import Control.Error.TH
-import Control.Lens
+import Control.Lens hiding (Each)
 import Control.Lens.Helper
 import Control.Monad.Loops
 import Control.Monad.Prompt hiding (Effect)
@@ -571,6 +571,13 @@ enactEffect = logCall 'enactEffect . \case
 
 enactWith :: (HearthMonad m, EnactElectCont s) => With -> Hearth m (Maybe (PickResult s ()))
 enactWith = logCall 'enactWith $ \case
+    Each x -> enactEach x
+    Others x -> enactOthers x
+    Of x -> enactOf x
+
+
+enactEach :: (HearthMonad m, EnactElectCont s) => Each -> Hearth m (Maybe (PickResult s ()))
+enactEach = logCall 'enactEach $ \case
     EachMinion handles cont -> enactWithEach handles cont
     EachPlayer handles cont -> enactWithEach handles cont
     EachCharacter handles cont -> enactWithEach handles cont
@@ -816,19 +823,27 @@ instance EnactElectCont AtRandom where
 
 enactElect :: (HearthMonad m, EnactElectCont s) => Elect s -> Hearth m (Maybe (PickResult s ()))
 enactElect = logCall 'enactElect . \case
-    CasterOf _ f -> getActivePlayerHandle >>= enactElectCont f . purePick
-    OpponentOf _ f -> getNonActivePlayerHandle >>= enactElectCont f . purePick
-    ControllerOf minionHandle f -> controllerOf minionHandle >>= enactElectCont f . purePick
     AnyCharacter f -> anyCharacter f
     AnyEnemy f -> anyEnemy f
     AnotherCharacter bannedMinion f -> anotherCharacter bannedMinion f
     AnotherMinion bannedMinion f -> anotherMinion bannedMinion f
     AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
+
+
+enactOthers :: (HearthMonad m, EnactElectCont s) => Others -> Hearth m (Maybe (PickResult s ()))
+enactOthers = logCall 'enactOthers . \case
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-otherEnemies :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+enactOf :: (HearthMonad m, EnactElectCont s) => Of -> Hearth m (Maybe (PickResult s ()))
+enactOf = logCall 'enactElect . \case
+    CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
+    OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
+    ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
+
+
+otherEnemies :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
 otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
@@ -837,10 +852,10 @@ otherEnemies bannedHandle f = logCall 'otherEnemies $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) [Left opponentHandle]
         candidates = playerCandidates ++ minionCandidates
-    enactElectCont f $ purePick candidates
+    enactEffect $ f candidates
 
 
-otherCharacters :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+otherCharacters :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
 otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -849,7 +864,7 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
         candidates = playerCandidates ++ minionCandidates
-    enactElectCont f $ purePick candidates
+    enactEffect $ f candidates
 
 
 anotherCharacter :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))

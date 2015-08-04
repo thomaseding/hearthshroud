@@ -22,7 +22,7 @@ module Hearth.Model where
 --------------------------------------------------------------------------------
 
 
-import Control.Lens
+import Control.Lens hiding (Each)
 import Data.Data
 import Data.Monoid
 import Hearth.Names
@@ -112,16 +112,11 @@ newtype instance ElectCont AtRandom
 
 
 data Elect :: * -> * where
-    CasterOf :: SpellHandle -> (PlayerHandle -> ElectCont a) -> Elect a
-    OpponentOf :: PlayerHandle -> (PlayerHandle -> ElectCont a) -> Elect a
-    ControllerOf :: MinionHandle -> (PlayerHandle -> ElectCont a) -> Elect a
     AnyCharacter :: (CharacterHandle -> ElectCont a) -> Elect a
     AnyEnemy :: (CharacterHandle -> ElectCont a) -> Elect a
     AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
     AnotherMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
     AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
-    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> Elect a
-    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> Elect a
     deriving (Typeable)
 
 
@@ -138,10 +133,27 @@ data Effect :: * where
     deriving (Typeable)
 
 
+data Each :: * where
+    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> Each
+    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> Each
+    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> Each
+
+
+data Others :: * where
+    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> Others
+    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> Others
+
+
+data Of :: * where
+    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Of
+    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Of
+    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Of
+
+
 data With :: * where
-    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> With
-    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> With
-    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> With
+    Each :: Each -> With
+    Others :: Others -> With
+    Of :: Of -> With
 
 
 data KeywordEffect :: * where
