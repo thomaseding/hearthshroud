@@ -564,8 +564,21 @@ enactEffect = logCall 'enactEffect . \case
     Enchant handle enchantments -> enchant handle enchantments >> return success
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
+    With with -> enactWith with
     where
         success = purePick ()
+
+
+enactWith :: (HearthMonad m, EnactElectCont s) => With -> Hearth m (Maybe (PickResult s ()))
+enactWith = logCall 'enactWith $ \case
+    EachMinion handles cont -> enactWithEach handles cont
+    EachPlayer handles cont -> enactWithEach handles cont
+    EachCharacter handles cont -> enactWithEach handles cont
+
+
+enactWithEach :: (HearthMonad m, EnactElectCont s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
+enactWithEach handles cont = logCall 'enactWithEach $ do
+    liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
 sequenceEffects :: (HearthMonad m, EnactElectCont s, Eq (PickResult s ())) => [Effect] -> Hearth m (Maybe (PickResult s ()))
@@ -750,11 +763,11 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
             case loseDivineShield bm of
                 Just bm' -> do
                     getMinion handle .= bm'
-                    prompt $ PromptGameEvent $ LostDivineShield bm'
+                    prompt $ PromptGameEvent $ LostDivineShield $ handle
                 Nothing -> do
                     let bm' = bm & boardMinionDamage +~ damage
                     getMinion handle .= bm'
-                    prompt $ PromptGameEvent $ MinionTakesDamage bm damage
+                    prompt $ PromptGameEvent $ MinionTakesDamage handle damage
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
@@ -815,7 +828,7 @@ enactElect = logCall 'enactElect . \case
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-otherEnemies :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+otherEnemies :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
 otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
@@ -824,10 +837,10 @@ otherEnemies bannedHandle f = logCall 'otherEnemies $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) [Left opponentHandle]
         candidates = playerCandidates ++ minionCandidates
-    liftM condensePickResults $ forM candidates $ enactElectCont f . purePick
+    enactElectCont f $ purePick candidates
 
 
-otherCharacters :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+otherCharacters :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
 otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -836,7 +849,7 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
         return $ filter (/= bannedHandle) $ map Right bmHandles
     let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
         candidates = playerCandidates ++ minionCandidates
-    liftM condensePickResults $ forM candidates $ enactElectCont f . purePick
+    enactElectCont f $ purePick candidates
 
 
 anotherCharacter :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
@@ -987,11 +1000,12 @@ withMinions f = logCall 'withMinions $ do
 
 clearDeadMinions :: (HearthMonad m) => Hearth m ()
 clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
-    dead <- isDead $ Right $ bm^.boardMinionHandle
+    let handle = bm^.boardMinionHandle
+    dead <- isDead $ Right handle
     case dead of
         False -> return $ Just bm
         True -> do
-            prompt $ PromptGameEvent $ MinionDied bm
+            prompt $ PromptGameEvent $ MinionDied handle
             return Nothing
 
 

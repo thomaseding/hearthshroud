@@ -92,8 +92,9 @@ coreHound = minion CoreHound 7 9 5 []
 dreadInfernal :: DeckCard
 dreadInfernal = minion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ OtherCharacters (Right this) $ \victim ->
-            Effect $ DealDamage victim 1 ]
+        Targeted $ OtherCharacters (Right this) $ \victims ->
+            Effect $ With $ EachCharacter victims $ \victim ->
+                DealDamage victim 1 ]
 
 
 elvenArcher :: DeckCard
@@ -198,10 +199,11 @@ stormwindKnight = minion StormwindKnight 4 2 5 [
 swipe :: DeckCard
 swipe = spell Swipe 4 $ \_ ->
     Targeted $ AnyEnemy $ \target ->
-        Effect $ Sequence [
-            DealDamage target 4,
-            Elect $ OtherEnemies target $ \other ->
-                FromRandom $ DealDamage other 1 ]
+        Targeted $ OtherEnemies target $ \others ->
+            Effect $ Sequence [
+                DealDamage target 4,
+                With $ EachCharacter others $ \other ->
+                    DealDamage other 1 ]
 
 
 theCoin :: DeckCard

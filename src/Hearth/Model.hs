@@ -120,17 +120,14 @@ data Elect :: * -> * where
     AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
     AnotherMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
     AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
-    OtherCharacters :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
-    OtherEnemies :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
+    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> Elect a
+    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> Elect a
     deriving (Typeable)
-
-
-instance Show (Elect a) where
-    show _ = "Elect"
 
 
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
+    With :: With -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
@@ -138,7 +135,13 @@ data Effect :: * where
     Enchant :: MinionHandle -> [Enchantment] -> Effect
     GiveAbility :: MinionHandle -> [Ability] -> Effect
     GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
-    deriving (Show, Typeable)
+    deriving (Typeable)
+
+
+data With :: * where
+    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> With
+    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> With
+    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> With
 
 
 data KeywordEffect :: * where
@@ -203,7 +206,7 @@ data BoardMinion = BoardMinion {
     _boardMinionNewlySummoned :: Bool,
     _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''BoardMinion
 
 
@@ -214,10 +217,13 @@ data DeckMinion = DeckMinion {
 makeLenses ''DeckMinion
 
 
+type HeroPowerEffect = PlayerHandle -> ElectCont Targeted
+
+
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
-    _heroPowerEffects :: [Effect]
-} deriving (Show, Typeable)
+    _heroPowerEffect :: HeroPowerEffect
+} deriving (Typeable)
 makeLenses ''HeroPower
 
 
@@ -226,7 +232,7 @@ data Hero = Hero {
     _heroHealth :: Health,
     _heroPower :: HeroPower,
     _heroName :: HeroName
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''Hero
 
 
@@ -235,7 +241,7 @@ data BoardHero = BoardHero {
     _boardHeroArmor :: Armor,
     _boardHeroAttackCount :: Int,
     _boardHero :: Hero
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''BoardHero
 
 
@@ -273,7 +279,7 @@ data Player = Player {
     _playerEmptyManaCrystals :: Int,
     _playerTemporaryManaCrystals :: Int,
     _playerHero :: BoardHero
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''Player
 
 
@@ -282,13 +288,13 @@ data GameState = GameState {
     _gameHandleSeed :: RawHandle,
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''GameState
 
 
 data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
-} deriving (Show, Typeable)
+} deriving (Typeable)
 makeLenses ''GameSnapshot
 
 

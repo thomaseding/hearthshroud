@@ -31,7 +31,7 @@ import Control.Exception hiding (handle)
 import Control.Lens
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
-import Control.Monad.Prompt
+import Control.Monad.Prompt hiding (Effect)
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
@@ -298,11 +298,11 @@ gameEvent = \case
         damageAttr = ("damage", show damage)
         in tag 'HeroTakesDamage [playerAttr, damageAttr]
     MinionTakesDamage bm (Damage damage) -> let
-        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        minionAttr = ("minion", show bm)
         dmgAttr = ("dmg", show damage)
         in tag 'MinionTakesDamage [minionAttr, dmgAttr]
     MinionDied bm -> let
-        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        minionAttr = ("minion", show bm)
         in tag 'MinionDied [minionAttr]
     EnactAttack attacker defender -> let
         attackerAttr = ("attacker", show attacker)
@@ -321,7 +321,7 @@ gameEvent = \case
         amountAttr = ("amount", show amount)
         in tag 'ManaCrystalsEmpty [playerAttr, amountAttr]
     LostDivineShield bm -> let
-        minionAttr = ("minion", showCardName $ bm^.boardMinion.minionName)
+        minionAttr = ("minion", show bm)
         in tag 'LostDivineShield [minionAttr]
     Silenced bm -> let
         minionAttr = ("minion", show bm)
@@ -493,7 +493,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 _verbosity = defaultVerbosity } }
         power = HeroPower {
             _heroPowerCost = ManaCost 0,
-            _heroPowerEffects = [] }
+            _heroPowerEffect = \p -> Effect $ DrawCards p 1 }
         hero name = Hero {
             _heroAttack = 0,
             _heroHealth = 30,

@@ -52,14 +52,12 @@ data HearthPrompt :: * -> * where
     PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
     PromptPickAtRandom :: PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
     PromptPickTargeted :: PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
-deriving instance (Show a) => Show (HearthPrompt a)
 
 
 data PromptPick :: * -> * -> * where
     PickMinion :: GameSnapshot -> NonEmpty MinionHandle -> PromptPick s MinionHandle
     PickPlayer :: GameSnapshot -> NonEmpty PlayerHandle -> PromptPick s PlayerHandle
     PickCharacter :: GameSnapshot -> NonEmpty CharacterHandle -> PromptPick s CharacterHandle
-deriving instance Show (PromptPick s a)
 
 
 

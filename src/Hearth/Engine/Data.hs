@@ -83,7 +83,7 @@ instance (HearthMonad m) => LogCall (a -> b -> c -> Hearth' st m z) where
 
 
 data PlayerData = PlayerData Hero Deck
-    deriving (Show, Typeable)
+    deriving (Typeable)
 
 
 

@@ -25,13 +25,13 @@ data GameEvent :: * where
     PlayedMinion :: PlayerHandle -> MinionHandle -> GameEvent
     PlayedSpell :: PlayerHandle -> Spell -> GameEvent   -- TODO: Should take a SpellHandle instead of Spell
     HeroTakesDamage :: PlayerHandle -> Damage -> GameEvent
-    MinionTakesDamage :: BoardMinion -> Damage -> GameEvent
-    MinionDied :: BoardMinion -> GameEvent
+    MinionTakesDamage :: MinionHandle -> Damage -> GameEvent
+    MinionDied :: MinionHandle -> GameEvent
     EnactAttack :: CharacterHandle -> CharacterHandle -> GameEvent
     GainsManaCrystal :: PlayerHandle -> Maybe CrystalState -> GameEvent
     ManaCrystalsRefill :: PlayerHandle -> Int -> GameEvent
     ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
-    LostDivineShield :: BoardMinion -> GameEvent
+    LostDivineShield :: MinionHandle -> GameEvent
     Silenced :: MinionHandle -> GameEvent
     AttackFailed :: AttackFailedReason -> GameEvent
     deriving (Show, Typeable)

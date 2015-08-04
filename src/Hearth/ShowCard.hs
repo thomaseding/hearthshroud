@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -233,6 +234,23 @@ showEffect = \case
     Enchant handle enchantments -> showEnchant handle enchantments
     GiveAbility handle abilities -> showGiveAbility handle abilities
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
+    With with -> showWith with
+
+
+showWith :: With -> ShowCard String
+showWith = \case
+    EachMinion handles cont -> showWithEach handles cont
+    EachPlayer handles cont -> showWithEach handles cont
+    EachCharacter handles cont -> showWithEach handles cont
+
+
+showWithEach :: (ReadHandle a) => [a] -> (a -> Effect) -> ShowCard String
+showWithEach handles cont = case handles of
+    [handle] -> do
+        str <- readHandle handle
+        effectStr <- showEffect $ cont handle
+        return $ "WithEach " ++ str ++ "s: " ++ effectStr
+    _ -> $logicError 'showWithEach "xxx"
 
 
 showElect :: (ShowElect a) => Elect a -> ShowCard String
@@ -266,20 +284,20 @@ instance ShowElect AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showOtherEnemies :: (ShowElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> ShowCard String
+showOtherEnemies :: (ShowElect a) => CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> ShowCard String
 showOtherEnemies character effectHole = do
-    others <- readHandle character >>= \case
-        (is this -> True) -> genNumberedHandle "OTHER_ENEMIES"
-        str -> genHandle ("(OTHER_ENEMIES " ++ str ++ ")")
-    showElectCont $ effectHole others
+    other <- readHandle character >>= \case
+        (is this -> True) -> genNumberedHandle "OTHER_ENEMY"
+        str -> genHandle ("(OTHER_ENEMY " ++ str ++ ")")
+    showElectCont $ effectHole [other]
 
 
-showOtherCharacters :: (ShowElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> ShowCard String
+showOtherCharacters :: (ShowElect a) => CharacterHandle -> ([CharacterHandle] -> ElectCont a) -> ShowCard String
 showOtherCharacters character effectHole = do
-    others <- readHandle character >>= \case
-        (is this -> True) -> genNumberedHandle "OTHER_CHARACTERS"
-        str -> genHandle ("(OTHER_CHARACTERS " ++ str ++ ")")
-    showElectCont $ effectHole others
+    other <- readHandle character >>= \case
+        (is this -> True) -> genNumberedHandle "OTHER_CHARACTER"
+        str -> genHandle ("(OTHER_CHARACTER " ++ str ++ ")")
+    showElectCont $ effectHole [other]
 
 
 showAnotherCharacter :: forall a. (ShowElect a) => CharacterHandle -> (CharacterHandle -> ElectCont a) -> ShowCard String
