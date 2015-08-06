@@ -62,44 +62,27 @@ rawGenHandle str = do
     return handle
 
 
-newtype Witness a = Witness { unWitness :: a }
-    deriving (Functor)
+class GenHandle a where
+    genHandle :: String -> ShowCard (Handle a)
 
 
-observeWitness :: (a -> b) -> (Witness a -> b)
-observeWitness f = f . unWitness
+instance GenHandle Spell where
+    genHandle = liftM SpellHandle . rawGenHandle
 
 
-class MakeWitness a where
-    mkWitness :: Witness a
-
-instance MakeWitness (Handle Spell) where
-    mkWitness = Witness $ SpellHandle 0
-
-instance MakeWitness (Handle Minion) where
-    mkWitness = Witness $ MinionHandle 0
-
-instance MakeWitness (Handle Player) where
-    mkWitness = Witness $ PlayerHandle 0
-
-instance MakeWitness (Handle Character) where
-    mkWitness = fmap PlayerCharacter mkWitness
+instance GenHandle Minion where
+    genHandle = liftM MinionHandle . rawGenHandle
 
 
-genHandle' :: Witness (Handle a) -> String -> ShowCard (Handle a)
-genHandle' = observeWitness $ \case
-    SpellHandle {} -> liftM SpellHandle . rawGenHandle
-    MinionHandle {} -> liftM MinionHandle . rawGenHandle
-    PlayerHandle {} -> liftM PlayerHandle . rawGenHandle
-    MinionCharacter {} -> liftM MinionCharacter . genHandle
-    PlayerCharacter {} -> liftM PlayerCharacter . genHandle
+instance GenHandle Player where
+    genHandle = liftM PlayerHandle . rawGenHandle
 
 
-genHandle :: (MakeWitness (Handle a)) => String -> ShowCard (Handle a)
-genHandle = genHandle' mkWitness
+instance GenHandle Character where
+    genHandle = liftM PlayerCharacter . genHandle
 
 
-genNumberedHandle :: (MakeWitness (Handle a)) => String -> ShowCard (Handle a)
+genNumberedHandle :: (GenHandle a) => String -> ShowCard (Handle a)
 genNumberedHandle str = do
     n <- gets handleSeed
     genHandle $ str ++ "_" ++ show n
