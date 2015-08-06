@@ -148,7 +148,7 @@ data Elect :: * -> * where
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
     With :: With -> Effect
-    For :: For -> Effect
+    ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: PlayerHandle -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
@@ -159,10 +159,6 @@ data Effect :: * where
     deriving (Typeable)
 
 
-data For :: * where
-    EachMinion :: [MinionHandle] -> (MinionHandle -> Effect) -> For
-    EachPlayer :: [PlayerHandle] -> (PlayerHandle -> Effect) -> For
-    EachCharacter :: [CharacterHandle] -> (CharacterHandle -> Effect) -> For
 
 
 data All :: * where
@@ -170,15 +166,15 @@ data All :: * where
     OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
 
 
-data Only :: * where
-    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Only
-    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Only
-    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Only
+data Unique :: * where
+    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Unique
+    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Unique
+    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Unique
 
 
 data With :: * where
     All :: All -> With
-    Only :: Only -> With
+    Unique :: Unique -> With
 
 
 data KeywordEffect :: * where

@@ -93,7 +93,7 @@ dreadInfernal :: DeckCard
 dreadInfernal = minion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ All $ OtherCharacters (MinionCharacter this) $ \victims ->
-            For $ EachCharacter victims $ \victim ->
+            ForEach victims $ \victim ->
                 DealDamage victim 1 ]
 
 
@@ -118,7 +118,7 @@ frostwolfGrunt = minion FrostwolfGrunt 2 2 2 [
 
 innervate :: DeckCard
 innervate = spell Innervate 0 $ \this ->
-    Effect $ With $ Only $ CasterOf this $ \caster ->
+    Effect $ With $ Unique $ CasterOf this $ \caster ->
         Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary caster
 
 
@@ -146,7 +146,7 @@ murlocRaider = minion MurlocRaider 1 2 1 []
 noviceEngineer :: DeckCard
 noviceEngineer = minion NoviceEngineer 2 1 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Effect $ With $ Only $ ControllerOf this $ \controller ->
+        Effect $ With $ Unique $ ControllerOf this $ \controller ->
             DrawCards controller 1 ]
 
 
@@ -173,7 +173,7 @@ shatteredSunCleric = minion ShatteredSunCleric 3 3 2 [
 starfire :: DeckCard
 starfire = spell Starfire 6 $ \this ->
     Targeted $ AnyCharacter $ \target ->
-        Effect $ With $ Only $ CasterOf this $ \caster ->
+        Effect $ With $ Unique $ CasterOf this $ \caster ->
             Sequence [
                 DealDamage target 5,
                 DrawCards caster 1 ]
@@ -202,13 +202,13 @@ swipe = spell Swipe 4 $ \_ ->
         Effect $ With $ All $ OtherEnemies target $ \others ->
             Sequence [
                 DealDamage target 4,
-                For $ EachCharacter others $ \other ->
+                ForEach others $ \other ->
                     DealDamage other 1 ]
 
 
 theCoin :: DeckCard
 theCoin = spell TheCoin 0 $ \this ->
-    Effect $ With $ Only $ CasterOf this $ \caster ->
+    Effect $ With $ Unique $ CasterOf this $ \caster ->
         GainManaCrystal CrystalTemporary caster
 
 
@@ -218,7 +218,7 @@ warGolem = minion WarGolem 7 7 7 []
 
 wildGrowth :: DeckCard
 wildGrowth = spell WildGrowth 2 $ \this ->
-    Effect $ With $ Only $ CasterOf this $ \caster ->
+    Effect $ With $ Unique $ CasterOf this $ \caster ->
         GainManaCrystal CrystalEmpty caster
 
 

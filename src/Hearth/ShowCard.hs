@@ -241,20 +241,13 @@ showEffect = \case
     GiveAbility handle abilities -> showGiveAbility handle abilities
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
     With with -> showWith with
-    For for -> showFor for
+    ForEach handles cont -> showForEach handles cont
 
 
 showWith :: With -> ShowCard String
 showWith = \case
     All x -> showAll x
-    Only x -> showOnly x
-
-
-showFor :: For -> ShowCard String
-showFor = \case
-    EachMinion handles cont -> showForEach handles cont
-    EachPlayer handles cont -> showForEach handles cont
-    EachCharacter handles cont -> showForEach handles cont
+    Unique x -> showUnique x
 
 
 showForEach :: (ReadHandle a) => [a] -> (a -> Effect) -> ShowCard String
@@ -275,8 +268,8 @@ showElect = \case
     AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
 
 
-showOnly :: Only -> ShowCard String
-showOnly = \case
+showUnique :: Unique -> ShowCard String
+showUnique = \case
     CasterOf handle effectHole -> showCasterOf handle effectHole
     OpponentOf handle effectHole -> showOpponentOf handle effectHole
     ControllerOf handle effectHole -> showControllerOf handle effectHole

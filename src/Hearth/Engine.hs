@@ -560,7 +560,7 @@ enactEffect = logCall 'enactEffect . \case
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
     With with -> enactWith with
-    For for -> enactFor for
+    ForEach handles cont -> enactForEach handles cont
     where
         success = purePick ()
 
@@ -568,14 +568,7 @@ enactEffect = logCall 'enactEffect . \case
 enactWith :: (HearthMonad m, EnactElectCont s) => With -> Hearth m (Maybe (PickResult s ()))
 enactWith = logCall 'enactWith $ \case
     All x -> enactAll x
-    Only x -> enactOnly x
-
-
-enactFor :: (HearthMonad m, EnactElectCont s) => For -> Hearth m (Maybe (PickResult s ()))
-enactFor = logCall 'enactFor $ \case
-    EachMinion handles cont -> enactForEach handles cont
-    EachPlayer handles cont -> enactForEach handles cont
-    EachCharacter handles cont -> enactForEach handles cont
+    Unique x -> enactUnique x
 
 
 enactForEach :: (HearthMonad m, EnactElectCont s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
@@ -831,8 +824,8 @@ enactAll = logCall 'enactAll . \case
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-enactOnly :: (HearthMonad m, EnactElectCont s) => Only -> Hearth m (Maybe (PickResult s ()))
-enactOnly = logCall 'enactOnly . \case
+enactUnique :: (HearthMonad m, EnactElectCont s) => Unique -> Hearth m (Maybe (PickResult s ()))
+enactUnique = logCall 'enactUnique . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
