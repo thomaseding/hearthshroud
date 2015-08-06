@@ -81,7 +81,7 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherMinion this $ \target ->
             Effect $ Sequence [
-                DealDamage (Right target) 1,
+                DealDamage (MinionCharacter target) 1,
                 Enchant target [StatsDelta 2 0]]]
 
 

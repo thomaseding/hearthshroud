@@ -27,7 +27,7 @@ boardHeroColumn :: (HearthMonad m) => Player -> Hearth m [SGRString]
 boardHeroColumn player = do
     let pHandle = player^.playerHandle
         hero = player^.playerHero
-    health <- dynamicRemainingHealth $ Left pHandle
+    health <- dynamicRemainingHealth $ PlayerCharacter pHandle
     return $ concat [
         txt "Health",
         txt "------",

@@ -24,6 +24,7 @@ module Hearth.Model where
 
 import Control.Lens hiding (Each)
 import Data.Data
+import Data.Function
 import Data.Monoid (Monoid)
 import Hearth.Names
 import GHC.Generics
@@ -68,19 +69,43 @@ newtype RawHandle = RawHandle Int
     deriving (Show, Eq, Ord, Enum, Num, Real, Integral, Data, Typeable)
 
 
-newtype MinionHandle = MinionHandle RawHandle
-    deriving (Show, Eq, Ord, Data, Typeable)
+data Character
 
 
-newtype SpellHandle = SpellHandle RawHandle
-    deriving (Show, Eq, Ord, Data, Typeable)
+data Handle :: * -> * where
+    SpellHandle :: RawHandle -> Handle Spell
+    MinionHandle :: RawHandle -> Handle Minion
+    PlayerHandle :: RawHandle -> Handle Player
+    MinionCharacter :: MinionHandle -> Handle Character
+    PlayerCharacter :: PlayerHandle -> Handle Character
+    deriving (Typeable)
 
 
-newtype PlayerHandle = PlayerHandle RawHandle
-    deriving (Show, Eq, Ord, Data, Typeable)
+applyRawHandle :: (RawHandle -> b) -> Handle a -> b
+applyRawHandle f = \case
+    SpellHandle h -> f h
+    MinionHandle h -> f h
+    PlayerHandle h -> f h
+    MinionCharacter h -> applyRawHandle f h
+    PlayerCharacter h -> applyRawHandle f h
 
 
-type CharacterHandle = Either PlayerHandle MinionHandle
+instance Show (Handle a) where
+    show = applyRawHandle show
+
+
+instance Eq (Handle a) where
+    (==) = on (==) $ applyRawHandle id
+
+
+instance Ord (Handle a) where
+    (<=) = on (<=) $ applyRawHandle id
+
+
+type SpellHandle = Handle Spell
+type MinionHandle = Handle Minion
+type PlayerHandle = Handle Player
+type CharacterHandle = Handle Character
 
 
 data CrystalState :: * where
@@ -189,7 +214,6 @@ data Spell = Spell {
     _spellEffect :: SpellEffect,
     _spellName :: CardName
 } deriving (Typeable)
-makeLenses ''Spell
 
 
 data Minion = Minion {
@@ -199,7 +223,6 @@ data Minion = Minion {
     _minionAbilities :: [Ability],
     _minionName :: CardName
 } deriving (Typeable)
-makeLenses ''Minion
 
 
 data BoardMinion = BoardMinion {
@@ -211,14 +234,12 @@ data BoardMinion = BoardMinion {
     _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Typeable)
-makeLenses ''BoardMinion
 
 
 data DeckMinion = DeckMinion {
     _deckMinion :: Minion,
     _deckSpell :: Spell
 } deriving (Typeable)
-makeLenses ''DeckMinion
 
 
 type HeroPowerEffect = PlayerHandle -> ElectCont Targeted
@@ -228,7 +249,6 @@ data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffect :: HeroPowerEffect
 } deriving (Typeable)
-makeLenses ''HeroPower
 
 
 data Hero = Hero {
@@ -237,7 +257,6 @@ data Hero = Hero {
     _heroPower :: HeroPower,
     _heroName :: HeroName
 } deriving (Typeable)
-makeLenses ''Hero
 
 
 data BoardHero = BoardHero {
@@ -246,7 +265,6 @@ data BoardHero = BoardHero {
     _boardHeroAttackCount :: Int,
     _boardHero :: Hero
 } deriving (Typeable)
-makeLenses ''BoardHero
 
 
 data HandCard :: * where
@@ -264,13 +282,11 @@ data DeckCard :: * where
 newtype Hand = Hand {
     _handCards :: [HandCard]
 } deriving (Monoid, Generic, Typeable)
-makeLenses ''Hand
 
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
 } deriving (Monoid, Generic, Typeable)
-makeLenses ''Deck
 
 
 data Player = Player {
@@ -284,7 +300,6 @@ data Player = Player {
     _playerTemporaryManaCrystals :: Int,
     _playerHero :: BoardHero
 } deriving (Typeable)
-makeLenses ''Player
 
 
 data GameState = GameState {
@@ -293,12 +308,27 @@ data GameState = GameState {
     _gamePlayerTurnOrder :: [PlayerHandle],
     _gamePlayers :: [Player]
 } deriving (Typeable)
-makeLenses ''GameState
 
 
 data GameSnapshot = GameSnapshot {
     _snapshotGameState :: GameState
 } deriving (Typeable)
+
+
+-- Unfortunately I can't make the lenses alongside
+-- their data declarations. See GHC bug report:
+--   https://ghc.haskell.org/trac/ghc/ticket/10743
+makeLenses ''Spell
+makeLenses ''Minion
+makeLenses ''BoardMinion
+makeLenses ''DeckMinion
+makeLenses ''HeroPower
+makeLenses ''Hero
+makeLenses ''BoardHero
+makeLenses ''Hand
+makeLenses ''Deck
+makeLenses ''Player
+makeLenses ''GameState
 makeLenses ''GameSnapshot
 
 
@@ -317,7 +347,6 @@ handCardName :: HandCard -> CardName
 handCardName = \case
     HandCardMinion minion -> minion^.minionName
     HandCardSpell spell -> spell^.spellName
-
 
 
 

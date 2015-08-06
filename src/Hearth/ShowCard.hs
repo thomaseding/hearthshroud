@@ -1,5 +1,8 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -59,27 +62,44 @@ rawGenHandle str = do
     return handle
 
 
-class GenHandle handle where
-    genHandle :: String -> ShowCard handle
+newtype Witness a = Witness { unWitness :: a }
+    deriving (Functor)
 
 
-instance GenHandle PlayerHandle where
-    genHandle = liftM PlayerHandle . rawGenHandle
+observeWitness :: (a -> b) -> (Witness a -> b)
+observeWitness f = f . unWitness
 
 
-instance GenHandle MinionHandle where
-    genHandle = liftM MinionHandle . rawGenHandle
+class MakeWitness a where
+    mkWitness :: Witness a
+
+instance MakeWitness (Handle Spell) where
+    mkWitness = Witness $ SpellHandle 0
+
+instance MakeWitness (Handle Minion) where
+    mkWitness = Witness $ MinionHandle 0
+
+instance MakeWitness (Handle Player) where
+    mkWitness = Witness $ PlayerHandle 0
+
+instance MakeWitness (Handle Character) where
+    mkWitness = fmap PlayerCharacter mkWitness
 
 
-instance GenHandle SpellHandle where
-    genHandle = liftM SpellHandle . rawGenHandle
+genHandle' :: Witness (Handle a) -> String -> ShowCard (Handle a)
+genHandle' = observeWitness $ \case
+    SpellHandle {} -> liftM SpellHandle . rawGenHandle
+    MinionHandle {} -> liftM MinionHandle . rawGenHandle
+    PlayerHandle {} -> liftM PlayerHandle . rawGenHandle
+    MinionCharacter {} -> liftM MinionCharacter . genHandle
+    PlayerCharacter {} -> liftM PlayerCharacter . genHandle
 
 
-instance GenHandle CharacterHandle where
-    genHandle = liftM Left . genHandle
+genHandle :: (MakeWitness (Handle a)) => String -> ShowCard (Handle a)
+genHandle = genHandle' mkWitness
 
 
-genNumberedHandle :: (GenHandle handle) => String -> ShowCard handle
+genNumberedHandle :: (MakeWitness (Handle a)) => String -> ShowCard (Handle a)
 genNumberedHandle str = do
     n <- gets handleSeed
     genHandle $ str ++ "_" ++ show n
@@ -100,22 +120,8 @@ class ReadHandle handle where
     readHandle :: handle -> ShowCard String
 
 
-instance ReadHandle PlayerHandle where
-    readHandle (PlayerHandle handle) = rawReadHandle handle
-
-
-instance ReadHandle MinionHandle where
-    readHandle (MinionHandle handle) = rawReadHandle handle
-
-
-instance ReadHandle SpellHandle where
-    readHandle (SpellHandle handle) = rawReadHandle handle
-
-
-instance ReadHandle CharacterHandle where
-    readHandle = \case
-        Left handle -> readHandle handle
-        Right handle -> readHandle handle
+instance ReadHandle (Handle a) where
+    readHandle = applyRawHandle rawReadHandle
 
 
 --------------------------------------------------------------------------------

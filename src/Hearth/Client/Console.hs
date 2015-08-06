@@ -338,7 +338,9 @@ gameEvent = \case
         reasonAttr = ("reason", show reason)
         in tag 'AttackFailed [reasonAttr]
     where
+        viewPlayer :: Handle Player -> Int
         viewPlayer (PlayerHandle (RawHandle who)) = who
+        --
         tag name attrs = let
             name' = case nameBase name of
                 (c : cs) -> toLower c : cs
@@ -795,10 +797,10 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             nonActiveMinions' <- view $ getPlayer nonActiveHandle.playerMinions
             let activeMinions = map characterHandle activeMinions'
                 nonActiveMinions = map characterHandle nonActiveMinions'
-                pairs = filter predicate $ (Left activeHandle, Left nonActiveHandle)
+                pairs = filter predicate $ (PlayerCharacter activeHandle, PlayerCharacter nonActiveHandle)
                      : [(a, na) | a <- activeMinions, na <- nonActiveMinions]
-                    ++ [(Left activeHandle, na) | na <- nonActiveMinions]
-                    ++ [(a, Left nonActiveHandle) | a <- activeMinions]
+                    ++ [(PlayerCharacter activeHandle, na) | na <- nonActiveMinions]
+                    ++ [(a, PlayerCharacter nonActiveHandle) | a <- activeMinions]
             allowedPairs <- flip filterM pairs $ \(activeChar, nonActiveChar) -> do
                 local id $ enactAttack activeChar nonActiveChar >>= \case
                     Failure -> return False
@@ -807,16 +809,16 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
                 Nothing -> Nothing
                 Just (attacker, defender) -> Just $ return $ GameAction $ ActionAttack attacker defender
         tryAttackPlayerPlayer = tryAttack $ \case
-            (Left _, Left _) -> True
+            (PlayerCharacter _, PlayerCharacter _) -> True
             _ -> False
         tryAttackPlayerMinion = tryAttack $ \case
-            (Left _, Right _) -> True
+            (PlayerCharacter _, MinionCharacter _) -> True
             _ -> False
         tryAttackMinionPlayer = tryAttack $ \case
-            (Right _, Left _) -> True
+            (MinionCharacter _, PlayerCharacter _) -> True
             _ -> False
         tryAttackMinionMinion = tryAttack $ \case
-            (Right _, Right _) -> True
+            (MinionCharacter _, MinionCharacter _) -> True
             _ -> False
 
 
@@ -886,8 +888,8 @@ fetchMinionHandle (SignedInt sign idx) = case idx of
 
 fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe CharacterHandle)
 fetchCharacterHandle idx = fetchPlayerHandle idx >>= \case
-    Just handle -> return $ Just $ Left handle
-    Nothing -> liftM (liftM Right) $ fetchMinionHandle idx
+    Just handle -> return $ Just $ PlayerCharacter handle
+    Nothing -> liftM (liftM MinionCharacter) $ fetchMinionHandle idx
 
 
 attackAction :: SignedInt -> SignedInt -> Hearth Console ConsoleAction

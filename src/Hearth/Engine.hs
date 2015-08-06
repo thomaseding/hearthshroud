@@ -153,24 +153,19 @@ class Controllable a where
     controllerOf :: (HearthMonad m) => a -> Hearth m PlayerHandle
 
 
-instance Controllable CharacterHandle where
-    controllerOf = \case
-        Left p -> controllerOf p
-        Right m -> controllerOf m
-
-
-instance Controllable PlayerHandle where
-    controllerOf = return
-
-
-instance Controllable MinionHandle where
-    controllerOf handle = logCall 'controllerOf $ do
-        players <- view gamePlayers
-        let isEq minion = minion^.boardMinionHandle == handle
-            players' = flip filter players $ \player -> any isEq $ player^.playerMinions
-        case players' of
-            [player] -> return $ player^.playerHandle
-            _ -> $logicError 'controllerOf "Invalid handle."
+instance Controllable (Handle a) where
+    controllerOf = logCall 'controllerOf $ \case
+        SpellHandle {} -> $todo 'controllerOf "xxx"
+        h @ MinionHandle {} -> do
+            players <- view gamePlayers
+            let isEq minion = minion^.boardMinionHandle == h
+                players' = flip filter players $ \player -> any isEq $ player^.playerMinions
+            case players' of
+                [player] -> return $ player^.playerHandle
+                _ -> $logicError 'controllerOf "Invalid handle."
+        h @ PlayerHandle {} -> return h
+        MinionCharacter h -> controllerOf h
+        PlayerCharacter h -> controllerOf h
 
 
 getPlayerHandles :: (HearthMonad m) => Hearth m [PlayerHandle]
@@ -279,7 +274,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck [] -> do
         getPlayer handle.playerExcessDrawCount += 1
         excess <- view $ getPlayer handle.playerExcessDrawCount
-        receiveDamage (Left handle) $ Damage excess
+        receiveDamage (PlayerCharacter handle) $ Damage excess
         return Nothing
     Deck (c:cs) -> do
         let c' = deckToHand c
@@ -314,7 +309,7 @@ shuffleDeck handle = logCall 'shuffleDeck $ zoom (getPlayer handle) $ do
 isGameOver :: (HearthMonad m) => Hearth m Bool
 isGameOver = logCall 'isGameOver $ do
     handles <- getPlayerHandles
-    anyM (isDead . Left) handles
+    anyM (isDead . PlayerCharacter) handles
 
 
 tickTurn :: (HearthMonad m) => Hearth m ()
@@ -650,11 +645,11 @@ class GetCharacterHandle a where
 
 
 instance GetCharacterHandle PlayerHandle where
-    characterHandle = Left
+    characterHandle = PlayerCharacter
 
 
 instance GetCharacterHandle MinionHandle where
-    characterHandle = Right
+    characterHandle = MinionCharacter
 
 
 instance GetCharacterHandle CharacterHandle where
@@ -662,7 +657,7 @@ instance GetCharacterHandle CharacterHandle where
 
 
 instance GetCharacterHandle BoardMinion where
-    characterHandle = Right . _boardMinionHandle
+    characterHandle = characterHandle . _boardMinionHandle
 
 
 class (Controllable a, GetCharacterHandle a) => CharacterTraits a where
@@ -721,26 +716,26 @@ instance CharacterTraits MinionHandle where
 
 instance CharacterTraits CharacterHandle where
     getDamage = logCall 'getDamage $ \case
-        Left h -> getDamage h
-        Right h -> getDamage h
+        PlayerCharacter h -> getDamage h
+        MinionCharacter h -> getDamage h
     dynamicAttack = logCall 'dynamicAttack $ \case
-        Left h -> dynamicAttack h
-        Right h -> dynamicAttack h
+        PlayerCharacter h -> dynamicAttack h
+        MinionCharacter h -> dynamicAttack h
     dynamicMaxHealth = logCall 'dynamicMaxHealth $ \case
-        Left h -> dynamicMaxHealth h
-        Right h -> dynamicMaxHealth h
+        PlayerCharacter h -> dynamicMaxHealth h
+        MinionCharacter h -> dynamicMaxHealth h
     dynamicMaxAttackCount = logCall 'dynamicMaxAttackCount $ \case
-        Left h -> dynamicMaxAttackCount h
-        Right h -> dynamicMaxAttackCount h
+        PlayerCharacter h -> dynamicMaxAttackCount h
+        MinionCharacter h -> dynamicMaxAttackCount h
     getAttackCount = logCall 'getAttackCount $ \case
-        Left h -> getAttackCount h
-        Right h -> getAttackCount h
+        PlayerCharacter h -> getAttackCount h
+        MinionCharacter h -> getAttackCount h
     bumpAttackCount = logCall 'bumpAttackCount $ \case
-        Left h -> bumpAttackCount h
-        Right h -> bumpAttackCount h
+        PlayerCharacter h -> bumpAttackCount h
+        MinionCharacter h -> bumpAttackCount h
     hasSummoningSickness = logCall 'hasSummoningSickness $ \case
-        Left h -> hasSummoningSickness h
-        Right h -> hasSummoningSickness h
+        PlayerCharacter h -> hasSummoningSickness h
+        MinionCharacter h -> hasSummoningSickness h
 
 
 dynamicRemainingHealth :: (HearthMonad m) => CharacterHandle -> Hearth m Health
@@ -754,7 +749,7 @@ receiveDamage :: (HearthMonad m) => CharacterHandle -> Damage -> Hearth m ()
 receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
     True -> return ()
     False -> case ch of
-        Left handle -> do
+        PlayerCharacter handle -> do
             bh <- view $ getPlayer handle.playerHero
             let dmg = unDamage damage
                 armor = bh^.boardHeroArmor
@@ -765,7 +760,7 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
                 boardHeroDamage += healthDamage
                 boardHeroArmor .= armor'
             prompt $ PromptGameEvent $ HeroTakesDamage handle damage
-        Right handle -> do
+        MinionCharacter handle -> do
             bm <- view $ getMinion handle
             case loseDivineShield bm of
                 Just bm' -> do
@@ -849,8 +844,8 @@ otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     minionCandidates <- do
         bms <- view $ getPlayer opponentHandle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
-        return $ filter (/= bannedHandle) $ map Right bmHandles
-    let playerCandidates = filter (/= bannedHandle) [Left opponentHandle]
+        return $ filter (/= bannedHandle) $ map MinionCharacter bmHandles
+    let playerCandidates = filter (/= bannedHandle) [PlayerCharacter opponentHandle]
         candidates = playerCandidates ++ minionCandidates
     enactEffect $ f candidates
 
@@ -861,8 +856,8 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
-        return $ filter (/= bannedHandle) $ map Right bmHandles
-    let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
+        return $ filter (/= bannedHandle) $ map MinionCharacter bmHandles
+    let playerCandidates = filter (/= bannedHandle) $ map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
     enactEffect $ f candidates
 
@@ -873,8 +868,8 @@ anotherCharacter bannedHandle f = logCall 'anotherCharacter $ do
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
-        return $ filter (/= bannedHandle) $ map Right bmHandles
-    let playerCandidates = filter (/= bannedHandle) $ map Left pHandles
+        return $ filter (/= bannedHandle) $ map MinionCharacter bmHandles
+    let playerCandidates = filter (/= bannedHandle) $ map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
     pickFrom candidates >>= enactElectCont f
 
@@ -884,8 +879,8 @@ anyEnemy f = logCall 'anyEnemy $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
         bms <- view $ getPlayer opponentHandle.playerMinions
-        return $ map (\bm -> Right $ bm^.boardMinionHandle) bms
-    let playerCandidates = [Left opponentHandle]
+        return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
+    let playerCandidates = [PlayerCharacter opponentHandle]
         candidates = playerCandidates ++ minionCandidates
     pickFrom candidates >>= enactElectCont f
 
@@ -895,8 +890,8 @@ anyCharacter f = logCall 'anyCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
-        return $ map (\bm -> Right $ bm^.boardMinionHandle) bms
-    let playerCandidates = map Left pHandles
+        return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
+    let playerCandidates = map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
     pickFrom candidates >>= enactElectCont f
 
@@ -1016,7 +1011,7 @@ withMinions f = logCall 'withMinions $ do
 clearDeadMinions :: (HearthMonad m) => Hearth m ()
 clearDeadMinions = logCall 'clearDeadMinions $ withMinions $ \bm -> do
     let handle = bm^.boardMinionHandle
-    dead <- isDead $ Right handle
+    dead <- isDead $ MinionCharacter handle
     case dead of
         False -> return $ Just bm
         True -> do
@@ -1067,8 +1062,8 @@ enactAttack attacker defender = logCall 'enactAttack $ do
     let attackerHandle = characterHandle attacker
         defenderHandle = characterHandle defender
         defenderHasTaunt = case defender of
-            Left _ -> return False
-            Right m -> dynamicHasTaunt m
+            PlayerCharacter _ -> return False
+            MinionCharacter m -> dynamicHasTaunt m
     result <- isAlly attacker >>= \case
         False -> do
             prompt $ PromptGameEvent $ AttackFailed AttackWithEnemy
