@@ -53,7 +53,8 @@ import Hearth.Client.Console.SGRString
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
-import Hearth.Model
+import Hearth.Model hiding (minionName)
+import qualified Hearth.Model as Model
 import Hearth.Names
 import Hearth.Names.Basic (BasicCardName(TheCoin))
 import Hearth.Names.Hero
@@ -278,69 +279,82 @@ debugEvent e = case e of
         showName = (':' :) . nameBase
 
 
-gameEvent :: GameEvent -> Console ()
-gameEvent = \case
+gameEvent :: GameSnapshot -> GameEvent -> Console ()
+gameEvent snapshot = \case
     GameBegins -> let
         in tag 'GameBegins []
     GameEnds gameResult -> let
         gameResultAttr = ("gameResult", show gameResult)
         in tag 'GameEnds [gameResultAttr]
-    DeckShuffled (viewPlayer -> who) _ -> let
-        playerAttr = ("player", show who)
-        in tag 'DeckShuffled [playerAttr]
-    CardDrawn (viewPlayer -> who) (eCard) _ -> let
-        playerAttr = ("player", show who)
-        cardAttr = ("card", either deckCardName' handCardName' eCard)
-        resultAttr = ("result", show $ either (const Failure) (const Success) eCard)
-        in tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
-    PlayedMinion (viewPlayer -> who) bmHandle -> let
-        playerAttr = ("player", show who)
-        cardAttr = ("handle", show bmHandle)
-        in tag 'PlayedMinion [playerAttr, cardAttr]
-    PlayedSpell (viewPlayer -> who) card -> let
-        playerAttr = ("player", show who)
-        cardAttr = ("card", handCardName' $ HandCardSpell card)
-        in tag 'PlayedSpell [playerAttr, cardAttr]
-    HeroTakesDamage (viewPlayer -> who) (Damage damage) -> let
-        playerAttr = ("player", show who)
-        damageAttr = ("damage", show damage)
-        in tag 'HeroTakesDamage [playerAttr, damageAttr]
-    MinionTakesDamage bm (Damage damage) -> let
-        minionAttr = ("minion", show bm)
-        dmgAttr = ("dmg", show damage)
-        in tag 'MinionTakesDamage [minionAttr, dmgAttr]
-    MinionDied bm -> let
-        minionAttr = ("minion", show bm)
-        in tag 'MinionDied [minionAttr]
-    EnactAttack attacker defender -> let
-        attackerAttr = ("attacker", show attacker)
-        defenderAttr = ("defender", show defender)
-        in tag 'EnactAttack [attackerAttr, defenderAttr]
-    GainsManaCrystal (viewPlayer -> who) mCrystalState -> let
-        playerAttr = ("player", show who)
-        varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
-        in tag 'GainsManaCrystal [playerAttr, varietyAttr]
-    ManaCrystalsRefill (viewPlayer -> who) amount -> let
-        playerAttr = ("player", show who)
-        amountAttr = ("amount", show amount)
-        in tag 'ManaCrystalsRefill [playerAttr, amountAttr]
-    ManaCrystalsEmpty (viewPlayer -> who) amount -> let
-        playerAttr = ("player", show who)
-        amountAttr = ("amount", show amount)
-        in tag 'ManaCrystalsEmpty [playerAttr, amountAttr]
-    LostDivineShield bm -> let
-        minionAttr = ("minion", show bm)
-        in tag 'LostDivineShield [minionAttr]
-    Silenced bm -> let
-        minionAttr = ("minion", show bm)
-        in tag 'Silenced [minionAttr]
+    DeckShuffled player _ -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+        tag 'DeckShuffled [playerAttr]
+    CardDrawn player (deckOrHandCard) _ -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            cardAttr = ("card", either deckCardName' handCardName' deckOrHandCard)
+            resultAttr = ("result", show $ either (const Failure) (const Success) deckOrHandCard)
+        tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
+    PlayedMinion player minion -> do
+        playerName <- query $ showHandle player
+        minionName <- query $ showHandle minion
+        let playerAttr = ("player", playerName)
+            minionAttr = ("minion", minionName)
+        tag 'PlayedMinion [playerAttr, minionAttr]
+    PlayedSpell player card -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            cardAttr = ("card", handCardName' $ HandCardSpell card)
+        tag 'PlayedSpell [playerAttr, cardAttr]
+    HeroTakesDamage player (Damage damage) -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            damageAttr = ("damage", show damage)
+        tag 'HeroTakesDamage [playerAttr, damageAttr]
+    MinionTakesDamage minion (Damage damage) -> do
+        minionName <- query $ showHandle minion
+        let minionAttr = ("minion", minionName)
+            damageAttr = ("damage", show damage)
+        tag 'MinionTakesDamage [minionAttr, damageAttr]
+    MinionDied minion -> do
+        minionName <- query $ showHandle minion
+        let minionAttr = ("minion", minionName)
+        tag 'MinionDied [minionAttr]
+    EnactAttack attacker defender -> do
+        attackerName <- query $ showHandle attacker
+        defenderName <- query $ showHandle defender
+        let attackerAttr = ("attacker", attackerName)
+            defenderAttr = ("defender", defenderName)
+        tag 'EnactAttack [attackerAttr, defenderAttr]
+    GainsManaCrystal player mCrystalState -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            varietyAttr = ("variety", maybe (nameBase 'Nothing) show mCrystalState)
+        tag 'GainsManaCrystal [playerAttr, varietyAttr]
+    ManaCrystalsRefill player amount -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            amountAttr = ("amount", show amount)
+        tag 'ManaCrystalsRefill [playerAttr, amountAttr]
+    ManaCrystalsEmpty player amount -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            amountAttr = ("amount", show amount)
+        tag 'ManaCrystalsEmpty [playerAttr, amountAttr]
+    LostDivineShield minion -> do
+        minionName <- query $ showHandle minion
+        let minionAttr = ("minion", minionName)
+        tag 'LostDivineShield [minionAttr]
+    Silenced minion -> do
+        minionName <- query $ showHandle minion
+        let minionAttr = ("minion", minionName)
+        tag 'Silenced [minionAttr]
     AttackFailed reason -> let
         reasonAttr = ("reason", show reason)
         in tag 'AttackFailed [reasonAttr]
     where
-        viewPlayer :: Handle Player -> Int
-        viewPlayer (PlayerHandle (RawHandle who)) = who
-        --
+        query = runQuery snapshot
         tag name attrs = let
             name' = case nameBase name of
                 (c : cs) -> toLower c : cs
@@ -348,10 +362,37 @@ gameEvent = \case
             in verbosityGate name' $ openTag name' attrs >> closeTag name'
 
 
+showHandle :: Handle a -> Hearth Console String
+showHandle = mapHandle showSpellHandle showMinionHandle showPlayerHandle showCharacterHandle
+
+
+showSpellHandle :: Handle Spell -> Hearth Console String
+showSpellHandle = $todo 'showSpellHandle "xxx"
+
+
+showMinionHandle :: Handle Minion -> Hearth Console String
+showMinionHandle h = view $ getMinion h.boardMinion.Model.minionName.to showCardName
+
+
+showPlayerHandle :: Handle Player -> Hearth Console String
+showPlayerHandle h = view $ getPlayer h.playerHero.boardHero.heroName.to showHeroName
+
+
+showCharacterHandle :: Handle Character -> Hearth Console String
+showCharacterHandle = \case
+    PlayerCharacter h -> showPlayerHandle h
+    MinionCharacter h -> showMinionHandle h
+
+
 showCardName :: CardName -> String
 showCardName = \case
     BasicCardName name -> show name
     ClassicCardName name -> show name
+
+
+showHeroName :: HeroName -> String
+showHeroName = \case
+    BasicHeroName name -> show name
 
 
 handCardName' :: HandCard -> String
@@ -370,7 +411,7 @@ instance MonadPrompt HearthPrompt Console where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
         PromptError e -> promptError e
-        PromptGameEvent e -> gameEvent e
+        PromptGameEvent snapshot e -> gameEvent snapshot e
         PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> return xs
         PromptPickAtRandom p -> handlePromptPick p

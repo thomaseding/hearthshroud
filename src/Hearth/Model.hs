@@ -81,6 +81,15 @@ data Handle :: * -> * where
     deriving (Typeable)
 
 
+mapHandle :: (Handle Spell -> b) -> (Handle Minion -> b) -> (Handle Player -> b) -> (Handle Character -> b) -> (Handle a -> b)
+mapHandle spell minion player character = \case
+    h @ SpellHandle {} -> spell h
+    h @ MinionHandle {} -> minion h
+    h @ PlayerHandle {} -> player h
+    h @ MinionCharacter {} -> character h
+    h @ PlayerCharacter {} -> character h
+
+
 applyRawHandle :: (RawHandle -> b) -> Handle a -> b
 applyRawHandle f = \case
     SpellHandle h -> f h

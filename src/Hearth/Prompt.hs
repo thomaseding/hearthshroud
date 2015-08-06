@@ -46,7 +46,7 @@ data instance PickResult Targeted a
 data HearthPrompt :: * -> * where
     PromptDebugEvent :: DebugEvent -> HearthPrompt ()
     PromptError :: HearthError -> HearthPrompt ()
-    PromptGameEvent :: GameEvent -> HearthPrompt ()
+    PromptGameEvent :: GameSnapshot -> GameEvent -> HearthPrompt ()
     PromptAction :: GameSnapshot -> HearthPrompt Action
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
