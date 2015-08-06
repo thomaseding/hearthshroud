@@ -99,12 +99,8 @@ rawReadHandle handle = do
         Just str -> return str
 
 
-class ReadHandle handle where
-    readHandle :: handle -> ShowCard String
-
-
-instance ReadHandle (Handle a) where
-    readHandle = applyRawHandle rawReadHandle
+readHandle :: Handle a -> ShowCard String
+readHandle = applyRawHandle rawReadHandle
 
 
 --------------------------------------------------------------------------------
@@ -233,7 +229,7 @@ showWith = \case
     Unique x -> showUnique x
 
 
-showForEach :: (ReadHandle a) => [a] -> (a -> Effect) -> ShowCard String
+showForEach :: [Handle a] -> (Handle a -> Effect) -> ShowCard String
 showForEach handles cont = case handles of
     [handle] -> do
         str <- readHandle handle
