@@ -519,7 +519,7 @@ enactSpell :: (HearthMonad m) => Spell -> Hearth m Result
 enactSpell spell = do
     st <- get
     let f = spell^.spellEffect
-    genHandle >>= enactElectCont f . purePick >>= \case
+    genHandle >>= enactElectionEffect f . purePick >>= \case
         Just (TargetedPick _) -> return Success
         _ -> put st >> return Failure
 
@@ -542,12 +542,12 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
                 return Failure
 
 
-enactBattlecry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> ElectCont Targeted) -> Hearth m (Maybe (PickResult Targeted ()))
+enactBattlecry :: (HearthMonad m) => MinionHandle -> (MinionHandle -> ElectionEffect Targeted) -> Hearth m (Maybe (PickResult Targeted ()))
 enactBattlecry handle f = logCall 'enactBattlecry $ do
-    enactElectCont f $ purePick handle
+    enactElectionEffect f $ purePick handle
 
 
-enactEffect :: (HearthMonad m, EnactElectCont s) => Effect -> Hearth m (Maybe (PickResult s ()))
+enactEffect :: (HearthMonad m, EnactElectionEffect s) => Effect -> Hearth m (Maybe (PickResult s ()))
 enactEffect = logCall 'enactEffect . \case
     Elect elect -> enactElect elect >>= return . \case
         Nothing -> Nothing
@@ -565,22 +565,22 @@ enactEffect = logCall 'enactEffect . \case
         success = purePick ()
 
 
-enactWith :: (HearthMonad m, EnactElectCont s) => With -> Hearth m (Maybe (PickResult s ()))
+enactWith :: (HearthMonad m, EnactElectionEffect s) => With -> Hearth m (Maybe (PickResult s ()))
 enactWith = logCall 'enactWith $ \case
     All x -> enactAll x
     Unique x -> enactUnique x
 
 
-enactForEach :: (HearthMonad m, EnactElectCont s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
+enactForEach :: (HearthMonad m, EnactElectionEffect s) => [a] -> (a -> Effect) -> Hearth m (Maybe (PickResult s ()))
 enactForEach handles cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
-sequenceEffects :: (HearthMonad m, EnactElectCont s, Eq (PickResult s ())) => [Effect] -> Hearth m (Maybe (PickResult s ()))
+sequenceEffects :: (HearthMonad m, EnactElectionEffect s, Eq (PickResult s ())) => [Effect] -> Hearth m (Maybe (PickResult s ()))
 sequenceEffects effects = liftM condensePickResults $ mapM enactEffect effects
 
 
-condensePickResults :: (EnactElectCont s) => [Maybe (PickResult s ())] -> Maybe (PickResult s ())
+condensePickResults :: (EnactElectionEffect s) => [Maybe (PickResult s ())] -> Maybe (PickResult s ())
 condensePickResults results = case dropWhile (== purePick ()) results of
     [] -> purePick ()
     r : _ -> r
@@ -785,13 +785,13 @@ silence victim = logCall 'silence $ do
     prompt $ PromptGameEvent $ Silenced victim
 
 
-class (PickFrom s, Eq (PickResult s ())) => EnactElectCont s where
-    enactElectCont :: (HearthMonad m) => (a -> ElectCont s) -> (Maybe (PickResult s a)) -> Hearth m (Maybe (PickResult s ()))
+class (PickFrom s, Eq (PickResult s ())) => EnactElectionEffect s where
+    enactElectionEffect :: (HearthMonad m) => (a -> ElectionEffect s) -> (Maybe (PickResult s a)) -> Hearth m (Maybe (PickResult s ()))
     purePick :: a -> Maybe (PickResult s a)
 
 
-instance EnactElectCont Targeted where
-    enactElectCont cont = \case
+instance EnactElectionEffect Targeted where
+    enactElectionEffect cont = \case
         Nothing -> return Nothing
         Just result -> case result of
             TargetedPick choice -> case cont choice of
@@ -801,15 +801,15 @@ instance EnactElectCont Targeted where
     purePick = Just . TargetedPick
 
 
-instance EnactElectCont AtRandom where
-    enactElectCont cont = \case
-        Nothing -> $todo 'enactElectCont "xxx"
+instance EnactElectionEffect AtRandom where
+    enactElectionEffect cont = \case
+        Nothing -> $todo 'enactElectionEffect "xxx"
         Just (AtRandomPick choice) -> case cont choice of
             FromRandom effect -> enactEffect effect
     purePick = Just . AtRandomPick
 
 
-enactElect :: (HearthMonad m, EnactElectCont s) => Elect s -> Hearth m (Maybe (PickResult s ()))
+enactElect :: (HearthMonad m, EnactElectionEffect s) => Elect s -> Hearth m (Maybe (PickResult s ()))
 enactElect = logCall 'enactElect . \case
     AnyCharacter f -> anyCharacter f
     AnyEnemy f -> anyEnemy f
@@ -818,20 +818,20 @@ enactElect = logCall 'enactElect . \case
     AnotherFriendlyMinion bannedMinion f -> anotherFriendlyMinion bannedMinion f
 
 
-enactAll :: (HearthMonad m, EnactElectCont s) => All -> Hearth m (Maybe (PickResult s ()))
+enactAll :: (HearthMonad m, EnactElectionEffect s) => All -> Hearth m (Maybe (PickResult s ()))
 enactAll = logCall 'enactAll . \case
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
 
 
-enactUnique :: (HearthMonad m, EnactElectCont s) => Unique -> Hearth m (Maybe (PickResult s ()))
+enactUnique :: (HearthMonad m, EnactElectionEffect s) => Unique -> Hearth m (Maybe (PickResult s ()))
 enactUnique = logCall 'enactUnique . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
 
 
-otherEnemies :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
+otherEnemies :: (HearthMonad m, EnactElectionEffect s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
 otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
@@ -843,7 +843,7 @@ otherEnemies bannedHandle f = logCall 'otherEnemies $ do
     enactEffect $ f candidates
 
 
-otherCharacters :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
+otherCharacters :: (HearthMonad m, EnactElectionEffect s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (Maybe (PickResult s ()))
 otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -855,7 +855,7 @@ otherCharacters bannedHandle f = logCall 'otherCharacters $ do
     enactEffect $ f candidates
 
 
-anotherCharacter :: (HearthMonad m, EnactElectCont s) => CharacterHandle -> (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+anotherCharacter :: (HearthMonad m, EnactElectionEffect s) => CharacterHandle -> (CharacterHandle -> ElectionEffect s) -> Hearth m (Maybe (PickResult s ()))
 anotherCharacter bannedHandle f = logCall 'anotherCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -864,10 +864,10 @@ anotherCharacter bannedHandle f = logCall 'anotherCharacter $ do
         return $ filter (/= bannedHandle) $ map MinionCharacter bmHandles
     let playerCandidates = filter (/= bannedHandle) $ map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
-    pickFrom candidates >>= enactElectCont f
+    pickFrom candidates >>= enactElectionEffect f
 
 
-anyEnemy :: (HearthMonad m, EnactElectCont s) => (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+anyEnemy :: (HearthMonad m, EnactElectionEffect s) => (CharacterHandle -> ElectionEffect s) -> Hearth m (Maybe (PickResult s ()))
 anyEnemy f = logCall 'anyEnemy $ do
     opponentHandle <- getNonActivePlayerHandle
     minionCandidates <- do
@@ -875,10 +875,10 @@ anyEnemy f = logCall 'anyEnemy $ do
         return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
     let playerCandidates = [PlayerCharacter opponentHandle]
         candidates = playerCandidates ++ minionCandidates
-    pickFrom candidates >>= enactElectCont f
+    pickFrom candidates >>= enactElectionEffect f
 
 
-anyCharacter :: (HearthMonad m, EnactElectCont s) => (CharacterHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+anyCharacter :: (HearthMonad m, EnactElectionEffect s) => (CharacterHandle -> ElectionEffect s) -> Hearth m (Maybe (PickResult s ()))
 anyCharacter f = logCall 'anyCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -886,27 +886,27 @@ anyCharacter f = logCall 'anyCharacter $ do
         return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
     let playerCandidates = map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
-    pickFrom candidates >>= enactElectCont f
+    pickFrom candidates >>= enactElectionEffect f
 
 
-anotherMinion :: (HearthMonad m, EnactElectCont s) => MinionHandle -> (MinionHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+anotherMinion :: (HearthMonad m, EnactElectionEffect s) => MinionHandle -> (MinionHandle -> ElectionEffect s) -> Hearth m (Maybe (PickResult s ()))
 anotherMinion bannedHandle f = logCall 'anotherMinion $ do
     handles <- getPlayerHandles
     candidates <- liftM concat $ forM handles $ \handle -> do
         bms <- view $ getPlayer handle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
         return $ filter (/= bannedHandle) bmHandles
-    pickFrom candidates >>= enactElectCont f
+    pickFrom candidates >>= enactElectionEffect f
 
 
-anotherFriendlyMinion :: (HearthMonad m, EnactElectCont s) => MinionHandle -> (MinionHandle -> ElectCont s) -> Hearth m (Maybe (PickResult s ()))
+anotherFriendlyMinion :: (HearthMonad m, EnactElectionEffect s) => MinionHandle -> (MinionHandle -> ElectionEffect s) -> Hearth m (Maybe (PickResult s ()))
 anotherFriendlyMinion bannedHandle f = logCall 'anotherFriendlyMinion $ do
     controller <- controllerOf bannedHandle
     candidates <- do
         bms <- view $ getPlayer controller.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
         return $ filter (/= bannedHandle) bmHandles
-    pickFrom candidates >>= enactElectCont f
+    pickFrom candidates >>= enactElectionEffect f
 
 
 class (Eq a) => Pickable s a where

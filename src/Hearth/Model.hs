@@ -124,24 +124,24 @@ data Targeted
 data AtRandom
 
 
-data family ElectCont a :: *
+data family ElectionEffect a :: *
 
 
-data instance ElectCont Targeted
+data instance ElectionEffect Targeted
     = Targeted (Elect Targeted)
     | Effect Effect
 
 
-newtype instance ElectCont AtRandom
+newtype instance ElectionEffect AtRandom
     = FromRandom Effect
 
 
 data Elect :: * -> * where
-    AnyCharacter :: (CharacterHandle -> ElectCont a) -> Elect a
-    AnyEnemy :: (CharacterHandle -> ElectCont a) -> Elect a
-    AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectCont a) -> Elect a
-    AnotherMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
-    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectCont a) -> Elect a
+    AnyCharacter :: (CharacterHandle -> ElectionEffect a) -> Elect a
+    AnyEnemy :: (CharacterHandle -> ElectionEffect a) -> Elect a
+    AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectionEffect a) -> Elect a
+    AnotherMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
+    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
     deriving (Typeable)
 
 
@@ -157,8 +157,6 @@ data Effect :: * where
     GiveAbility :: MinionHandle -> [Ability] -> Effect
     GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
     deriving (Typeable)
-
-
 
 
 data All :: * where
@@ -188,7 +186,7 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    Battlecry :: (MinionHandle -> ElectCont Targeted) -> KeywordAbility
+    Battlecry :: (MinionHandle -> ElectionEffect Targeted) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
@@ -202,7 +200,7 @@ data Enchantment :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-type SpellEffect = SpellHandle -> ElectCont Targeted
+type SpellEffect = SpellHandle -> ElectionEffect Targeted
 
 
 data Spell = Spell {
@@ -238,7 +236,7 @@ data DeckMinion = DeckMinion {
 } deriving (Typeable)
 
 
-type HeroPowerEffect = PlayerHandle -> ElectCont Targeted
+type HeroPowerEffect = PlayerHandle -> ElectionEffect Targeted
 
 
 data HeroPower = HeroPower {
@@ -311,8 +309,13 @@ data GameSnapshot = GameSnapshot {
 } deriving (Typeable)
 
 
+data GameResult :: * where
+    GameResult :: GameResult
+    deriving (Show, Eq, Ord, Typeable)
+
+
 -- Unfortunately I can't make the lenses alongside
--- their data declarations. See GHC bug report:
+-- their data declarations. See GHC ticket:
 --   https://ghc.haskell.org/trac/ghc/ticket/10743
 makeLenses ''Spell
 makeLenses ''Minion
@@ -326,11 +329,6 @@ makeLenses ''Deck
 makeLenses ''Player
 makeLenses ''GameState
 makeLenses ''GameSnapshot
-
-
-data GameResult :: * where
-    GameResult :: GameResult
-    deriving (Show, Eq, Ord, Typeable)
 
 
 deckCardName :: DeckCard -> CardName
