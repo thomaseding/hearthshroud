@@ -520,9 +520,12 @@ runTestGame = flip evalStateT st $ unConsole $ do
         Right ms -> sequence_ ms >> view runGame >>= \case
             False -> return ()
             True -> do
-                view gameSeed >>= \case
-                    Nothing -> return ()
-                    Just n -> liftIO $ setStdGen $ mkStdGen n
+                seed <- view gameSeed >>= \case
+                    Nothing -> liftIO randomIO
+                    Just seed -> return seed
+                liftIO $ setStdGen $ mkStdGen seed
+                let tag name attrs = openTag name attrs >> closeTag name
+                tag "gameSeed" [("value", show seed)]
                 _ <- runHearth (player1, player2)
                 liftIO clearScreen
                 window <- liftIO getWindowSize
