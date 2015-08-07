@@ -16,7 +16,12 @@ import Data.Data
 
 
 data BasicCardName
-    = Assassinate
+    = ArcaneExplosion
+    | ArcaneIntellect
+    | ArcaneShot
+    | Assassinate
+    | BlessingOfKings
+    | BlessingOfMight
     | BluegillWarrior
     | BloodfenRaptor
     | BootyBayBodyguard
@@ -25,6 +30,7 @@ data BasicCardName
     | Consecration
     | CoreHound
     | DarkscaleHealer
+    | DrainLife
     | DreadInfernal
     | ElvenArcher
     | FanOfKnives
@@ -34,22 +40,36 @@ data BasicCardName
     | FrostwolfGrunt
     | GnomishInventor
     | GoldshireFootman
+    | GuardianOfKings
+    | HammerOfWrath
+    | HandOfProtection
+    | HealingTouch
+    | Hellfire
+    | HolyLight
     | HolyNova
     | HolySmite
     | Innervate
+    | IronbarkProtector
     | IronforgeRifleman
     | LordOfTheArena
     | MagmaRager
+    | MarkOfTheWild
+    | MindBlast
     | Moonfire
     | MurlocRaider
     | Nightblade
     | NoviceEngineer
     | OasisSnapjaw
+    | PowerWordShield
     | RecklessRocketeer
     | RiverCrocolisk
     | Sen'jinShieldmasta
+    | ShadowBolt
     | ShatteredSunCleric
+    | Shiv
     | SilverbackPatriarch
+    | SinisterStrike
+    | Sprint
     | Starfire
     | StonetuskBoar
     | StormpikeCommando

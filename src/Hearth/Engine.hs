@@ -889,6 +889,7 @@ enactAll = logCall 'enactAll . \case
     MinionsOf player f -> enactMinionsOf player f
     Players f -> enactPlayers f
     Minions f -> enactMinions f
+    Characters f -> enactCharacters f
 
 
 enactUnique :: (HearthMonad m, EnactElectionEffect s) => Unique -> Hearth m (SimplePickResult s)
@@ -896,6 +897,14 @@ enactUnique = logCall 'enactUnique . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
+
+
+enactCharacters :: (HearthMonad m, EnactElectionEffect s) => ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
+enactCharacters f = logCall 'enactCharacters $ do
+    playerCandidates <- getPlayerHandles
+    minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+    let candidates = map PlayerCharacter playerCandidates ++ map MinionCharacter minionCandidates
+    enactEffect $ f candidates
 
 
 enactMinions :: (HearthMonad m, EnactElectionEffect s) => ([MinionHandle] -> Effect) -> Hearth m (SimplePickResult s)
@@ -911,7 +920,7 @@ enactPlayers f = logCall 'enactPlayers $ do
 
 
 enactMinionsOf :: (HearthMonad m, EnactElectionEffect s) => PlayerHandle -> ([MinionHandle] -> Effect) -> Hearth m (SimplePickResult s)
-enactMinionsOf player f = logCall 'enactCharactersOf $ do
+enactMinionsOf player f = logCall 'enactMinionsOf $ do
     candidates <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle
     enactEffect $ f candidates
 

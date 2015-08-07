@@ -178,6 +178,7 @@ data All :: * where
     MinionsOf :: PlayerHandle -> ([MinionHandle] -> Effect) -> All
     Players :: ([PlayerHandle] -> Effect) -> All
     Minions :: ([MinionHandle] -> Effect) -> All
+    Characters :: ([CharacterHandle] -> Effect) -> All
 
 
 data Unique :: * where

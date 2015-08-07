@@ -284,6 +284,7 @@ showAll = \case
     MinionsOf handle effectHole -> showMinionsOf handle effectHole
     Players effectHole -> showPlayers effectHole
     Minions effectHole -> showMinions effectHole
+    Characters effectHole -> showCharacters effectHole
 
 
 class Elect' a where
@@ -301,6 +302,12 @@ instance Elect' Targeted where
 instance Elect' AtRandom where
     showElectionEffect (FromRandom effect) = showEffect effect
     showSelection _ = "RANDOM_"
+
+
+showCharacters :: ([CharacterHandle] -> Effect) -> ShowCard String
+showCharacters effectHole = do
+    other <- genHandle "CHARACTER"
+    showEffect $ effectHole [other]
 
 
 showMinions :: ([MinionHandle] -> Effect) -> ShowCard String
