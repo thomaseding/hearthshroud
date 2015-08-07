@@ -16,31 +16,41 @@ import Data.Data
 
 
 data BasicCardName
-    = BluegillWarrior
+    = Assassinate
+    | BluegillWarrior
     | BloodfenRaptor
+    | BootyBayBodyguard
     | BoulderfistOgre
     | ChillwindYeti
     | CoreHound
+    | DarkscaleHealer
     | DreadInfernal
     | ElvenArcher
-    | Innervate
-    | IronforgeRifleman
     | FireElemental
     | FrostwolfGrunt
+    | GnomishInventor
+    | GoldshireFootman
+    | Innervate
+    | IronforgeRifleman
+    | LordOfTheArena
     | MagmaRager
     | Moonfire
     | MurlocRaider
+    | Nightblade
     | NoviceEngineer
     | OasisSnapjaw
     | RecklessRocketeer
     | RiverCrocolisk
+    | Sen'jinShieldmasta
     | ShatteredSunCleric
+    | SilverbackPatriarch
     | Starfire
     | StonetuskBoar
     | StormpikeCommando
     | StormwindKnight
     | Swipe
     | TheCoin
+    | VoodooDoctor
     | WarGolem
     | WildGrowth
     | WolfRider

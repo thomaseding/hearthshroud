@@ -148,6 +148,7 @@ newtype instance ElectionEffect AtRandom
 data Elect :: * -> * where
     AnyCharacter :: (CharacterHandle -> ElectionEffect a) -> Elect a
     AnyEnemy :: (CharacterHandle -> ElectionEffect a) -> Elect a
+    AnyMinion :: (MinionHandle -> ElectionEffect a) -> Elect a
     AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectionEffect a) -> Elect a
     AnotherMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
     AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
@@ -165,12 +166,15 @@ data Effect :: * where
     Enchant :: MinionHandle -> [Enchantment] -> Effect
     GiveAbility :: MinionHandle -> [Ability] -> Effect
     GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
+    DestroyMinion :: MinionHandle -> Effect
+    RestoreHealth :: CharacterHandle -> Int -> Effect
     deriving (Typeable)
 
 
 data All :: * where
     OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
     OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
+    FriendlyCharacters :: ([CharacterHandle] -> Effect) -> All
 
 
 data Unique :: * where
@@ -234,6 +238,7 @@ data BoardMinion = BoardMinion {
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,
+    _boardMinionPendingDestroy :: Bool,
     _boardMinionHandle :: MinionHandle,
     _boardMinion :: Minion
 } deriving (Typeable)

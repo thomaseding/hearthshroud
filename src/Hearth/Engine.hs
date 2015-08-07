@@ -294,7 +294,15 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
 
 
 isDead :: (HearthMonad m) => CharacterHandle -> Hearth m Bool
-isDead = logCall 'isDead $ liftM (<= 0) . dynamicRemainingHealth
+isDead character = logCall 'isDead $ isMortallyWounded character >>= \case
+    True -> return True
+    False -> case character of
+        PlayerCharacter {} -> return False
+        MinionCharacter minion -> view $ getMinion minion.boardMinionPendingDestroy
+
+
+isMortallyWounded :: (HearthMonad m) => CharacterHandle -> Hearth m Bool
+isMortallyWounded = logCall 'isMortallyWounded $ liftM (<= 0) . dynamicRemainingHealth
 
 
 shuffleDeck :: (HearthMonad m) => PlayerHandle -> Hearth m ()
@@ -453,6 +461,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinionAbilities = minion^.minionAbilities,
             _boardMinionAttackCount = 0,
             _boardMinionNewlySummoned = True,
+            _boardMinionPendingDestroy = False,
             _boardMinionHandle = minionHandle,
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
@@ -565,6 +574,8 @@ enactEffect = logCall 'enactEffect . \case
     Elect elect -> enactElect elect >>= return . \case
         NotAvailable -> NotAvailable
         Available (AtRandomPick _) -> purePick ()
+    With with -> enactWith with
+    ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
     KeywordEffect effect -> enactKeywordEffect effect >> return success
@@ -572,10 +583,23 @@ enactEffect = logCall 'enactEffect . \case
     Enchant handle enchantments -> enchant handle enchantments >> return success
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
-    With with -> enactWith with
-    ForEach handles cont -> enactForEach handles cont
+    DestroyMinion handle -> destroyMinion handle >> return success
+    RestoreHealth handle amount -> restoreHealth handle amount >> return success
     where
         success = purePick ()
+
+
+restoreHealth :: (HearthMonad m) => CharacterHandle -> Int -> Hearth m ()
+restoreHealth charHandle amount = logCall 'restoreHealth $ case charHandle of
+    MinionCharacter handle -> getMinion handle.boardMinionDamage %= restore
+    PlayerCharacter handle -> getPlayer handle.playerHero.boardHeroDamage %= restore
+    where
+        restore = min 0 . (subtract $ Damage amount)
+
+
+destroyMinion :: (HearthMonad m) => MinionHandle -> Hearth m ()
+destroyMinion handle = logCall 'destroyMinion $ do
+    getMinion handle.boardMinionPendingDestroy .= True
 
 
 enactWith :: (HearthMonad m, EnactElectionEffect s) => With -> Hearth m (SimplePickResult s)
@@ -836,6 +860,7 @@ instance EnactElectionEffect AtRandom where
 enactElect :: (HearthMonad m, EnactElectionEffect s) => Elect s -> Hearth m (SimplePickResult s)
 enactElect = logCall 'enactElect . \case
     AnyCharacter f -> anyCharacter f
+    AnyMinion f -> anyMinion f
     AnyEnemy f -> anyEnemy f
     AnotherCharacter bannedMinion f -> anotherCharacter bannedMinion f
     AnotherMinion bannedMinion f -> anotherMinion bannedMinion f
@@ -846,6 +871,7 @@ enactAll :: (HearthMonad m, EnactElectionEffect s) => All -> Hearth m (SimplePic
 enactAll = logCall 'enactAll . \case
     OtherCharacters bannedMinion f -> otherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> otherEnemies bannedMinion f
+    FriendlyCharacters f -> friendlyCharacters f
 
 
 enactUnique :: (HearthMonad m, EnactElectionEffect s) => Unique -> Hearth m (SimplePickResult s)
@@ -853,6 +879,18 @@ enactUnique = logCall 'enactUnique . \case
     CasterOf _ f -> getActivePlayerHandle >>= enactEffect . f
     OpponentOf _ f -> getNonActivePlayerHandle >>= enactEffect . f
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
+
+
+friendlyCharacters :: (HearthMonad m, EnactElectionEffect s) => ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
+friendlyCharacters f = logCall 'friendlyCharacters $ do
+    activeHandle <- getActivePlayerHandle
+    minionCandidates <- do
+        bms <- view $ getPlayer activeHandle.playerMinions
+        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
+        return $ map MinionCharacter bmHandles
+    let playerCandidate = PlayerCharacter activeHandle
+        candidates = playerCandidate : minionCandidates
+    enactEffect $ f candidates
 
 
 otherEnemies :: (HearthMonad m, EnactElectionEffect s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
@@ -910,6 +948,15 @@ anyCharacter f = logCall 'anyCharacter $ do
         return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
     let playerCandidates = map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
+    pickFrom candidates >>= enactElectionEffect f
+
+
+anyMinion :: (HearthMonad m, EnactElectionEffect s) => (MinionHandle -> ElectionEffect s) -> Hearth m (SimplePickResult s)
+anyMinion f = logCall 'anyMinion $ do
+    pHandles <- getPlayerHandles
+    candidates <- liftM concat $ forM pHandles $ \pHandle -> do
+        bms <- view $ getPlayer pHandle.playerMinions
+        return $ map (\bm -> bm^.boardMinionHandle) bms
     pickFrom candidates >>= enactElectionEffect f
 
 

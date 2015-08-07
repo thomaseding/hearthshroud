@@ -212,6 +212,8 @@ showBattlecry effectHole = do
 showEffect :: Effect -> ShowCard String
 showEffect = \case
     Elect elect -> showElect elect
+    With with -> showWith with
+    ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
     KeywordEffect effect -> showKeywordEffect effect
@@ -219,8 +221,20 @@ showEffect = \case
     Enchant handle enchantments -> showEnchant handle enchantments
     GiveAbility handle abilities -> showGiveAbility handle abilities
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
-    With with -> showWith with
-    ForEach handles cont -> showForEach handles cont
+    DestroyMinion handle -> showDestroyMinion handle
+    RestoreHealth handle amount -> showRestoreHealth handle amount
+
+
+showRestoreHealth :: CharacterHandle -> Int -> ShowCard String
+showRestoreHealth character amount = do
+    characterStr <- readHandle character
+    return $ "Restore " ++ show amount ++ " health on " ++ characterStr
+
+
+showDestroyMinion :: MinionHandle -> ShowCard String
+showDestroyMinion minion = do
+    minionStr <- readHandle minion
+    return $ "Destroy " ++ minionStr
 
 
 showWith :: With -> ShowCard String
@@ -242,6 +256,7 @@ showElect :: (Elect' a) => Elect a -> ShowCard String
 showElect = \case
     AnyCharacter effectHole -> showAnyCharacter effectHole
     AnyEnemy effectHole -> showAnyEnemy effectHole
+    AnyMinion effectHole -> showAnyMinion effectHole
     AnotherCharacter handle effectHole -> showAnotherCharacter handle effectHole
     AnotherMinion handle effectHole -> showAnotherMinion handle effectHole
     AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
@@ -258,6 +273,7 @@ showAll :: All -> ShowCard String
 showAll = \case
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
     OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
+    FriendlyCharacters effectHole -> showFriendlyCharacters effectHole
 
 
 class Elect' a where
@@ -275,6 +291,12 @@ instance Elect' Targeted where
 instance Elect' AtRandom where
     showElectionEffect (FromRandom effect) = showEffect effect
     showSelection _ = "RANDOM_"
+
+
+showFriendlyCharacters :: ([CharacterHandle] -> Effect) -> ShowCard String
+showFriendlyCharacters effectHole = do
+    other <- genHandle "FRIENDLY_CHARACTER"
+    showEffect $ effectHole [other]
 
 
 showOtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
@@ -314,6 +336,13 @@ showAnyCharacter effectHole = do
     let sel = showSelection (Proxy :: Proxy a)
     character <- genNumberedHandle $ sel ++ "ANY_CHARACTER"
     showElectionEffect $ effectHole character
+
+
+showAnyMinion :: forall a. (Elect' a) => (MinionHandle -> ElectionEffect a) -> ShowCard String
+showAnyMinion effectHole = do
+    let sel = showSelection (Proxy :: Proxy a)
+    minion <- genNumberedHandle $ sel ++ "ANY_MINION"
+    showElectionEffect $ effectHole minion
 
 
 showAnotherMinion :: forall a. (Elect' a) => MinionHandle -> (MinionHandle -> ElectionEffect a) -> ShowCard String

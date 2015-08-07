@@ -22,6 +22,7 @@ cards = [
     argentProtector,
     argentSquire,
     cruelTaskmaster,
+    injuredBlademaster,
     ironbeakOwl,
     scarletCrusader,
     silvermoonGuardian,
@@ -83,6 +84,12 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
             Effect $ Sequence [
                 DealDamage (MinionCharacter target) 1,
                 Enchant target [StatsDelta 2 0]]]
+
+
+injuredBlademaster :: DeckCard
+injuredBlademaster = minion InjuredBlademaster 3 4 7 [
+    KeywordAbility $ Battlecry $ \this ->
+        Effect $ DealDamage (MinionCharacter this) 4 ]
 
 
 ironbeakOwl :: DeckCard

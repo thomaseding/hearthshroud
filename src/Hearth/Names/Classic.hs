@@ -22,6 +22,7 @@ data ClassicCardName
     | ArgentProtector
     | ArgentSquire
     | CruelTaskmaster
+    | InjuredBlademaster
     | IronbeakOwl
     | ScarletCrusader
     | SilvermoonGuardian
