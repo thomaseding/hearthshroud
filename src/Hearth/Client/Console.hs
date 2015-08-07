@@ -413,7 +413,7 @@ instance MonadPrompt HearthPrompt Console where
         PromptError e -> promptError e
         PromptGameEvent snapshot e -> gameEvent snapshot e
         PromptAction snapshot -> getAction snapshot
-        PromptShuffle xs -> return xs
+        PromptShuffle xs -> liftIO $ shuffleM xs
         PromptPickAtRandom p -> handlePromptPick p
         PromptPickTargeted p -> handlePromptPick p
         PromptMulligan _ xs -> return xs
