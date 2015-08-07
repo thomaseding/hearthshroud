@@ -22,6 +22,7 @@ cards = [
     argentCommander,
     argentProtector,
     argentSquire,
+    circleOfHealing,
     coldlightOracle,
     cruelTaskmaster,
     earthenRingFarseer,
@@ -42,8 +43,8 @@ cards = [
 --------------------------------------------------------------------------------
 
 
-minion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
-minion name mana attack health abilities = DeckCardMinion $ Minion {
+mkMinion :: ClassicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
+mkMinion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
@@ -51,11 +52,18 @@ minion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionName = ClassicCardName name }
 
 
+mkSpell :: ClassicCardName -> Mana -> SpellEffect -> DeckCard
+mkSpell name mana effect = DeckCardSpell $ Spell {
+    _spellCost = ManaCost mana,
+    _spellEffect = effect,
+    _spellName = ClassicCardName name }
+
+
 --------------------------------------------------------------------------------
 
 
 abomination :: DeckCard
-abomination = minion Abomination 5 4 4 [
+abomination = mkMinion Abomination 5 4 4 [
     KeywordAbility Taunt,
     KeywordAbility $ Deathrattle $ \this ->
         With $ All $ OtherCharacters (MinionCharacter this) $ \victims ->
@@ -64,12 +72,12 @@ abomination = minion Abomination 5 4 4 [
 
 
 amaniBerserker :: DeckCard
-amaniBerserker = minion AmaniBerserker 2 2 3 [
+amaniBerserker = mkMinion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [] [StatsDelta 3 0] ]
 
 
 arcaneGolem :: DeckCard
-arcaneGolem = minion ArcaneGolem 3 4 2 [
+arcaneGolem = mkMinion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique $ ControllerOf this $ \controller ->
@@ -78,25 +86,32 @@ arcaneGolem = minion ArcaneGolem 3 4 2 [
 
 
 argentCommander :: DeckCard
-argentCommander = minion ArgentCommander 6 4 2 [
+argentCommander = mkMinion ArgentCommander 6 4 2 [
     KeywordAbility Charge,
     KeywordAbility DivineShield ]
 
 
 argentProtector :: DeckCard
-argentProtector = minion ArgentProtector 2 2 2 [
+argentProtector = mkMinion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherFriendlyMinion this $ \target ->
             Effect $ GiveAbility target [KeywordAbility DivineShield]]
 
 
 argentSquire :: DeckCard
-argentSquire = minion ArgentSquire 1 1 1 [
+argentSquire = mkMinion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
 
 
+circleOfHealing :: DeckCard
+circleOfHealing = mkSpell CircleOfHealing 0 $ \_ ->
+    Effect $ With $ All $ Minions $ \minions ->
+        ForEach minions $ \minion ->
+            RestoreHealth (MinionCharacter minion) 4
+
+
 coldlightOracle :: DeckCard
-coldlightOracle = minion ColdlightOracle 3 2 2[
+coldlightOracle = mkMinion ColdlightOracle 3 2 2[
     KeywordAbility $ Battlecry $ \_ ->
         Effect $ With $ All $ Players $ \players ->
             ForEach players $ \player ->
@@ -104,7 +119,7 @@ coldlightOracle = minion ColdlightOracle 3 2 2[
 
 
 cruelTaskmaster :: DeckCard
-cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
+cruelTaskmaster = mkMinion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherMinion this $ \target ->
             Effect $ Sequence [
@@ -113,32 +128,32 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
 
 
 earthenRingFarseer :: DeckCard
-earthenRingFarseer = minion EarthenRingFarseer 3 3 3 [
+earthenRingFarseer = mkMinion EarthenRingFarseer 3 3 3 [
     KeywordAbility $ Battlecry $ \_ ->
         Targeted $ AnyCharacter $ \character ->
             Effect $ RestoreHealth character 3 ]
 
 
 fenCreeper :: DeckCard
-fenCreeper = minion FenCreeper 5 3 6 [
+fenCreeper = mkMinion FenCreeper 5 3 6 [
     KeywordAbility Taunt ]
 
 
 injuredBlademaster :: DeckCard
-injuredBlademaster = minion InjuredBlademaster 3 4 7 [
+injuredBlademaster = mkMinion InjuredBlademaster 3 4 7 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ DealDamage (MinionCharacter this) 4 ]
 
 
 ironbeakOwl :: DeckCard
-ironbeakOwl = minion IronbeakOwl 2 2 1 [
+ironbeakOwl = mkMinion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherMinion this $ \target ->
             Effect $ KeywordEffect $ Silence target ]
 
 
 leperGnome :: DeckCard
-leperGnome = minion LeperGnome 1 2 1 [
+leperGnome = mkMinion LeperGnome 1 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
         With $ Unique $ ControllerOf this $ \controller ->
             With $ Unique $ OpponentOf controller $ \opponent ->
@@ -146,49 +161,49 @@ leperGnome = minion LeperGnome 1 2 1 [
 
 
 lootHoarder :: DeckCard
-lootHoarder = minion LootHoarder 2 2 1 [
+lootHoarder = mkMinion LootHoarder 2 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
         With $ Unique $ ControllerOf this $ \controller ->
             DrawCards controller 1 ]
 
 
 mogu'shanWarden :: DeckCard
-mogu'shanWarden = minion Mogu'shanWarden 4 1 7 [
+mogu'shanWarden = mkMinion Mogu'shanWarden 4 1 7 [
     KeywordAbility Taunt ]
 
 
 priestessOfElune :: DeckCard
-priestessOfElune = minion PriestessOfElune 6 5 4 [
+priestessOfElune = mkMinion PriestessOfElune 6 5 4 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique $ ControllerOf this $ \controller ->
             RestoreHealth (PlayerCharacter controller) 4 ]
 
 
 scarletCrusader :: DeckCard
-scarletCrusader = minion ScarletCrusader 3 3 1 [
+scarletCrusader = mkMinion ScarletCrusader 3 3 1 [
     KeywordAbility DivineShield ]
 
 
 silvermoonGuardian :: DeckCard
-silvermoonGuardian = minion SilvermoonGuardian 4 3 3 [
+silvermoonGuardian = mkMinion SilvermoonGuardian 4 3 3 [
     KeywordAbility DivineShield ]
 
 
 spellbreaker :: DeckCard
-spellbreaker = minion Spellbreaker 4 4 3 [
+spellbreaker = mkMinion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherMinion this $ \target ->
             Effect $ KeywordEffect $ Silence target ]
 
 
 sunwalker :: DeckCard
-sunwalker = minion Sunwalker 6 4 5 [
+sunwalker = mkMinion Sunwalker 6 4 5 [
     KeywordAbility Taunt,
     KeywordAbility DivineShield ]
 
 
 wisp :: DeckCard
-wisp = minion Wisp 0 1 1 []
+wisp = mkMinion Wisp 0 1 1 []
 
 
 

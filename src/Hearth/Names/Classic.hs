@@ -22,6 +22,7 @@ data ClassicCardName
     | ArgentCommander
     | ArgentProtector
     | ArgentSquire
+    | CircleOfHealing
     | ColdlightOracle
     | CruelTaskmaster
     | EarthenRingFarseer

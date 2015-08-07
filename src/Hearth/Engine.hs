@@ -885,8 +885,10 @@ enactAll :: (HearthMonad m, EnactElectionEffect s) => All -> Hearth m (SimplePic
 enactAll = logCall 'enactAll . \case
     OtherCharacters bannedMinion f -> enactOtherCharacters bannedMinion f
     OtherEnemies bannedMinion f -> enactOtherEnemies bannedMinion f
-    FriendlyCharacters f -> enactFriendlyCharacters f
+    CharactersOf player f -> enactCharactersOf player f
+    MinionsOf player f -> enactMinionsOf player f
     Players f -> enactPlayers f
+    Minions f -> enactMinions f
 
 
 enactUnique :: (HearthMonad m, EnactElectionEffect s) => Unique -> Hearth m (SimplePickResult s)
@@ -896,27 +898,35 @@ enactUnique = logCall 'enactUnique . \case
     ControllerOf minionHandle f -> controllerOf minionHandle >>= enactEffect . f
 
 
+enactMinions :: (HearthMonad m, EnactElectionEffect s) => ([MinionHandle] -> Effect) -> Hearth m (SimplePickResult s)
+enactMinions f = logCall 'enactMinions $ do
+    candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+    enactEffect $ f candidates
+
+
 enactPlayers :: (HearthMonad m, EnactElectionEffect s) => ([PlayerHandle] -> Effect) -> Hearth m (SimplePickResult s)
 enactPlayers f = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
     enactEffect $ f candidates
 
 
-enactFriendlyCharacters :: (HearthMonad m, EnactElectionEffect s) => ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
-enactFriendlyCharacters f = logCall 'enactFriendlyCharacters $ do
-    activeHandle <- getActivePlayerHandle
-    minionCandidates <- do
-        bms <- view $ getPlayer activeHandle.playerMinions
-        let bmHandles = map (\bm -> bm^.boardMinionHandle) bms
-        return $ map MinionCharacter bmHandles
-    let playerCandidate = PlayerCharacter activeHandle
+enactMinionsOf :: (HearthMonad m, EnactElectionEffect s) => PlayerHandle -> ([MinionHandle] -> Effect) -> Hearth m (SimplePickResult s)
+enactMinionsOf player f = logCall 'enactCharactersOf $ do
+    candidates <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle
+    enactEffect $ f candidates
+
+
+enactCharactersOf :: (HearthMonad m, EnactElectionEffect s) => PlayerHandle -> ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
+enactCharactersOf player f = logCall 'enactCharactersOf $ do
+    minionCandidates <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle.to MinionCharacter
+    let playerCandidate = PlayerCharacter player
         candidates = playerCandidate : minionCandidates
     enactEffect $ f candidates
 
 
 enactOtherEnemies :: (HearthMonad m, EnactElectionEffect s) => CharacterHandle -> ([CharacterHandle] -> Effect) -> Hearth m (SimplePickResult s)
 enactOtherEnemies bannedHandle f = logCall 'enactOtherEnemies $ do
-    opponentHandle <- getNonActivePlayerHandle
+    opponentHandle <- controllerOf bannedHandle
     minionCandidates <- do
         bms <- view $ getPlayer opponentHandle.playerMinions
         let bmHandles = map (\bm -> bm^.boardMinionHandle) bms

@@ -22,14 +22,20 @@ data BasicCardName
     | BootyBayBodyguard
     | BoulderfistOgre
     | ChillwindYeti
+    | Consecration
     | CoreHound
     | DarkscaleHealer
     | DreadInfernal
     | ElvenArcher
+    | FanOfKnives
+    | Fireball
     | FireElemental
+    | Flamestrike
     | FrostwolfGrunt
     | GnomishInventor
     | GoldshireFootman
+    | HolyNova
+    | HolySmite
     | Innervate
     | IronforgeRifleman
     | LordOfTheArena

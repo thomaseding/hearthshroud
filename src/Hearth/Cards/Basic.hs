@@ -22,14 +22,20 @@ cards = [
     bootyBayBodyguard,
     boulderfistOgre,
     chillwindYeti,
+    consecration,
     coreHound,
     darkscaleHealer,
     dreadInfernal,
     elvenArcher,
+    fanOfKnives,
+    fireball,
     fireElemental,
+    flamestrike,
     frostwolfGrunt,
     gnomishInventor,
     goldshireFootman,
+    holyNova,
+    holySmite,
     innervate,
     ironforgeRifleman,
     lordOfTheArena,
@@ -59,8 +65,8 @@ cards = [
 --------------------------------------------------------------------------------
 
 
-minion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
-minion name mana attack health abilities = DeckCardMinion $ Minion {
+mkMinion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
+mkMinion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
@@ -68,8 +74,8 @@ minion name mana attack health abilities = DeckCardMinion $ Minion {
     _minionName = BasicCardName name }
 
 
-spell :: BasicCardName -> Mana -> SpellEffect -> DeckCard
-spell name mana effect = DeckCardSpell $ Spell {
+mkSpell :: BasicCardName -> Mana -> SpellEffect -> DeckCard
+mkSpell name mana effect = DeckCardSpell $ Spell {
     _spellCost = ManaCost mana,
     _spellEffect = effect,
     _spellName = BasicCardName name }
@@ -79,47 +85,57 @@ spell name mana effect = DeckCardSpell $ Spell {
 
 
 assassinate :: DeckCard
-assassinate = spell Assassinate 0 $ \_ ->
+assassinate = mkSpell Assassinate 0 $ \_ ->
     Targeted $ AnyMinion $ \target ->
         Effect $ DestroyMinion target
 
 
 bluegillWarrior :: DeckCard
-bluegillWarrior = minion BluegillWarrior 2 2 1 [
+bluegillWarrior = mkMinion BluegillWarrior 2 2 1 [
     KeywordAbility Charge ]
 
 
 bloodfenRaptor :: DeckCard
-bloodfenRaptor = minion BloodfenRaptor 2 3 2 []
+bloodfenRaptor = mkMinion BloodfenRaptor 2 3 2 []
 
 
 bootyBayBodyguard :: DeckCard
-bootyBayBodyguard = minion BootyBayBodyguard 5 5 4 [
+bootyBayBodyguard = mkMinion BootyBayBodyguard 5 5 4 [
     KeywordAbility Taunt ]
 
 
 boulderfistOgre :: DeckCard
-boulderfistOgre = minion BoulderfistOgre 6 6 7 []
+boulderfistOgre = mkMinion BoulderfistOgre 6 6 7 []
 
 
 chillwindYeti :: DeckCard
-chillwindYeti = minion ChillwindYeti 4 4 5 []
+chillwindYeti = mkMinion ChillwindYeti 4 4 5 []
+
+
+consecration :: DeckCard
+consecration = mkSpell Consecration 4 $ \this ->
+    Effect $ With $ Unique $ CasterOf this $ \controller ->
+        With $ Unique $ OpponentOf controller $ \opponent ->
+            With $ All $ CharactersOf opponent $ \enemies ->
+                ForEach enemies $ \enemy ->
+                    DealDamage enemy 2
 
 
 coreHound :: DeckCard
-coreHound = minion CoreHound 7 9 5 []
+coreHound = mkMinion CoreHound 7 9 5 []
 
 
 darkscaleHealer :: DeckCard
-darkscaleHealer = minion DarkscaleHealer 5 4 5 [
-    KeywordAbility $ Battlecry $ \_ ->
-        Effect $ With $ All $ FriendlyCharacters $ \friendlies ->
-            ForEach friendlies $ \friendly ->
-                RestoreHealth friendly 2 ]
+darkscaleHealer = mkMinion DarkscaleHealer 5 4 5 [
+    KeywordAbility $ Battlecry $ \this ->
+        Effect $ With $ Unique $ ControllerOf this $ \controller ->
+            With $ All $ CharactersOf controller $ \friendlies ->
+                ForEach friendlies $ \friendly ->
+                    RestoreHealth friendly 2 ]
 
 
 dreadInfernal :: DeckCard
-dreadInfernal = minion DreadInfernal 6 6 6 [
+dreadInfernal = mkMinion DreadInfernal 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ All $ OtherCharacters (MinionCharacter this) $ \victims ->
             ForEach victims $ \victim ->
@@ -127,70 +143,115 @@ dreadInfernal = minion DreadInfernal 6 6 6 [
 
 
 elvenArcher :: DeckCard
-elvenArcher = minion ElvenArcher 1 1 1 [
+elvenArcher = mkMinion ElvenArcher 1 1 1 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherCharacter (MinionCharacter this) $ \target ->
             Effect $ DealDamage target 1 ]
 
 
+fanOfKnives :: DeckCard
+fanOfKnives = mkSpell Consecration 4 $ \this ->
+    Effect $ With $ Unique $ CasterOf this $ \controller ->
+        With $ Unique $ OpponentOf controller $ \opponent ->
+            With $ All $ MinionsOf opponent $ \enemies ->
+                Sequence [
+                    ForEach enemies $ \enemy ->
+                        DealDamage (MinionCharacter enemy) 1,
+                    DrawCards controller 1 ]
+
+
+fireball :: DeckCard
+fireball = mkSpell Fireball 4 $ \_ ->
+    Targeted $ AnyCharacter $ \target ->
+        Effect $ DealDamage target 6
+
+
 fireElemental :: DeckCard
-fireElemental = minion FireElemental 6 6 5 [
+fireElemental = mkMinion FireElemental 6 6 5 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherCharacter (MinionCharacter this) $ \target ->
             Effect $ DealDamage target 3 ]
 
 
+flamestrike :: DeckCard
+flamestrike = mkSpell Flamestrike 7 $ \this ->
+    Effect $ With $ Unique $ CasterOf this $ \controller ->
+        With $ Unique $ OpponentOf controller $ \opponent ->
+            With $ All $ MinionsOf opponent $ \victims ->
+                ForEach victims $ \victim ->
+                    DealDamage (MinionCharacter victim) 4
+
+
 frostwolfGrunt :: DeckCard
-frostwolfGrunt = minion FrostwolfGrunt 2 2 2 [
+frostwolfGrunt = mkMinion FrostwolfGrunt 2 2 2 [
     KeywordAbility Taunt ]
 
 
 gnomishInventor :: DeckCard
-gnomishInventor = minion GnomishInventor 4 2 4 [
+gnomishInventor = mkMinion GnomishInventor 4 2 4 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique $ ControllerOf this $ \controller ->
             DrawCards controller 1 ]
 
 
 goldshireFootman :: DeckCard
-goldshireFootman = minion GoldshireFootman 1 1 2 [
+goldshireFootman = mkMinion GoldshireFootman 1 1 2 [
     KeywordAbility Taunt ]
 
 
+holyNova :: DeckCard
+holyNova = mkSpell HolyNova 5 $ \this ->
+    Effect $ With $ Unique $ CasterOf this $ \controller ->
+        With $ Unique $ OpponentOf controller $ \opponent ->
+            With $ All $ CharactersOf controller $ \friendlies ->
+                With $ All $ CharactersOf opponent $ \enemies ->
+                    Sequence [
+                        ForEach enemies $ \enemy ->
+                            DealDamage enemy 2,
+                        ForEach friendlies $ \friendly ->
+                            RestoreHealth friendly 2 ]
+
+
+holySmite :: DeckCard
+holySmite = mkSpell HolySmite 1 $ \_ ->
+    Targeted $ AnyCharacter $ \target ->
+        Effect $ DealDamage target 2
+
+
 innervate :: DeckCard
-innervate = spell Innervate 0 $ \this ->
+innervate = mkSpell Innervate 0 $ \this ->
     Effect $ With $ Unique $ CasterOf this $ \caster ->
         Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary caster
 
 
 ironforgeRifleman :: DeckCard
-ironforgeRifleman = minion IronforgeRifleman 3 2 2 [
+ironforgeRifleman = mkMinion IronforgeRifleman 3 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherCharacter (MinionCharacter this) $ \target ->
             Effect $ DealDamage target 1 ]
 
 
 lordOfTheArena :: DeckCard
-lordOfTheArena = minion LordOfTheArena 6 6 5 [
+lordOfTheArena = mkMinion LordOfTheArena 6 6 5 [
     KeywordAbility Taunt ]
 
 
 magmaRager :: DeckCard
-magmaRager = minion MagmaRager 3 5 1 []
+magmaRager = mkMinion MagmaRager 3 5 1 []
 
 
 moonfire :: DeckCard
-moonfire = spell Moonfire 0 $ \_ ->
+moonfire = mkSpell Moonfire 0 $ \_ ->
     Targeted $ AnyCharacter $ \target ->
         Effect $ DealDamage target 1
 
 
 murlocRaider :: DeckCard
-murlocRaider = minion MurlocRaider 1 2 1 []
+murlocRaider = mkMinion MurlocRaider 1 2 1 []
 
 
 nightblade :: DeckCard
-nightblade = minion Nightblade 5 4 4 [
+nightblade = mkMinion Nightblade 5 4 4 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique $ ControllerOf this $ \controller ->
             With $ Unique $ OpponentOf controller $ \opponent ->
@@ -198,44 +259,44 @@ nightblade = minion Nightblade 5 4 4 [
 
 
 noviceEngineer :: DeckCard
-noviceEngineer = minion NoviceEngineer 2 1 1 [
+noviceEngineer = mkMinion NoviceEngineer 2 1 1 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique $ ControllerOf this $ \controller ->
             DrawCards controller 1 ]
 
 
 oasisSnapjaw :: DeckCard
-oasisSnapjaw = minion OasisSnapjaw 4 2 7 []
+oasisSnapjaw = mkMinion OasisSnapjaw 4 2 7 []
 
 
 recklessRocketeer :: DeckCard
-recklessRocketeer = minion RecklessRocketeer 6 5 2 [
+recklessRocketeer = mkMinion RecklessRocketeer 6 5 2 [
     KeywordAbility Charge ]
 
 
 riverCrocolisk :: DeckCard
-riverCrocolisk = minion RiverCrocolisk 2 2 3 []
+riverCrocolisk = mkMinion RiverCrocolisk 2 2 3 []
 
 
 sen'jinShieldmasta :: DeckCard
-sen'jinShieldmasta = minion Sen'jinShieldmasta 4 3 5 [
+sen'jinShieldmasta = mkMinion Sen'jinShieldmasta 4 3 5 [
     KeywordAbility Taunt ]
 
 
 shatteredSunCleric :: DeckCard
-shatteredSunCleric = minion ShatteredSunCleric 3 3 2 [
+shatteredSunCleric = mkMinion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherFriendlyMinion this $ \target ->
             Effect $ Enchant target [StatsDelta 1 1]]
 
 
 silverbackPatriarch :: DeckCard
-silverbackPatriarch = minion SilverbackPatriarch 3 1 4 [
+silverbackPatriarch = mkMinion SilverbackPatriarch 3 1 4 [
     KeywordAbility Taunt ]
 
 
 starfire :: DeckCard
-starfire = spell Starfire 6 $ \this ->
+starfire = mkSpell Starfire 6 $ \this ->
     Targeted $ AnyCharacter $ \target ->
         Effect $ With $ Unique $ CasterOf this $ \caster ->
             Sequence [
@@ -244,24 +305,24 @@ starfire = spell Starfire 6 $ \this ->
 
 
 stonetuskBoar :: DeckCard
-stonetuskBoar = minion StonetuskBoar 1 1 1 [
+stonetuskBoar = mkMinion StonetuskBoar 1 1 1 [
     KeywordAbility Charge ]
 
 
 stormpikeCommando :: DeckCard
-stormpikeCommando = minion StormpikeCommando 5 4 2 [
+stormpikeCommando = mkMinion StormpikeCommando 5 4 2 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherCharacter (MinionCharacter this) $ \target ->
             Effect $ DealDamage target 2 ]
 
 
 stormwindKnight :: DeckCard
-stormwindKnight = minion StormwindKnight 4 2 5 [
+stormwindKnight = mkMinion StormwindKnight 4 2 5 [
     KeywordAbility Charge ]
 
 
 swipe :: DeckCard
-swipe = spell Swipe 4 $ \_ ->
+swipe = mkSpell Swipe 4 $ \_ ->
     Targeted $ AnyEnemy $ \target ->
         Effect $ With $ All $ OtherEnemies target $ \others ->
             Sequence [
@@ -271,30 +332,30 @@ swipe = spell Swipe 4 $ \_ ->
 
 
 theCoin :: DeckCard
-theCoin = spell TheCoin 0 $ \this ->
+theCoin = mkSpell TheCoin 0 $ \this ->
     Effect $ With $ Unique $ CasterOf this $ \caster ->
         GainManaCrystal CrystalTemporary caster
 
 
 voodooDoctor :: DeckCard
-voodooDoctor = minion VoodooDoctor 1 2 1 [
+voodooDoctor = mkMinion VoodooDoctor 1 2 1 [
     KeywordAbility $ Battlecry $ \_ ->
         Targeted $ AnyCharacter $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
 warGolem :: DeckCard
-warGolem = minion WarGolem 7 7 7 []
+warGolem = mkMinion WarGolem 7 7 7 []
 
 
 wildGrowth :: DeckCard
-wildGrowth = spell WildGrowth 2 $ \this ->
+wildGrowth = mkSpell WildGrowth 2 $ \this ->
     Effect $ With $ Unique $ CasterOf this $ \caster ->
         GainManaCrystal CrystalEmpty caster
 
 
 wolfRider :: DeckCard
-wolfRider = minion WolfRider 3 3 1 [
+wolfRider = mkMinion WolfRider 3 3 1 [
     KeywordAbility Charge ]
 
 

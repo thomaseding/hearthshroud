@@ -280,8 +280,10 @@ showAll :: All -> ShowCard String
 showAll = \case
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
     OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
-    FriendlyCharacters effectHole -> showFriendlyCharacters effectHole
+    CharactersOf handle effectHole -> showCharactersOf handle effectHole
+    MinionsOf handle effectHole -> showMinionsOf handle effectHole
     Players effectHole -> showPlayers effectHole
+    Minions effectHole -> showMinions effectHole
 
 
 class Elect' a where
@@ -301,15 +303,31 @@ instance Elect' AtRandom where
     showSelection _ = "RANDOM_"
 
 
+showMinions :: ([MinionHandle] -> Effect) -> ShowCard String
+showMinions effectHole = do
+    other <- genHandle "MINION"
+    showEffect $ effectHole [other]
+
+
 showPlayers :: ([PlayerHandle] -> Effect) -> ShowCard String
 showPlayers effectHole = do
     other <- genHandle "PLAYER"
     showEffect $ effectHole [other]
 
 
-showFriendlyCharacters :: ([CharacterHandle] -> Effect) -> ShowCard String
-showFriendlyCharacters effectHole = do
-    other <- genHandle "FRIENDLY_CHARACTER"
+showMinionsOf :: PlayerHandle -> ([MinionHandle] -> Effect) -> ShowCard String
+showMinionsOf handle effectHole = do
+    other <- readHandle handle >>= \case
+        (is you -> True) -> genHandle "FRIENDLY_MINION"
+        _ -> genHandle "ENEMY_MINION"
+    showEffect $ effectHole [other]
+
+
+showCharactersOf :: PlayerHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
+showCharactersOf handle effectHole = do
+    other <- readHandle handle >>= \case
+        (is you -> True) -> genHandle "FRIENDLY_CHARACTER"
+        _ -> genHandle "ENEMY_CHARACTER"
     showEffect $ effectHole [other]
 
 

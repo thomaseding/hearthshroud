@@ -174,8 +174,10 @@ data Effect :: * where
 data All :: * where
     OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
     OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
-    FriendlyCharacters :: ([CharacterHandle] -> Effect) -> All
+    CharactersOf :: PlayerHandle -> ([CharacterHandle] -> Effect) -> All
+    MinionsOf :: PlayerHandle -> ([MinionHandle] -> Effect) -> All
     Players :: ([PlayerHandle] -> Effect) -> All
+    Minions :: ([MinionHandle] -> Effect) -> All
 
 
 data Unique :: * where
