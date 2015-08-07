@@ -16,18 +16,27 @@ import Hearth.Names.Classic
 
 cards :: [DeckCard]
 cards = [
+    abomination,
     amaniBerserker,
     arcaneGolem,
     argentCommander,
     argentProtector,
     argentSquire,
+    coldlightOracle,
     cruelTaskmaster,
+    earthenRingFarseer,
+    fenCreeper,
     injuredBlademaster,
     ironbeakOwl,
+    leperGnome,
+    lootHoarder,
+    mogu'shanWarden,
+    priestessOfElune,
     scarletCrusader,
     silvermoonGuardian,
     spellbreaker,
-    sunwalker ]
+    sunwalker,
+    wisp ]
 
 
 --------------------------------------------------------------------------------
@@ -43,6 +52,15 @@ minion name mana attack health abilities = DeckCardMinion $ Minion {
 
 
 --------------------------------------------------------------------------------
+
+
+abomination :: DeckCard
+abomination = minion Abomination 5 4 4 [
+    KeywordAbility Taunt,
+    KeywordAbility $ Deathrattle $ \this ->
+        With $ All $ OtherCharacters (MinionCharacter this) $ \victims ->
+            ForEach victims $ \victim ->
+                DealDamage victim 2 ]
 
 
 amaniBerserker :: DeckCard
@@ -77,6 +95,14 @@ argentSquire = minion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
 
 
+coldlightOracle :: DeckCard
+coldlightOracle = minion ColdlightOracle 3 2 2[
+    KeywordAbility $ Battlecry $ \_ ->
+        Effect $ With $ All $ Players $ \players ->
+            ForEach players $ \player ->
+                DrawCards player 2 ]
+
+
 cruelTaskmaster :: DeckCard
 cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
@@ -84,6 +110,18 @@ cruelTaskmaster = minion CruelTaskmaster 2 2 2 [
             Effect $ Sequence [
                 DealDamage (MinionCharacter target) 1,
                 Enchant target [StatsDelta 2 0]]]
+
+
+earthenRingFarseer :: DeckCard
+earthenRingFarseer = minion EarthenRingFarseer 3 3 3 [
+    KeywordAbility $ Battlecry $ \_ ->
+        Targeted $ AnyCharacter $ \character ->
+            Effect $ RestoreHealth character 3 ]
+
+
+fenCreeper :: DeckCard
+fenCreeper = minion FenCreeper 5 3 6 [
+    KeywordAbility Taunt ]
 
 
 injuredBlademaster :: DeckCard
@@ -97,6 +135,33 @@ ironbeakOwl = minion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
         Targeted $ AnotherMinion this $ \target ->
             Effect $ KeywordEffect $ Silence target ]
+
+
+leperGnome :: DeckCard
+leperGnome = minion LeperGnome 1 2 1 [
+    KeywordAbility $ Deathrattle $ \this ->
+        With $ Unique $ ControllerOf this $ \controller ->
+            With $ Unique $ OpponentOf controller $ \opponent ->
+                DealDamage (PlayerCharacter opponent) 2 ]
+
+
+lootHoarder :: DeckCard
+lootHoarder = minion LootHoarder 2 2 1 [
+    KeywordAbility $ Deathrattle $ \this ->
+        With $ Unique $ ControllerOf this $ \controller ->
+            DrawCards controller 1 ]
+
+
+mogu'shanWarden :: DeckCard
+mogu'shanWarden = minion Mogu'shanWarden 4 1 7 [
+    KeywordAbility Taunt ]
+
+
+priestessOfElune :: DeckCard
+priestessOfElune = minion PriestessOfElune 6 5 4 [
+    KeywordAbility $ Battlecry $ \this ->
+        Effect $ With $ Unique $ ControllerOf this $ \controller ->
+            RestoreHealth (PlayerCharacter controller) 4 ]
 
 
 scarletCrusader :: DeckCard
@@ -120,6 +185,10 @@ sunwalker :: DeckCard
 sunwalker = minion Sunwalker 6 4 5 [
     KeywordAbility Taunt,
     KeywordAbility DivineShield ]
+
+
+wisp :: DeckCard
+wisp = minion Wisp 0 1 1 []
 
 
 

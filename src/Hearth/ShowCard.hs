@@ -190,6 +190,7 @@ showAbility = \case
 showKeywordAbility :: KeywordAbility -> ShowCard String
 showKeywordAbility = \case
     Battlecry effectHole -> showBattlecry effectHole
+    Deathrattle effectHole -> showDeathrattle effectHole
     Charge -> return "Charge"
     DivineShield -> return "Divine Shield"
     Enrage abilities enchantments -> showEnrage abilities enchantments
@@ -201,6 +202,12 @@ showEnrage abilities enchantments = do
     asStr <- mapM showAbility abilities
     esStr <- mapM showEnchantment enchantments
     return $ "Enrage: " ++ itemize (asStr ++ esStr)
+
+
+showDeathrattle :: (MinionHandle -> Effect) -> ShowCard String
+showDeathrattle effectHole = do
+    effectStr <- genHandle this >>= showEffect . effectHole
+    return $ "Deathrattle: " ++ effectStr
 
 
 showBattlecry :: (Elect' a) => (MinionHandle -> ElectionEffect a) -> ShowCard String
@@ -274,6 +281,7 @@ showAll = \case
     OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
     OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
     FriendlyCharacters effectHole -> showFriendlyCharacters effectHole
+    Players effectHole -> showPlayers effectHole
 
 
 class Elect' a where
@@ -291,6 +299,12 @@ instance Elect' Targeted where
 instance Elect' AtRandom where
     showElectionEffect (FromRandom effect) = showEffect effect
     showSelection _ = "RANDOM_"
+
+
+showPlayers :: ([PlayerHandle] -> Effect) -> ShowCard String
+showPlayers effectHole = do
+    other <- genHandle "PLAYER"
+    showEffect $ effectHole [other]
 
 
 showFriendlyCharacters :: ([CharacterHandle] -> Effect) -> ShowCard String

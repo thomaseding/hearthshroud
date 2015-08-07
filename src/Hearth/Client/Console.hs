@@ -258,8 +258,7 @@ verbosityGate name m = do
             'dynamicAttack,
             'dynamicMaxHealth,
             'getActivePlayerHandle,
-            'controllerOf,
-            'withMinions ]
+            'controllerOf ]
 
 
 debugEvent :: DebugEvent -> Console ()
@@ -560,10 +559,6 @@ runTestGame = flip evalStateT st $ unConsole $ do
         player2 = PlayerData (hero Rexxar) deck2
 
 
-data Who = Alice | Bob
-    deriving (Show, Eq, Ord)
-
-
 getWindowSize :: IO (Window Int)
 getWindowSize = Window.size >>= \case
     Just w -> return $ w { Window.width = Window.width w - 1 }
@@ -572,13 +567,13 @@ getWindowSize = Window.size >>= \case
 
 renewDisplay :: Hearth Console ()
 renewDisplay = do
-    ps <- mapM (view . getPlayer) =<< getPlayerHandles
+    ps <- getPlayerHandles
     window <- liftIO getWindowSize
     deepestPlayer <- do
         liftIO $ do
             clearScreen
             setSGR [SetColor Foreground Dull White]
-        foldM (\n -> liftM (max n) . uncurry (printPlayer window)) 0 (zip ps [Alice, Bob])
+        foldM (\n -> liftM (max n) . printPlayer window) 0 ps
     lift $ do
         renewLogWindow window $ deepestPlayer + 1
 
@@ -1068,25 +1063,29 @@ renewLogWindow window row = do
         newGameColor = (Dull, Green)
 
 
-printPlayer :: Window Int -> Player -> Who -> Hearth Console Int
-printPlayer window p who = do
+printPlayer :: Window Int -> PlayerHandle -> Hearth Console Int
+printPlayer window pHandle = do
+    player <- view $ getPlayer pHandle
     liftIO $ setSGR [SetColor Foreground Vivid Green]
-    isActive <- liftM (p^.playerHandle ==) getActivePlayerHandle
-    let playerName = fromString (map toUpper $ show who) ++ case isActive of
+    isActive <- liftM (pHandle ==) getActivePlayerHandle
+    playerName <- showHandle pHandle
+    let playerNameCol = fromString playerName ++ case isActive of
             True -> sgrColor (Dull, White) ++ fromString "*" ++ sgrColor (Dull, Cyan)
             False -> fromString ""
         (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
-        (deckLoc, handLoc, minionsLoc) = case who of
-                Alice -> (0, wx, wx + wy)
-                Bob -> (width - wx, width - wx - wy, width - wx - wy - wz)
-    player <- playerColumn p
-    hand <- handColumn $ p^.playerHand
-    boardMinions <- boardMinionsColumn $ p^.playerMinions
+        (deckLoc, handLoc, minionsLoc) = case pHandle of
+                PlayerHandle n -> case n of
+                    0 -> (0, wx, wx + wy)
+                    1 -> (width - wx, width - wx - wy, width - wx - wy - wz)
+                    _ -> $logicError 'printPlayer "xxx"
+    playerCol <- playerColumn player
+    handCol <- handColumn $ player^.playerHand
+    boardMinionsCol <- boardMinionsColumn $ player^.playerMinions
     liftIO $ do
-        n0 <- printColumn True (take (wx - 1) playerName) deckLoc player
-        n1 <- printColumn True (fromString "HAND") handLoc hand
-        n2 <- printColumn False (fromString "   MINIONS") minionsLoc boardMinions
+        n0 <- printColumn True (take (wx - 1) playerNameCol) deckLoc playerCol
+        n1 <- printColumn True (fromString "HAND") handLoc handCol
+        n2 <- printColumn False (fromString "   MINIONS") minionsLoc boardMinionsCol
         return $ maximum [n0, n1, n2]
 
 

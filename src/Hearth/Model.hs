@@ -175,6 +175,7 @@ data All :: * where
     OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
     OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
     FriendlyCharacters :: ([CharacterHandle] -> Effect) -> All
+    Players :: ([PlayerHandle] -> Effect) -> All
 
 
 data Unique :: * where
@@ -200,6 +201,7 @@ data Ability :: * where
 
 data KeywordAbility :: * where
     Battlecry :: (MinionHandle -> ElectionEffect Targeted) -> KeywordAbility
+    Deathrattle :: (MinionHandle -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
