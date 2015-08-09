@@ -383,7 +383,7 @@ nightblade = mkMinion Nightblade 5 4 4 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ With $ Unique (OwnerOf this) $ \owner ->
             With $ Unique (Not owner) $ \opponent ->
-                DealDamage (PlayerCharacter opponent) 2 ]
+                DealDamage (PlayerCharacter opponent) 3 ]
 
 
 noviceEngineer :: DeckCard
