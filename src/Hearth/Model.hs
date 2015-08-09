@@ -76,8 +76,8 @@ data Handle :: * -> * where
     SpellHandle :: RawHandle -> Handle Spell
     MinionHandle :: RawHandle -> Handle Minion
     PlayerHandle :: RawHandle -> Handle Player
-    MinionCharacter :: MinionHandle -> Handle Character
-    PlayerCharacter :: PlayerHandle -> Handle Character
+    MinionCharacter :: Handle Minion -> Handle Character
+    PlayerCharacter :: Handle Player -> Handle Character
     deriving (Typeable)
 
 
@@ -145,13 +145,16 @@ newtype instance ElectionEffect AtRandom
     = FromRandom Effect
 
 
+data Restriction :: * -> * where
+    OwnedBy :: Handle Player -> Restriction a
+    OwnerOf :: Handle a -> Restriction Player
+    Not :: Handle a -> Restriction a
+
+
 data Elect :: * -> * where
-    AnyCharacter :: (CharacterHandle -> ElectionEffect a) -> Elect a
-    AnyEnemy :: (CharacterHandle -> ElectionEffect a) -> Elect a
-    AnyMinion :: (MinionHandle -> ElectionEffect a) -> Elect a
-    AnotherCharacter :: CharacterHandle -> (CharacterHandle -> ElectionEffect a) -> Elect a
-    AnotherMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
-    AnotherFriendlyMinion :: MinionHandle -> (MinionHandle -> ElectionEffect a) -> Elect a
+    Minion :: [Restriction Minion] -> (Handle Minion -> ElectionEffect a) -> Elect a
+    Player :: Restriction Player -> (Handle Player -> Elect Targeted) -> Elect Targeted
+    Character :: [Restriction Character] -> (Handle Character -> ElectionEffect a) -> Elect a
     deriving (Typeable)
 
 
@@ -160,40 +163,30 @@ data Effect :: * where
     With :: With -> Effect
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
-    DrawCards :: PlayerHandle -> Int -> Effect
+    DrawCards :: Handle Player -> Int -> Effect
     KeywordEffect :: KeywordEffect -> Effect
-    DealDamage :: CharacterHandle -> Damage -> Effect
-    Enchant :: MinionHandle -> [Enchantment] -> Effect
-    GiveAbility :: MinionHandle -> [Ability] -> Effect
-    GainManaCrystal :: CrystalState -> PlayerHandle -> Effect
-    DestroyMinion :: MinionHandle -> Effect
-    RestoreHealth :: CharacterHandle -> Int -> Effect
+    DealDamage :: Handle Character -> Damage -> Effect
+    Enchant :: Handle Minion -> [Enchantment] -> Effect
+    GiveAbility :: Handle Minion -> [Ability] -> Effect
+    GainManaCrystal :: CrystalState -> Handle Player -> Effect
+    DestroyMinion :: Handle Minion -> Effect
+    RestoreHealth :: Handle Character -> Int -> Effect
     deriving (Typeable)
 
 
 data All :: * where
-    OtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
-    OtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> All
-    CharactersOf :: PlayerHandle -> ([CharacterHandle] -> Effect) -> All
-    MinionsOf :: PlayerHandle -> ([MinionHandle] -> Effect) -> All
-    Players :: ([PlayerHandle] -> Effect) -> All
-    Minions :: ([MinionHandle] -> Effect) -> All
-    Characters :: ([CharacterHandle] -> Effect) -> All
-
-
-data Unique :: * where
-    CasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> Unique
-    OpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> Unique
-    ControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> Unique
+    Minions :: [Restriction Minion] -> ([Handle Minion] -> Effect) -> All
+    Players :: ([Handle Player] -> Effect) -> All
+    Characters :: [Restriction Character] -> ([Handle Character] -> Effect) -> All
 
 
 data With :: * where
     All :: All -> With
-    Unique :: Unique -> With
+    Unique :: Restriction Player -> (Handle Player -> Effect) -> With
 
 
 data KeywordEffect :: * where
-    Silence :: MinionHandle -> KeywordEffect
+    Silence :: Handle Minion -> KeywordEffect
     deriving (Show, Typeable)
 
 
@@ -203,8 +196,8 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    Battlecry :: (MinionHandle -> ElectionEffect Targeted) -> KeywordAbility
-    Deathrattle :: (MinionHandle -> Effect) -> KeywordAbility
+    Battlecry :: (Handle Minion -> ElectionEffect Targeted) -> KeywordAbility
+    Deathrattle :: (Handle Minion -> Effect) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
@@ -218,17 +211,23 @@ data Enchantment :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-type SpellEffect = SpellHandle -> ElectionEffect Targeted
+type SpellEffect = Handle Spell -> ElectionEffect Targeted
 
 
-data Spell = Spell {
+data Spell = Spell' {
     _spellCost :: Cost,
     _spellEffect :: SpellEffect,
     _spellName :: CardName
 } deriving (Typeable)
 
 
-data Minion = Minion {
+data CastSpell = CastSpell {
+    _castSpellHandle :: Handle Spell,
+    _castSpell :: Spell
+} deriving (Typeable)
+
+
+data Minion = Minion' {
     _minionCost :: Cost,
     _minionAttack :: Attack,
     _minionHealth :: Health,
@@ -244,7 +243,7 @@ data BoardMinion = BoardMinion {
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,
     _boardMinionPendingDestroy :: Bool,
-    _boardMinionHandle :: MinionHandle,
+    _boardMinionHandle :: Handle Minion,
     _boardMinion :: Minion
 } deriving (Typeable)
 
@@ -255,7 +254,7 @@ data DeckMinion = DeckMinion {
 } deriving (Typeable)
 
 
-type HeroPowerEffect = PlayerHandle -> ElectionEffect Targeted
+type HeroPowerEffect = Handle Player -> ElectionEffect Targeted
 
 
 data HeroPower = HeroPower {
@@ -302,12 +301,13 @@ newtype Deck = Deck {
 } deriving (Monoid, Generic, Typeable)
 
 
-data Player = Player {
-    _playerHandle :: PlayerHandle,
+data Player = Player' {
+    _playerHandle :: Handle Player,
     _playerDeck :: Deck,
     _playerExcessDrawCount :: Int,
     _playerHand :: Hand,
     _playerMinions :: [BoardMinion],
+    _playerSpells :: [CastSpell],
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
     _playerTemporaryManaCrystals :: Int,
@@ -318,7 +318,7 @@ data Player = Player {
 data GameState = GameState {
     _gameTurn :: Turn,
     _gameHandleSeed :: RawHandle,
-    _gamePlayerTurnOrder :: [PlayerHandle],
+    _gamePlayerTurnOrder :: [Handle Player],
     _gamePlayers :: [Player]
 } deriving (Typeable)
 
@@ -337,6 +337,7 @@ data GameResult :: * where
 -- their data declarations. See GHC ticket:
 --   https://ghc.haskell.org/trac/ghc/ticket/10743
 makeLenses ''Spell
+makeLenses ''CastSpell
 makeLenses ''Minion
 makeLenses ''BoardMinion
 makeLenses ''DeckMinion

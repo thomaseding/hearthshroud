@@ -20,19 +20,19 @@ import Hearth.Model
 data GameEvent :: * where
     GameBegins :: GameEvent
     GameEnds :: GameResult -> GameEvent
-    DeckShuffled :: PlayerHandle -> Deck -> GameEvent
-    CardDrawn :: PlayerHandle -> Either DeckCard HandCard -> Deck -> GameEvent
-    PlayedMinion :: PlayerHandle -> MinionHandle -> GameEvent
-    PlayedSpell :: PlayerHandle -> Spell -> GameEvent   -- TODO: Should take a SpellHandle instead of Spell
-    HeroTakesDamage :: PlayerHandle -> Damage -> GameEvent
-    MinionTakesDamage :: MinionHandle -> Damage -> GameEvent
-    MinionDied :: MinionHandle -> GameEvent
-    EnactAttack :: CharacterHandle -> CharacterHandle -> GameEvent
-    GainsManaCrystal :: PlayerHandle -> Maybe CrystalState -> GameEvent
-    ManaCrystalsRefill :: PlayerHandle -> Int -> GameEvent
-    ManaCrystalsEmpty :: PlayerHandle -> Int -> GameEvent
-    LostDivineShield :: MinionHandle -> GameEvent
-    Silenced :: MinionHandle -> GameEvent
+    DeckShuffled :: Handle Player -> Deck -> GameEvent
+    CardDrawn :: Handle Player -> Either DeckCard HandCard -> Deck -> GameEvent
+    PlayedMinion :: Handle Player -> Handle Minion -> GameEvent
+    PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
+    HeroTakesDamage :: Handle Player -> Damage -> GameEvent
+    MinionTakesDamage :: Handle Minion -> Damage -> GameEvent
+    MinionDied :: Handle Minion -> GameEvent
+    EnactAttack :: Handle Character -> Handle Character -> GameEvent
+    GainsManaCrystal :: Handle Player -> Maybe CrystalState -> GameEvent
+    ManaCrystalsRefill :: Handle Player -> Int -> GameEvent
+    ManaCrystalsEmpty :: Handle Player -> Int -> GameEvent
+    LostDivineShield :: Handle Minion -> GameEvent
+    Silenced :: Handle Minion -> GameEvent
     AttackFailed :: AttackFailedReason -> GameEvent
     deriving (Typeable)
 

@@ -15,11 +15,11 @@ import Hearth.Model
 
 
 data Action :: * where
-    ActionPlayerConceded :: PlayerHandle -> Action
+    ActionPlayerConceded :: Handle Player -> Action
     ActionEndTurn :: Action
     ActionPlayMinion :: HandCard -> BoardPos -> Action
     ActionPlaySpell :: HandCard -> Action
-    ActionAttack :: CharacterHandle -> CharacterHandle -> Action
+    ActionAttack :: Handle Character -> Handle Character -> Action
 
 
 

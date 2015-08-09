@@ -22,6 +22,7 @@ module Hearth.ShowCard (
 import Control.Applicative
 import Control.Error.TH
 import Control.Monad.State
+import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Proxy
@@ -189,8 +190,8 @@ showAbility = \case
 
 showKeywordAbility :: KeywordAbility -> ShowCard String
 showKeywordAbility = \case
-    Battlecry effectHole -> showBattlecry effectHole
-    Deathrattle effectHole -> showDeathrattle effectHole
+    Battlecry cont -> showBattlecry cont
+    Deathrattle cont -> showDeathrattle cont
     Charge -> return "Charge"
     DivineShield -> return "Divine Shield"
     Enrage abilities enchantments -> showEnrage abilities enchantments
@@ -204,15 +205,15 @@ showEnrage abilities enchantments = do
     return $ "Enrage: " ++ itemize (asStr ++ esStr)
 
 
-showDeathrattle :: (MinionHandle -> Effect) -> ShowCard String
-showDeathrattle effectHole = do
-    effectStr <- genHandle this >>= showEffect . effectHole
+showDeathrattle :: (Handle Minion -> Effect) -> ShowCard String
+showDeathrattle cont = do
+    effectStr <- genHandle this >>= showEffect . cont
     return $ "Deathrattle: " ++ effectStr
 
 
-showBattlecry :: (Elect' a) => (MinionHandle -> ElectionEffect a) -> ShowCard String
-showBattlecry effectHole = do
-    effectStr <- genHandle this >>= showElectionEffect . effectHole
+showBattlecry :: (Elect' a) => (Handle Minion -> ElectionEffect a) -> ShowCard String
+showBattlecry cont = do
+    effectStr <- genHandle this >>= showElectionEffect . cont
     return $ "Battlecry: " ++ effectStr
 
 
@@ -232,13 +233,13 @@ showEffect = \case
     RestoreHealth handle amount -> showRestoreHealth handle amount
 
 
-showRestoreHealth :: CharacterHandle -> Int -> ShowCard String
+showRestoreHealth :: Handle Character -> Int -> ShowCard String
 showRestoreHealth character amount = do
     characterStr <- readHandle character
     return $ "Restore " ++ show amount ++ " health on " ++ characterStr
 
 
-showDestroyMinion :: MinionHandle -> ShowCard String
+showDestroyMinion :: Handle Minion -> ShowCard String
 showDestroyMinion minion = do
     minionStr <- readHandle minion
     return $ "Destroy " ++ minionStr
@@ -247,7 +248,7 @@ showDestroyMinion minion = do
 showWith :: With -> ShowCard String
 showWith = \case
     All x -> showAll x
-    Unique x -> showUnique x
+    Unique restriction cont -> showPlayer restriction cont
 
 
 showForEach :: [Handle a] -> (Handle a -> Effect) -> ShowCard String
@@ -261,30 +262,23 @@ showForEach handles cont = case handles of
 
 showElect :: (Elect' a) => Elect a -> ShowCard String
 showElect = \case
-    AnyCharacter effectHole -> showAnyCharacter effectHole
-    AnyEnemy effectHole -> showAnyEnemy effectHole
-    AnyMinion effectHole -> showAnyMinion effectHole
-    AnotherCharacter handle effectHole -> showAnotherCharacter handle effectHole
-    AnotherMinion handle effectHole -> showAnotherMinion handle effectHole
-    AnotherFriendlyMinion handle effectHole -> showAnotherFriendlyMinion handle effectHole
+    Minion restrictions cont -> showMinion restrictions cont
+    Player restriction cont -> showPlayer restriction cont
+    Character restrictions cont -> showCharacter restrictions cont
 
 
-showUnique :: Unique -> ShowCard String
-showUnique = \case
-    CasterOf handle effectHole -> showCasterOf handle effectHole
-    OpponentOf handle effectHole -> showOpponentOf handle effectHole
-    ControllerOf handle effectHole -> showControllerOf handle effectHole
+showPlayer :: (ShowPlayer e) => Restriction Player -> (Handle Player -> e) -> ShowCard String
+showPlayer = \case
+    OwnedBy handle -> \cont -> showPlayerCont $ cont handle
+    OwnerOf handle -> showOwnerOf handle
+    Not handle -> showOpponentOf handle
 
 
 showAll :: All -> ShowCard String
 showAll = \case
-    OtherCharacters handle effectHole -> showOtherCharacters handle effectHole
-    OtherEnemies handle effectHole -> showOtherEnemies handle effectHole
-    CharactersOf handle effectHole -> showCharactersOf handle effectHole
-    MinionsOf handle effectHole -> showMinionsOf handle effectHole
-    Players effectHole -> showPlayers effectHole
-    Minions effectHole -> showMinions effectHole
-    Characters effectHole -> showCharacters effectHole
+    Minions restrictions cont -> showMinions restrictions cont
+    Players cont -> showPlayers cont
+    Characters restrictions cont -> showCharacters restrictions cont
 
 
 class Elect' a where
@@ -304,126 +298,89 @@ instance Elect' AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showCharacters :: ([CharacterHandle] -> Effect) -> ShowCard String
-showCharacters effectHole = do
-    other <- genHandle "CHARACTER"
-    showEffect $ effectHole [other]
+showMinions :: [Restriction Minion] -> ([Handle Minion] -> Effect) -> ShowCard String
+showMinions restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
+    other <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+    showEffect $ cont [other]
 
 
-showMinions :: ([MinionHandle] -> Effect) -> ShowCard String
-showMinions effectHole = do
-    other <- genHandle "MINION"
-    showEffect $ effectHole [other]
-
-
-showPlayers :: ([PlayerHandle] -> Effect) -> ShowCard String
-showPlayers effectHole = do
+showPlayers :: ([Handle Player] -> Effect) -> ShowCard String
+showPlayers cont = do
     other <- genHandle "PLAYER"
-    showEffect $ effectHole [other]
+    showEffect $ cont [other]
 
 
-showMinionsOf :: PlayerHandle -> ([MinionHandle] -> Effect) -> ShowCard String
-showMinionsOf handle effectHole = do
-    other <- readHandle handle >>= \case
-        (is you -> True) -> genHandle "FRIENDLY_MINION"
-        _ -> genHandle "ENEMY_MINION"
-    showEffect $ effectHole [other]
+showCharacters :: [Restriction Character] -> ([Handle Character] -> Effect) -> ShowCard String
+showCharacters restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
+    other <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
+    showEffect $ cont [other]
 
 
-showCharactersOf :: PlayerHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
-showCharactersOf handle effectHole = do
-    other <- readHandle handle >>= \case
-        (is you -> True) -> genHandle "FRIENDLY_CHARACTER"
-        _ -> genHandle "ENEMY_CHARACTER"
-    showEffect $ effectHole [other]
-
-
-showOtherEnemies :: CharacterHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
-showOtherEnemies character effectHole = do
-    other <- readHandle character >>= \case
-        (is this -> True) -> genNumberedHandle "OTHER_ENEMY"
-        str -> genHandle ("(OTHER_ENEMY " ++ str ++ ")")
-    showEffect $ effectHole [other]
-
-
-showOtherCharacters :: CharacterHandle -> ([CharacterHandle] -> Effect) -> ShowCard String
-showOtherCharacters character effectHole = do
-    other <- readHandle character >>= \case
-        (is this -> True) -> genNumberedHandle "OTHER_CHARACTER"
-        str -> genHandle ("(OTHER_CHARACTER " ++ str ++ ")")
-    showEffect $ effectHole [other]
-
-
-showAnotherCharacter :: forall a. (Elect' a) => CharacterHandle -> (CharacterHandle -> ElectionEffect a) -> ShowCard String
-showAnotherCharacter character effectHole = do
+showMinion :: forall a. (Elect' a) => [Restriction Minion] -> (Handle Minion -> ElectionEffect a) -> ShowCard String
+showMinion restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy a)
-    other <- readHandle character >>= \case
-        (is this -> True) -> genNumberedHandle $ sel ++ "CHARACTER"
-        str -> genHandle ("(" ++ sel ++ "ANOTHER_CHARACTER " ++ str ++ ")")
-    showElectionEffect $ effectHole other
+    handle <- genNumberedHandle $ sel ++ "MINION[" ++ restrictionsStr ++ "]"
+    showElectionEffect $ cont handle
 
 
-showAnyEnemy :: forall a. (Elect' a) => (CharacterHandle -> ElectionEffect a) -> ShowCard String
-showAnyEnemy effectHole = do
+showCharacter :: forall a. (Elect' a) => [Restriction Character] -> (Handle Character -> ElectionEffect a) -> ShowCard String
+showCharacter restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy a)
-    character <- genNumberedHandle $ sel ++ "ANY_ENEMY"
-    showElectionEffect $ effectHole character
+    handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ restrictionsStr ++ "]"
+    showElectionEffect $ cont handle
 
 
-showAnyCharacter :: forall a. (Elect' a) => (CharacterHandle -> ElectionEffect a) -> ShowCard String
-showAnyCharacter effectHole = do
-    let sel = showSelection (Proxy :: Proxy a)
-    character <- genNumberedHandle $ sel ++ "ANY_CHARACTER"
-    showElectionEffect $ effectHole character
+showRestrictions :: [Restriction a] -> ShowCard String
+showRestrictions = liftM (intercalate "," . filter (not . null)) . showRestrictions'
 
 
-showAnyMinion :: forall a. (Elect' a) => (MinionHandle -> ElectionEffect a) -> ShowCard String
-showAnyMinion effectHole = do
-    let sel = showSelection (Proxy :: Proxy a)
-    minion <- genNumberedHandle $ sel ++ "ANY_MINION"
-    showElectionEffect $ effectHole minion
+showRestrictions' :: [Restriction a] -> ShowCard [String]
+showRestrictions' = \case
+    [] -> return []
+    r : rs -> showRestriction r >>= \s -> liftM (s :) $ showRestrictions' rs
 
 
-showAnotherMinion :: forall a. (Elect' a) => MinionHandle -> (MinionHandle -> ElectionEffect a) -> ShowCard String
-showAnotherMinion minion effectHole = do
-    let sel = showSelection (Proxy :: Proxy a)
-    other <- readHandle minion >>= \case
-        (is this -> True) -> genNumberedHandle $ sel ++ "TARGET_MINION"
-        str -> genHandle ("(" ++ sel ++ "ANOTHER_MINION " ++ str ++ ")")
-    showElectionEffect $ effectHole other
+showRestriction :: Restriction a -> ShowCard String
+showRestriction = \case
+    OwnedBy handle -> readHandle handle >>= return . \case
+        (is you -> True) -> "FRIENDLY"
+        _ -> "ENEMY"
+    OwnerOf handle -> readHandle handle >>= \str -> return $ "OWNER_OF[" ++ str ++ "]"
+    Not handle -> readHandle handle >>= return . \case
+        (is this -> True) -> ""
+        str -> "NOT " ++ str
 
 
-showAnotherFriendlyMinion :: forall a. (Elect' a) => MinionHandle -> (MinionHandle -> ElectionEffect a) -> ShowCard String
-showAnotherFriendlyMinion minion effectHole = do
-    let sel = showSelection (Proxy :: Proxy a)
-    other <- readHandle minion >>= \case
-        (is this -> True) -> genNumberedHandle $ sel ++ "FRIENDLY_MINION"
-        str -> genHandle ("(" ++ sel ++ "ANOTHER_FRIENDLY_MINION " ++ str ++ ")")
-    showElectionEffect $ effectHole other
-
-
-showCasterOf :: SpellHandle -> (PlayerHandle -> Effect) -> ShowCard String
-showCasterOf spell effectHole = do
-    player <- readHandle spell >>= \case
-        (is this -> True) -> genHandle you
-        str -> genHandle ("(CASTER_OF " ++ str ++ ")")
-    showEffect $ effectHole player
-
-
-showControllerOf :: MinionHandle -> (PlayerHandle -> Effect) -> ShowCard String
-showControllerOf minion effectHole = do
-    player <- readHandle minion >>= \case
+showOwnerOf :: (ShowPlayer e) => Handle a -> (Handle Player -> e) -> ShowCard String
+showOwnerOf handle cont = do
+    player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
         str -> genHandle ("(CONTROLLER_OF " ++ str ++ ")")
-    showEffect $ effectHole player
+    showPlayerCont $ cont player
 
 
-showOpponentOf :: PlayerHandle -> (PlayerHandle -> Effect) -> ShowCard String
-showOpponentOf minion effectHole = do
+showOpponentOf :: (ShowPlayer e) => Handle Player -> (Handle Player -> e) -> ShowCard String
+showOpponentOf minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
         str -> genHandle ("(OPPONENT_OF " ++ str ++ ")")
-    showEffect $ effectHole player
+    showPlayerCont $ cont player
+
+
+class ShowPlayer e where
+    showPlayerCont :: e -> ShowCard String
+
+
+instance ShowPlayer Effect where
+    showPlayerCont = showEffect
+
+
+instance ShowPlayer (Elect Targeted) where
+    showPlayerCont = showElect
 
 
 showSequence :: [Effect] -> ShowCard String
@@ -435,13 +392,13 @@ showKeywordEffect = \case
     Silence handle -> showSilence handle
 
 
-showSilence :: MinionHandle -> ShowCard String
+showSilence :: Handle Minion -> ShowCard String
 showSilence minion = do
     minionStr <- readHandle minion
     return $ unwords ["Silence", minionStr]
 
 
-showDrawCards :: PlayerHandle -> Int -> ShowCard String
+showDrawCards :: Handle Player -> Int -> ShowCard String
 showDrawCards player amount = do
     playerStr <- readHandle player
     let plural = case amount of
@@ -452,27 +409,27 @@ showDrawCards player amount = do
     return $ unwords [playerStr, drawStr, show amount, cardStr]
 
 
-showDealDamage :: CharacterHandle -> Damage -> ShowCard String
+showDealDamage :: Handle Character -> Damage -> ShowCard String
 showDealDamage character (Damage amount) = do
     characterStr <- readHandle character
     return $ unwords ["Deal", show amount, "damage to", characterStr]
 
 
-showEnchant :: MinionHandle -> [Enchantment] -> ShowCard String
+showEnchant :: Handle Minion -> [Enchantment] -> ShowCard String
 showEnchant minion enchantments = do
     minionStr <- readHandle minion
     enchantmentsStr <- showEnchantments enchantments
     return $ unwords ["Give", minionStr, enchantmentsStr]
 
 
-showGiveAbility :: MinionHandle -> [Ability] -> ShowCard String
+showGiveAbility :: Handle Minion -> [Ability] -> ShowCard String
 showGiveAbility minion abilities = do
     minionStr <- readHandle minion
     abilitiesStr <- showAbilities abilities
     return $ unwords ["Give", minionStr, abilitiesStr]
 
 
-showGainManaCrystal :: CrystalState -> PlayerHandle -> ShowCard String
+showGainManaCrystal :: CrystalState -> Handle Player -> ShowCard String
 showGainManaCrystal crystalState player = do
     playerStr <- readHandle player
     let crystalStr = case crystalState of

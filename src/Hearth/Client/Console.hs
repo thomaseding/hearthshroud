@@ -53,7 +53,7 @@ import Hearth.Client.Console.SGRString
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
-import Hearth.Model hiding (minionName)
+import Hearth.Model hiding (minionName, spellName)
 import qualified Hearth.Model as Model
 import Hearth.Names
 import Hearth.Names.Basic (BasicCardName(TheCoin))
@@ -268,6 +268,9 @@ debugEvent e = case e of
         in verbosityGate name $ do
             openTag name [("message", message)]
             closeTag name
+            liftIO $ do
+                putStrLn message
+                enterToContinue
     FunctionEntered name -> let
         name' = showName name
         in verbosityGate name' $ openTag name' []
@@ -301,11 +304,12 @@ gameEvent snapshot = \case
         let playerAttr = ("player", playerName)
             minionAttr = ("minion", minionName)
         tag 'PlayedMinion [playerAttr, minionAttr]
-    PlayedSpell player card -> do
+    PlayedSpell player spell -> do
         playerName <- query $ showHandle player
+        spellName <- query $ showHandle spell
         let playerAttr = ("player", playerName)
-            cardAttr = ("card", handCardName' $ HandCardSpell card)
-        tag 'PlayedSpell [playerAttr, cardAttr]
+            spellAttr = ("spell", spellName)
+        tag 'PlayedSpell [playerAttr, spellAttr]
     HeroTakesDamage player (Damage damage) -> do
         playerName <- query $ showHandle player
         let playerAttr = ("player", playerName)
@@ -366,7 +370,7 @@ showHandle = mapHandle showSpellHandle showMinionHandle showPlayerHandle showCha
 
 
 showSpellHandle :: Handle Spell -> Hearth Console String
-showSpellHandle = $todo 'showSpellHandle "xxx"
+showSpellHandle h = view $ getSpell h.castSpell.Model.spellName.to showCardName
 
 
 showMinionHandle :: Handle Minion -> Hearth Console String

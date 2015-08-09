@@ -49,15 +49,15 @@ data HearthPrompt :: * -> * where
     PromptGameEvent :: GameSnapshot -> GameEvent -> HearthPrompt ()
     PromptAction :: GameSnapshot -> HearthPrompt Action
     PromptShuffle :: [a] -> HearthPrompt [a]
-    PromptMulligan :: PlayerHandle -> [HandCard] -> HearthPrompt [HandCard]
+    PromptMulligan :: Handle Player -> [HandCard] -> HearthPrompt [HandCard]
     PromptPickAtRandom :: PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
     PromptPickTargeted :: PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
 
 
 data PromptPick :: * -> * -> * where
-    PickMinion :: GameSnapshot -> NonEmpty MinionHandle -> PromptPick s MinionHandle
-    PickPlayer :: GameSnapshot -> NonEmpty PlayerHandle -> PromptPick s PlayerHandle
-    PickCharacter :: GameSnapshot -> NonEmpty CharacterHandle -> PromptPick s CharacterHandle
+    PickMinion :: GameSnapshot -> NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
+    PickPlayer :: GameSnapshot -> NonEmpty (Handle Player) -> PromptPick s (Handle Player)
+    PickCharacter :: GameSnapshot -> NonEmpty (Handle Character) -> PromptPick s (Handle Character)
 
 
 
