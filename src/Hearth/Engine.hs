@@ -479,7 +479,7 @@ insertAt n x xs = let
     in left ++ [x] ++ right
 
 
-placeOnBoard :: (HearthMonad m) => Handle Player -> BoardPos -> Minion -> Hearth m (Maybe MinionHandle)
+placeOnBoard :: (HearthMonad m) => Handle Player -> BoardPos -> Minion -> Hearth m (Either String MinionHandle)
 placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     let minion' = BoardMinion {
@@ -493,12 +493,12 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
             _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
-            7 -> return Nothing
+            7 -> return $ Left "Board is too full."
             len -> case 0 <= pos && pos <= len of
-                False -> return Nothing
+                False -> return $ Left "Invalid board index."
                 True -> do
                     id %= insertAt pos minion'
-                    return $ Just minionHandle
+                    return $ Right minionHandle
 
 
 actionAttack :: (HearthMonad m) => Handle Character -> Handle Character -> Hearth m Result
@@ -522,59 +522,61 @@ playMinion :: (HearthMonad m) => Handle Player -> HandCard -> BoardPos -> Hearth
 playMinion pHandle card pos = logCall 'playMinion $ do
     st <- get
     playMinion' pHandle card pos >>= \case
-        Nothing -> do
+        Left msg -> do
             put st
-            return Failure
-        Just bmHandle -> do
+            return $ Failure msg
+        Right bmHandle -> do
             snap <- gets GameSnapshot
             prompt $ PromptGameEvent snap $ PlayedMinion pHandle bmHandle
             result <- enactAnyBattleCries bmHandle
-            when (result == Failure) $ put st
+            when (result /= Success) $ put st
             return result
 
 
-playMinion' :: (HearthMonad m) => Handle Player -> HandCard -> BoardPos -> Hearth m (Maybe MinionHandle)
+playMinion' :: (HearthMonad m) => Handle Player -> HandCard -> BoardPos -> Hearth m (Either String MinionHandle)
 playMinion' handle card pos = logCall 'playMinion' $ playCommon handle card >>= \case
-    Failure -> return Nothing
+    Failure msg -> return $ Left msg
     Success -> case card of
         HandCardMinion minion -> placeOnBoard handle pos minion
-        _ -> return Nothing
+        _ -> return $ Left "Must pick a minion to play a minion."
 
 
 playSpell :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m Result
 playSpell pHandle card = logCall 'playSpell $ do
     st <- get
     result <- playSpell' pHandle card >>= \case
-        Nothing -> return Failure
-        Just sHandle -> do
+        Left msg -> return $ Failure msg
+        Right sHandle -> do
             snap <- gets GameSnapshot
             prompt $ PromptGameEvent snap $ PlayedSpell pHandle sHandle
             res <- enactSpell sHandle
             removeSpell sHandle
             return res
-    when (result == Failure) $ put st
+    when (result /= Success) $ put st
     return result
 
 
-playSpell' :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m (Maybe SpellHandle)
+playSpell' :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m (Either String SpellHandle)
 playSpell' pHandle card = logCall 'playSpell' $ playCommon pHandle card >>= \case
-    Failure -> return Nothing
+    Failure msg -> return $ Left msg
     Success -> case card of
         HandCardSpell spell -> do
             sHandle <- genHandle
             let spell' = CastSpell { _castSpellHandle = sHandle, _castSpell = spell }
             getPlayer pHandle.playerSpells %= (spell' :)
-            return $ Just sHandle
-        _ -> return Nothing
+            return $ Right sHandle
+        _ -> return $ Left "Must pick a spell to play a spell."
 
 
 enactSpell :: (HearthMonad m) => Handle Spell -> Hearth m Result
 enactSpell spell = do
     st <- get
+    let abort msg = put st >> return (Failure msg)
     cont <- view $ getSpell spell.castSpell.spellEffect
     enactElect (cont spell) >>= \case
         Available (TargetedPick _) -> return Success
-        _ -> put st >> return Failure
+        Available AbortTargetedPick -> abort "Targeted pick aborted."
+        NotAvailable -> abort "Not available."
 
 
 enactAnyDeathrattles :: (HearthMonad m) => Handle Minion -> Hearth m ()
@@ -600,7 +602,7 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
             TargetedPick _ -> return Success
             AbortTargetedPick -> do
                 put st
-                return Failure
+                return $ Failure "Targeted pick aborted."
 
 
 enactDeathrattle :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Elect AtRandom) -> Hearth m ()
@@ -894,6 +896,11 @@ enactElect = logCall 'enactElect $ \case
     Effect x -> enactElectedEffect x
     OwnerOf handle cont -> enactOwnerOf handle cont
     OpponentOf handle cont -> enactOpponentOf handle cont
+    Choice choices -> enactChoice choices
+
+
+enactChoice :: (HearthMonad m, PickFrom s) => [Elect s] -> Hearth m (SimplePickResult s)
+enactChoice = logCall 'enactChoice $ pickFrom >=> enactElect' id
 
 
 enactOwnerOf :: (HearthMonad m, PickFrom s) => Handle a -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
@@ -1016,24 +1023,34 @@ isPermitted restriction candidate = case restriction of
             return $ fromComparison cmp actualAttack attackCond
 
 
-class (Eq a) => Pickable (s :: Selection) a where
+class Pickable (s :: Selection) a where
     promptPick :: GameSnapshot -> NonEmpty a -> PromptPick s a
     pickFailError :: Proxy s -> Proxy a -> HearthError
+    pickGuard :: Proxy s -> [a] -> a -> Bool
 
 
 instance Pickable s MinionHandle where
     promptPick = PickMinion
     pickFailError _ _ = InvalidMinion
+    pickGuard _ = flip elem
 
 
 instance Pickable s PlayerHandle where
     promptPick = PickPlayer
     pickFailError _ _ = InvalidPlayer
+    pickGuard _ = flip elem
 
 
 instance Pickable s CharacterHandle where
     promptPick = PickCharacter
     pickFailError _ _ = InvalidCharacter
+    pickGuard _ = flip elem
+
+
+instance Pickable s (Elect s) where
+    promptPick = PickElect
+    pickFailError _ _ = InvalidElect
+    pickGuard _ _ _ = True -- TODO: Make this actually guard
 
 
 class (EnactElect s, PurePick s) => PickFrom s where
@@ -1047,7 +1064,7 @@ instance PickFrom AtRandom where
         xs -> liftM Available $ do
             snapshot <- gets GameSnapshot
             guardedPrompt (PromptPickAtRandom $ promptPick snapshot $ NonEmpty.fromList xs) $ \case
-                AtRandomPick x -> case x `elem` xs of
+                AtRandomPick x -> case pickGuard (Proxy :: Proxy AtRandom) xs x of
                     True -> return True
                     False -> do
                         prompt $ PromptError $ pickFailError (Proxy :: Proxy AtRandom) (Proxy :: Proxy a)
@@ -1062,7 +1079,7 @@ instance PickFrom Targeted where
             snapshot <- gets GameSnapshot
             guardedPrompt (PromptPickTargeted $ promptPick snapshot $ NonEmpty.fromList xs) $ \case
                 AbortTargetedPick -> return True
-                TargetedPick x -> case x `elem` xs of
+                TargetedPick x -> case pickGuard (Proxy :: Proxy Targeted) xs x of
                     True -> return True
                     False -> do
                         prompt $ PromptError $ pickFailError (Proxy :: Proxy Targeted) (Proxy :: Proxy a)
@@ -1071,7 +1088,7 @@ instance PickFrom Targeted where
 
 playCommon :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m Result
 playCommon handle card = logCall 'playCommon $ removeFromHand handle card >>= \case
-    False -> return Failure
+    False -> return $ Failure "Could not play card because it is not in hand."
     True -> payCost handle $ costOf card
 
 
@@ -1092,7 +1109,7 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoom (getPlayer who) $ do
     emptyMana <- view playerEmptyManaCrystals
     let availableMana = totalMana - emptyMana
     case cost <= availableMana of
-        False -> return Failure
+        False -> return $ Failure "Not enough mana."
         True -> do
             playerEmptyManaCrystals += cost
             return Success
@@ -1172,25 +1189,25 @@ enactAttack attacker defender = logCall 'enactAttack $ do
     result <- isAlly attacker >>= \case
         False -> do
             prompt $ promptGameEvent $ AttackFailed AttackWithEnemy
-            return Failure
+            return $ Failure "Can't attack with an enemy character."
         True -> do
             attack <- dynamicAttack attacker
             case attack <= 0 of
                 True -> do
                     prompt $ promptGameEvent $ AttackFailed ZeroAttack
-                    return Failure
+                    return $ Failure "Can't attack with a zero attack minion"
                 False -> isEnemy defender >>= \case
                     False -> do
                         prompt $ promptGameEvent $ AttackFailed DefendWithFriendly
-                        return Failure
+                        return $ Failure "Can't attack into a friendly character."
                     True -> hasSummoningSickness attacker >>= \case
                         True -> do
                             prompt $ promptGameEvent $ AttackFailed DoesNotHaveCharge
-                            return Failure
+                            return $ Failure "Minion needs charge to attack."
                         False -> hasRemainingAttacks attacker >>= \case
                             False -> do
                                 prompt $ promptGameEvent $ AttackFailed OutOfAttacks
-                                return Failure
+                                return $ Failure "Character is out of attacks."
                             True -> defenderHasTaunt >>= \case
                                 True -> return Success
                                 False -> do
@@ -1198,10 +1215,10 @@ enactAttack attacker defender = logCall 'enactAttack $ do
                                     hasTauntMinions defenderController >>= \case
                                         True -> do
                                             prompt $ promptGameEvent $ AttackFailed TauntsExist
-                                            return Failure
+                                            return $ Failure "Must attack a minion with taunt."
                                         False -> return Success
     case result of
-        Failure -> return Failure
+        Failure msg -> return $ Failure msg
         Success -> do
             prompt $ promptGameEvent $ EnactAttack attackerHandle defenderHandle
             let x `harms` y = do

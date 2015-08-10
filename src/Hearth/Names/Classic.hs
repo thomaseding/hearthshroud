@@ -38,6 +38,7 @@ data ClassicCardName
     | Spellbreaker
     | Sunwalker
     | Wisp
+    | Wrath
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 

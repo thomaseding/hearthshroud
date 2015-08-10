@@ -29,7 +29,7 @@ module Hearth.Client.Console (
 import Control.Applicative
 import Control.Error.TH
 import Control.Exception hiding (handle)
-import Control.Lens
+import Control.Lens hiding (index)
 import Control.Lens.Helper
 import Control.Lens.Internal.Zoom (Zoomed, Focusing)
 import Control.Monad.Prompt hiding (Effect)
@@ -297,7 +297,7 @@ gameEvent snapshot = \case
         playerName <- query $ showHandle player
         let playerAttr = ("player", playerName)
             cardAttr = ("card", either deckCardName' handCardName' deckOrHandCard)
-            resultAttr = ("result", show $ either (const Failure) (const Success) deckOrHandCard)
+            resultAttr = ("result", either (const $ show 'Failure) (const $ show Success) deckOrHandCard)
         tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
     PlayedMinion player minion -> do
         playerName <- query $ showHandle player
@@ -428,14 +428,17 @@ handlePromptPick = \case
     PickMinion snapshot xs -> pickMinion snapshot xs
     PickPlayer snapshot xs -> pickPlayer snapshot xs
     PickCharacter snapshot xs -> pickCharacter snapshot xs
+    PickElect snapshot xs -> pickElect snapshot xs
 
 
 class MakePick s where
     mkPick :: (Eq a) => (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> NonEmpty a -> Console (PickResult s a)
+    pickElect :: GameSnapshot -> NonEmpty (Elect s) -> Console (PickResult s (Elect s))
 
 
 instance MakePick AtRandom where
     mkPick _ _ = liftM AtRandomPick . pickRandom
+    pickElect _ = liftM AtRandomPick . pickRandom
 
 
 instance MakePick Targeted where
@@ -454,6 +457,25 @@ instance MakePick Targeted where
                             Just target -> case target `elem` toList candidates of
                                 True -> return $ TargetedPick target
                                 False -> abort
+    pickElect _ candidates = do
+        liftIO enterToContinue
+        view isAutoplay >>= \case
+            True -> liftM TargetedPick $ pickRandom candidates
+            False -> let
+                abort = return AbortTargetedPick
+                in view pendingTargets >>= \case
+                    [] -> abort
+                    pendingTarget : rest -> do
+                        pendingTargets .= rest
+                        let candidates' = toList candidates
+                            mIndex = case pendingTarget of
+                                SignedInt Positive n -> case 1 <= n && n <= length candidates' of
+                                    True -> Just $ n - 1
+                                    False -> Nothing
+                                _ -> Nothing
+                        case mIndex of
+                            Nothing -> abort
+                            Just index -> return $ TargetedPick $ candidates' !! index
 
 
 pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty MinionHandle -> Console (PickResult s MinionHandle)
@@ -615,23 +637,28 @@ parseActionResponse response = do
     case runOptions actionOptions response of
         Left (ParseFailed err _ _) -> do
             liftIO $ putStrLn err
-            process ComplainRetryAction
+            process $ ComplainRetryAction "Could not parse command."
         Right ms -> case ms of
             [m] -> m >>= process
-            _ -> process ComplainRetryAction
+            _ -> process $ ComplainRetryAction "Please only provide one command."
     where
         process = \case
             QuitAction -> liftM ActionPlayerConceded getActivePlayerHandle
             GameAction action -> return action
             QuietRetryAction -> getAction'
-            ComplainRetryAction -> helpAction >>= process
+            ComplainRetryAction reason -> do
+                liftIO $ do
+                    putStrLn reason
+                    putStrLn ""
+                    enterToContinue
+                process QuietRetryAction
 
 
 data ConsoleAction :: * where
     QuitAction :: ConsoleAction
     GameAction :: Action -> ConsoleAction
     QuietRetryAction :: ConsoleAction
-    ComplainRetryAction :: ConsoleAction
+    ComplainRetryAction :: String -> ConsoleAction
 
 
 actionOptions :: Options (Hearth Console) ConsoleAction ()
@@ -820,7 +847,7 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             let positions = [BoardPos 0 .. maxPos]
             pos <- liftM head $ liftIO $ shuffleM positions
             allowedCards <- flip filterM (reverse cards) $ \card -> local id (playMinion handle card pos) >>= \case
-                Failure -> return False
+                Failure {} -> return False
                 Success -> return True
             pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
@@ -829,7 +856,7 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
             allowedCards <- flip filterM (reverse cards) $ \card -> local id (playSpell handle card) >>= \case
-                Failure -> return False
+                Failure {} -> return False
                 Success -> return True
             pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
@@ -847,7 +874,7 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
                     ++ [(a, PlayerCharacter nonActiveHandle) | a <- activeMinions]
             allowedPairs <- flip filterM pairs $ \(activeChar, nonActiveChar) -> do
                 local id $ enactAttack activeChar nonActiveChar >>= \case
-                    Failure -> return False
+                    Failure {} -> return False
                     Success -> return True
             pickRandom allowedPairs >>= return . \case
                 Nothing -> Nothing
@@ -885,7 +912,7 @@ readCardInHandAction (SignedInt sign handIdx) = do
     cards <- view $ getPlayer handle.playerHand.handCards
     let mCard = lookupIndex cards $ length cards - handIdx
     case mCard of
-        Nothing -> return ComplainRetryAction
+        Nothing -> return $ ComplainRetryAction "Invalid hand card index"
         Just card -> do
             liftIO $ do
                 let cardStr = showCard card
@@ -941,57 +968,66 @@ attackAction attackerIdx defenderIdx = do
     mAttacker <- fetchCharacterHandle attackerIdx
     mDefender <- fetchCharacterHandle defenderIdx
     case mAttacker of
-        Nothing -> return ComplainRetryAction
+        Nothing -> return $ ComplainRetryAction "Invalid attacker index."
         Just attacker -> case mDefender of
-            Nothing -> return ComplainRetryAction
+            Nothing -> return $ ComplainRetryAction "Invalid defender index."
             Just defender -> return $ GameAction $ ActionAttack attacker defender
 
 
 playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
 
-    goMinion :: Int -> HandCard -> Hearth Console ConsoleAction
-    goMinion boardIdx card = do
+    goMinion :: SignedInt -> HandCard -> Hearth Console ConsoleAction
+    goMinion (SignedInt Positive boardIdx) card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
         lift $ playedMinionIdx .= Just boardIdx
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
-            False -> return ComplainRetryAction
+            False -> return $ ComplainRetryAction "Invalid board index: Out of bounds."
             True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
+    goMinion _ _ = return $ ComplainRetryAction "Invalid board index: Must be positive."
 
     goSpell :: HandCard -> Hearth Console ConsoleAction
     goSpell card = return $ GameAction $ ActionPlaySpell card
 
-    go :: Int -> [SignedInt] -> (HandCard -> Hearth Console ConsoleAction) -> Hearth Console ConsoleAction
-    go handIdx consoleTargets continuation = do
+    go :: Int -> [SignedInt] -> Hearth Console ConsoleAction
+    go handIdx args = do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
         let mCard = lookupIndex cards $ length cards - handIdx
         case mCard of
-            Nothing -> return ComplainRetryAction
-            Just card -> continuation card >>= \case
-                GameAction action -> do
-                    lift $ pendingTargets .= consoleTargets
-                    result <- local id $ do
-                        v <- lift $ view $ logState.verbosity
-                        lift $ logState.verbosity .= Quiet
-                        result <- enactAction action >>= return . \case
-                            Right EndTurn -> Failure   -- This should never get hit.
-                            Left result -> result
-                        lift $ logState.verbosity .= v
-                        return result
-                    case result of
-                        Success -> lift (view pendingTargets) >>= \case
-                            [] -> do
-                                lift $ pendingTargets .= consoleTargets
-                                return $ GameAction action
-                            _ -> return ComplainRetryAction
-                        Failure -> return ComplainRetryAction
-                action -> return action
+            Nothing -> return $ ComplainRetryAction "Invalid hand card index."
+            Just card -> case card of
+                HandCardSpell _ -> goSpell card >>= go' args
+                HandCardMinion _ -> case args of
+                    boardPos : rest -> goMinion boardPos card >>= go' rest
+                    [] -> return $ ComplainRetryAction "Playing a minion requires a board index."
+
+    go' :: [SignedInt] -> ConsoleAction -> Hearth Console ConsoleAction
+    go' targets = \case
+        GameAction action -> do
+            lift $ pendingTargets .= targets
+            result <- local id $ do
+                v <- lift $ view $ logState.verbosity
+                lift $ logState.verbosity .= Quiet
+                result <- enactAction action >>= return . \case
+                    Right EndTurn -> $logicError 'playCardAction "This should never get hit."
+                    Left result -> result
+                lift $ logState.verbosity .= v
+                return result
+            case result of
+                Success -> lift (view pendingTargets) >>= \case
+                    [] -> do
+                        lift $ pendingTargets .= targets
+                        return $ GameAction action
+                    _ -> return $ ComplainRetryAction "Too many targets."
+                Failure msg -> do
+                    liftIO $ print targets
+                    return $ ComplainRetryAction msg
+        action -> return action
     in \case
-        List (SignedInt Positive handIdx : SignedInt Positive boardIdx : consoleTargets) -> go handIdx consoleTargets $ goMinion boardIdx
-        List (SignedInt Positive handIdx : consoleTargets) -> go handIdx consoleTargets goSpell
-        _ -> return ComplainRetryAction
+        List (SignedInt Positive handIdx : args) -> go handIdx args
+        _ -> return $ ComplainRetryAction "Hand card index must be positive when playing a card."
 
 
 getAction :: GameSnapshot -> Console Action

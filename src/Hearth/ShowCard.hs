@@ -262,6 +262,15 @@ showElect = \case
     Effect x -> showEffect x
     OwnerOf handle cont -> showOwnerOf handle cont
     OpponentOf handle cont -> showOpponentOf handle cont
+    Choice choices -> showChoice choices
+
+
+showChoice :: (IsSelection s) => [Elect s] -> ShowCard String
+showChoice choices = do
+    strs <- mapM showElect choices
+    let idxs = flip map [(1::Int) ..] $ \n -> "(" ++ show n ++ "). "
+        strs' = zipWith (++) idxs strs
+    return $ unlines $ "Choose One:" : strs'
 
 
 showA :: (IsSelection s) => A s -> ShowCard String

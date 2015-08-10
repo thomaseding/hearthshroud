@@ -30,6 +30,7 @@ data HearthError
     | InvalidMinion
     | InvalidPlayer
     | InvalidCharacter
+    | InvalidElect
     deriving (Show, Eq, Ord)
 
 
@@ -62,6 +63,7 @@ data PromptPick :: Selection -> * -> * where
     PickMinion :: GameSnapshot -> NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
     PickPlayer :: GameSnapshot -> NonEmpty (Handle Player) -> PromptPick s (Handle Player)
     PickCharacter :: GameSnapshot -> NonEmpty (Handle Character) -> PromptPick s (Handle Character)
+    PickElect :: GameSnapshot -> NonEmpty (Elect s) -> PromptPick s (Elect s)
 
 
 

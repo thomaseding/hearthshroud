@@ -34,7 +34,7 @@ import GHC.Generics
 --------------------------------------------------------------------------------
 
 
-data Result = Success | Failure
+data Result = Success | Failure String
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
@@ -158,6 +158,7 @@ data Elect :: Selection -> * where
     A :: A s -> Elect s
     All :: All s -> Elect s
     Effect :: Effect -> Elect s
+    Choice :: [Elect Targeted] -> Elect Targeted
     deriving (Typeable)
 
 

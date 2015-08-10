@@ -65,6 +65,7 @@ cards = [
     riverCrocolisk,
     sen'jinShieldmasta,
     shadowBolt,
+    shadowWordDeath,
     shadowWordPain,
     shatteredSunCleric,
     shiv,
@@ -127,7 +128,7 @@ arcaneShot = mkSpell ArcaneShot 1 $ \_ ->
 
 
 assassinate :: DeckCard
-assassinate = mkSpell Assassinate 0 $ \_ ->
+assassinate = mkSpell Assassinate 5 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ DestroyMinion target
 
@@ -426,6 +427,12 @@ shadowBolt :: DeckCard
 shadowBolt = mkSpell ShadowBolt 3 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ DealDamage (MinionCharacter target) 4
+
+
+shadowWordDeath :: DeckCard
+shadowWordDeath = mkSpell ShadowWordDeath 5 $ \_ ->
+    A $ Minion [With $ AttackCond GreaterEqual 5] $ \target ->
+        Effect $ DestroyMinion target
 
 
 shadowWordPain :: DeckCard
