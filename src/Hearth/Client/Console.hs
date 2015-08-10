@@ -458,7 +458,6 @@ instance MakePick Targeted where
                                 True -> return $ TargetedPick target
                                 False -> abort
     pickElect _ candidates = do
-        liftIO enterToContinue
         view isAutoplay >>= \case
             True -> liftM TargetedPick $ pickRandom candidates
             False -> let

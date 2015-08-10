@@ -210,13 +210,14 @@ wisp = mkMinion Wisp 0 1 1 []
 
 wrath :: DeckCard
 wrath = mkSpell Wrath 2 $ \this ->
-    A $ Minion [] $ \target ->
     Choice [
-        Effect $ DealDamage (MinionCharacter target) 3,
-        OwnerOf this $ \owner ->
-            Effect $ Sequence [
-                DealDamage (MinionCharacter target) 1,
-                DrawCards owner 1 ]]
+        A $ Minion [] $ \target ->
+            Effect $ DealDamage (MinionCharacter target) 3,
+        A $ Minion [] $ \target ->
+            OwnerOf this $ \owner ->
+                Effect $ Sequence [
+                    DealDamage (MinionCharacter target) 1,
+                    DrawCards owner 1 ]]
 
 
 
