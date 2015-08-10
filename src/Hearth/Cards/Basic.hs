@@ -65,6 +65,7 @@ cards = [
     riverCrocolisk,
     sen'jinShieldmasta,
     shadowBolt,
+    shadowWordPain,
     shatteredSunCleric,
     shiv,
     silverbackPatriarch,
@@ -425,6 +426,12 @@ shadowBolt :: DeckCard
 shadowBolt = mkSpell ShadowBolt 3 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ DealDamage (MinionCharacter target) 4
+
+
+shadowWordPain :: DeckCard
+shadowWordPain = mkSpell ShadowWordPain 2 $ \_ ->
+    A $ Minion [With $ AttackCond LessEqual 3] $ \target ->
+        Effect $ DestroyMinion target
 
 
 shatteredSunCleric :: DeckCard

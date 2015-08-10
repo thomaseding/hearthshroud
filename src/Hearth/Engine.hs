@@ -997,10 +997,23 @@ restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle
 restrict rs hs = flip filterM hs $ \h -> allM (flip isPermitted h) rs
 
 
+fromComparison :: (Ord a) => Comparison -> (a -> a -> Bool)
+fromComparison = \case
+    Less -> (<)
+    LessEqual -> (<=)
+    Equal -> (==)
+    GreaterEqual -> (>=)
+    Greater -> (>)
+
+
 isPermitted :: (HearthMonad m) => Restriction a -> Handle a -> Hearth m Bool
 isPermitted restriction candidate = case restriction of
     OwnedBy owner -> liftM (owner ==) $ controllerOf candidate
     Not bannedObject -> return $ candidate /= bannedObject
+    With x -> case x of
+        AttackCond cmp attackCond -> do
+            actualAttack <- dynamicAttack candidate
+            return $ fromComparison cmp actualAttack attackCond
 
 
 class (Eq a) => Pickable (s :: Selection) a where

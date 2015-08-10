@@ -136,6 +136,20 @@ data Selection = Targeted | AtRandom
 data Restriction :: * -> * where
     OwnedBy :: Handle Player -> Restriction a
     Not :: Handle a -> Restriction a
+    With :: With a -> Restriction a
+
+
+data Comparison
+    = Less
+    | LessEqual
+    | Equal
+    | GreaterEqual
+    | Greater
+    deriving (Show, Eq, Ord)
+
+
+data With :: * -> * where
+    AttackCond :: Comparison -> Attack -> With Minion
 
 
 data Elect :: Selection -> * where

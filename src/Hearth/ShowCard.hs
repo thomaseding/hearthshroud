@@ -353,6 +353,8 @@ showRestriction = \case
     Not handle -> readHandle handle >>= return . \case
         (is this -> True) -> ""
         str -> "NOT " ++ str
+    With x -> case x of
+        AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
 
 
 showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> ShowCard String

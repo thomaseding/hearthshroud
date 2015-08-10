@@ -65,6 +65,7 @@ data BasicCardName
     | RiverCrocolisk
     | Sen'jinShieldmasta
     | ShadowBolt
+    | ShadowWordPain
     | ShatteredSunCleric
     | Shiv
     | SilverbackPatriarch
