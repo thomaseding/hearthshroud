@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -29,18 +32,28 @@ data HearthError
     deriving (Show, Eq, Ord)
 
 
-data family PickResult s a
+class (Functor (PickResult s)) => IsPickResult s where
+    data PickResult s a
 
 
-data instance PickResult AtRandom a
-    = AtRandomPick a
-    deriving (Show, Eq, Ord)
+instance IsPickResult AtRandom where
+    data PickResult AtRandom a = AtRandomPick a
+        deriving (Show, Eq, Ord)
 
 
-data instance PickResult Targeted a
-    = TargetedPick a
-    | AbortTargetedPick
-    deriving (Show, Eq, Ord)
+instance Functor (PickResult AtRandom) where
+    fmap f (AtRandomPick x) = AtRandomPick (f x)
+
+
+instance IsPickResult Targeted where
+    data PickResult Targeted a = TargetedPick a | AbortTargetedPick
+        deriving (Show, Eq, Ord)
+
+
+instance Functor (PickResult Targeted) where
+    fmap f = \case
+        TargetedPick x -> TargetedPick (f x)
+        AbortTargetedPick -> AbortTargetedPick
 
 
 data HearthPrompt :: * -> * where

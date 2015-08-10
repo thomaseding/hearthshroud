@@ -129,38 +129,39 @@ data Cost :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
+-- TODO: Group these into a Selection data type and use DataKinds
 data Targeted
 data AtRandom
 
 
-data family ElectionEffect a :: *
-
-
-data instance ElectionEffect Targeted
-    = Targeted (Elect Targeted)
-    | Effect Effect
-
-
-newtype instance ElectionEffect AtRandom
-    = FromRandom Effect
-
-
 data Restriction :: * -> * where
     OwnedBy :: Handle Player -> Restriction a
-    OwnerOf :: Handle a -> Restriction Player
     Not :: Handle a -> Restriction a
 
 
 data Elect :: * -> * where
-    Minion :: [Restriction Minion] -> (Handle Minion -> ElectionEffect a) -> Elect a
-    Player :: Restriction Player -> (Handle Player -> Elect Targeted) -> Elect Targeted
-    Character :: [Restriction Character] -> (Handle Character -> ElectionEffect a) -> Elect a
+    OwnerOf :: Handle a -> (Handle Player -> Elect s) -> Elect s
+    OpponentOf :: Handle Player -> (Handle Player -> Elect s) -> Elect s
+    A :: A s -> Elect s
+    All :: All s -> Elect s
+    Effect :: Effect -> Elect s
     deriving (Typeable)
 
 
+data A :: * -> * where
+    Minion :: [Restriction Minion] -> (Handle Minion -> Elect s) -> A s
+    Player :: [Restriction Player] -> (Handle Player -> Elect s) -> A s
+    Character :: [Restriction Character] -> (Handle Character -> Elect s) -> A s
+
+
+data All :: * -> * where
+    Minions :: [Restriction Minion] -> ([Handle Minion] -> Elect s) -> All s
+    Players :: [Restriction Player] -> ([Handle Player] -> Elect s) -> All s
+    Characters :: [Restriction Character] -> ([Handle Character] -> Elect s) -> All s
+
+
 data Effect :: * where
-    Elect :: Elect AtRandom -> Effect
-    With :: With -> Effect
+    AtRandom :: Elect AtRandom -> Effect
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
@@ -174,17 +175,6 @@ data Effect :: * where
     deriving (Typeable)
 
 
-data All :: * where
-    Minions :: [Restriction Minion] -> ([Handle Minion] -> Effect) -> All
-    Players :: ([Handle Player] -> Effect) -> All
-    Characters :: [Restriction Character] -> ([Handle Character] -> Effect) -> All
-
-
-data With :: * where
-    All :: All -> With
-    Unique :: Restriction Player -> (Handle Player -> Effect) -> With
-
-
 data KeywordEffect :: * where
     Silence :: Handle Minion -> KeywordEffect
     deriving (Show, Typeable)
@@ -196,8 +186,8 @@ data Ability :: * where
 
 
 data KeywordAbility :: * where
-    Battlecry :: (Handle Minion -> ElectionEffect Targeted) -> KeywordAbility
-    Deathrattle :: (Handle Minion -> Effect) -> KeywordAbility
+    Battlecry :: (Handle Minion -> Elect Targeted) -> KeywordAbility
+    Deathrattle :: (Handle Minion -> Elect AtRandom) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
     Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
@@ -211,7 +201,7 @@ data Enchantment :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-type SpellEffect = Handle Spell -> ElectionEffect Targeted
+type SpellEffect = Handle Spell -> Elect Targeted
 
 
 data Spell = Spell' {
@@ -254,7 +244,7 @@ data DeckMinion = DeckMinion {
 } deriving (Typeable)
 
 
-type HeroPowerEffect = Handle Player -> ElectionEffect Targeted
+type HeroPowerEffect = Handle Player -> Elect Targeted
 
 
 data HeroPower = HeroPower {

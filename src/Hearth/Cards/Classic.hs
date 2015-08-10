@@ -66,8 +66,8 @@ abomination :: DeckCard
 abomination = mkMinion Abomination 5 4 4 [
     KeywordAbility Taunt,
     KeywordAbility $ Deathrattle $ \this ->
-        With $ All $ Characters [Not (MinionCharacter this)] $ \victims ->
-            ForEach victims $ \victim ->
+        All $ Characters [Not (MinionCharacter this)] $ \victims ->
+            Effect $ ForEach victims $ \victim ->
                 DealDamage victim 2 ]
 
 
@@ -80,9 +80,9 @@ arcaneGolem :: DeckCard
 arcaneGolem = mkMinion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
-        Effect $ With $ Unique (OwnerOf this) $ \owner ->
-            With $ Unique (Not owner) $ \opponent ->
-                GainManaCrystal CrystalFull opponent ]
+        OwnerOf this $ \owner ->
+            OpponentOf owner $ \opponent ->
+                Effect $ GainManaCrystal CrystalFull opponent ]
 
 
 argentCommander :: DeckCard
@@ -94,9 +94,9 @@ argentCommander = mkMinion ArgentCommander 6 4 2 [
 argentProtector :: DeckCard
 argentProtector = mkMinion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ Player (OwnerOf this) $ \owner ->
-            Minion [OwnedBy owner, Not this] $ \target ->
-                Effect $ GiveAbility target [KeywordAbility DivineShield]]
+        OwnerOf this $ \owner ->
+            A $ Minion [OwnedBy owner, Not this] $ \target ->
+                Effect $ GiveAbility target [KeywordAbility DivineShield ]]
 
 
 argentSquire :: DeckCard
@@ -106,32 +106,32 @@ argentSquire = mkMinion ArgentSquire 1 1 1 [
 
 circleOfHealing :: DeckCard
 circleOfHealing = mkSpell CircleOfHealing 0 $ \_ ->
-    Effect $ With $ All $ Minions [] $ \minions ->
-        ForEach minions $ \minion ->
+    All $ Minions [] $ \minions ->
+        Effect $ ForEach minions $ \minion ->
             RestoreHealth (MinionCharacter minion) 4
 
 
 coldlightOracle :: DeckCard
 coldlightOracle = mkMinion ColdlightOracle 3 2 2[
     KeywordAbility $ Battlecry $ \_ ->
-        Effect $ With $ All $ Players $ \players ->
-            ForEach players $ \player ->
+        All $ Players [] $ \players ->
+            Effect $ ForEach players $ \player ->
                 DrawCards player 2 ]
 
 
 cruelTaskmaster :: DeckCard
 cruelTaskmaster = mkMinion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ Minion [Not this] $ \target ->
+        A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
                 DealDamage (MinionCharacter target) 1,
-                Enchant target [StatsDelta 2 0]]]
+                Enchant target [StatsDelta 2 0 ]]]
 
 
 earthenRingFarseer :: DeckCard
 earthenRingFarseer = mkMinion EarthenRingFarseer 3 3 3 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ Character [Not (MinionCharacter this)] $ \character ->
+        A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 3 ]
 
 
@@ -149,23 +149,23 @@ injuredBlademaster = mkMinion InjuredBlademaster 3 4 7 [
 ironbeakOwl :: DeckCard
 ironbeakOwl = mkMinion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ Minion [Not this] $ \target ->
+        A $ Minion [Not this] $ \target ->
             Effect $ KeywordEffect $ Silence target ]
 
 
 leperGnome :: DeckCard
 leperGnome = mkMinion LeperGnome 1 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
-        With $ Unique (OwnerOf this) $ \owner ->
-            With $ Unique (Not owner) $ \opponent ->
-                DealDamage (PlayerCharacter opponent) 2 ]
+        OwnerOf this $ \owner ->
+            OpponentOf owner $ \opponent ->
+                Effect $ DealDamage (PlayerCharacter opponent) 2 ]
 
 
 lootHoarder :: DeckCard
 lootHoarder = mkMinion LootHoarder 2 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
-        With $ Unique (OwnerOf this) $ \owner ->
-            DrawCards owner 1 ]
+        OwnerOf this $ \owner ->
+            Effect $ DrawCards owner 1 ]
 
 
 mogu'shanWarden :: DeckCard
@@ -176,8 +176,8 @@ mogu'shanWarden = mkMinion Mogu'shanWarden 4 1 7 [
 priestessOfElune :: DeckCard
 priestessOfElune = mkMinion PriestessOfElune 6 5 4 [
     KeywordAbility $ Battlecry $ \this ->
-        Effect $ With $ Unique (OwnerOf this) $ \owner ->
-            RestoreHealth (PlayerCharacter owner) 4 ]
+        OwnerOf this $ \owner ->
+            Effect $ RestoreHealth (PlayerCharacter owner) 4 ]
 
 
 scarletCrusader :: DeckCard
@@ -193,7 +193,7 @@ silvermoonGuardian = mkMinion SilvermoonGuardian 4 3 3 [
 spellbreaker :: DeckCard
 spellbreaker = mkMinion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
-        Targeted $ Minion [Not this] $ \target ->
+        A $ Minion [Not this] $ \target ->
             Effect $ KeywordEffect $ Silence target ]
 
 

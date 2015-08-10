@@ -173,7 +173,7 @@ showCost card = let
 boxText :: HandCard -> String
 boxText = runShowCard . liftM (unlines . filter (not . null) . lines) . \case
     HandCardMinion minion -> showAbilities $ _minionAbilities minion
-    HandCardSpell spell -> genHandle this >>= showElectionEffect . _spellEffect spell
+    HandCardSpell spell -> genHandle this >>= showElect . _spellEffect spell
 
 
 --------------------------------------------------------------------------------
@@ -205,22 +205,21 @@ showEnrage abilities enchantments = do
     return $ "Enrage: " ++ itemize (asStr ++ esStr)
 
 
-showDeathrattle :: (Handle Minion -> Effect) -> ShowCard String
+showDeathrattle :: (Handle Minion -> Elect AtRandom) -> ShowCard String
 showDeathrattle cont = do
-    effectStr <- genHandle this >>= showEffect . cont
+    effectStr <- genHandle this >>= showElect . cont
     return $ "Deathrattle: " ++ effectStr
 
 
-showBattlecry :: (Elect' a) => (Handle Minion -> ElectionEffect a) -> ShowCard String
+showBattlecry :: (Handle Minion -> Elect Targeted) -> ShowCard String
 showBattlecry cont = do
-    effectStr <- genHandle this >>= showElectionEffect . cont
+    effectStr <- genHandle this >>= showElect . cont
     return $ "Battlecry: " ++ effectStr
 
 
 showEffect :: Effect -> ShowCard String
 showEffect = \case
-    Elect elect -> showElect elect
-    With with -> showWith with
+    AtRandom elect -> showElect elect
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
@@ -245,12 +244,6 @@ showDestroyMinion minion = do
     return $ "Destroy " ++ minionStr
 
 
-showWith :: With -> ShowCard String
-showWith = \case
-    All x -> showAll x
-    Unique restriction cont -> showPlayer restriction cont
-
-
 showForEach :: [Handle a] -> (Handle a -> Effect) -> ShowCard String
 showForEach handles cont = case handles of
     [handle] -> do
@@ -260,78 +253,84 @@ showForEach handles cont = case handles of
     _ -> $logicError 'showForEach "xxx"
 
 
-showElect :: (Elect' a) => Elect a -> ShowCard String
+showElect :: (IsSelection s) => Elect s -> ShowCard String
 showElect = \case
+    A x -> showA x
+    All x -> showAll x
+    Effect x -> showEffect x
+    OwnerOf handle cont -> showOwnerOf handle cont
+    OpponentOf handle cont -> showOpponentOf handle cont
+
+
+showA :: (IsSelection s) => A s -> ShowCard String
+showA = \case
     Minion restrictions cont -> showMinion restrictions cont
-    Player restriction cont -> showPlayer restriction cont
+    Player restrictions cont -> showPlayer restrictions cont
     Character restrictions cont -> showCharacter restrictions cont
 
 
-showPlayer :: (ShowPlayer e) => Restriction Player -> (Handle Player -> e) -> ShowCard String
-showPlayer = \case
-    OwnedBy handle -> \cont -> showPlayerCont $ cont handle
-    OwnerOf handle -> showOwnerOf handle
-    Not handle -> showOpponentOf handle
+showPlayer :: forall s. (IsSelection s) => [Restriction Player] -> (Handle Player -> Elect s) -> ShowCard String
+showPlayer restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
+    let sel = showSelection (Proxy :: Proxy s)
+    handle <- genNumberedHandle $ sel ++ "PLAYER[" ++ restrictionsStr ++ "]"
+    showElect $ cont handle
 
 
-showAll :: All -> ShowCard String
+showAll :: (IsSelection s) => All s -> ShowCard String
 showAll = \case
     Minions restrictions cont -> showMinions restrictions cont
-    Players cont -> showPlayers cont
+    Players restrictions cont -> showPlayers restrictions cont
     Characters restrictions cont -> showCharacters restrictions cont
 
 
-class Elect' a where
-    showElectionEffect :: ElectionEffect a -> ShowCard String
-    showSelection :: Proxy a -> String
+class IsSelection s where
+    showSelection :: Proxy s -> String
 
 
-instance Elect' Targeted where
-    showElectionEffect = \case
-        Targeted elect -> showElect elect
-        Effect effect -> showEffect effect
+instance IsSelection Targeted where
     showSelection _ = "TARGET_"
 
 
-instance Elect' AtRandom where
-    showElectionEffect (FromRandom effect) = showEffect effect
+instance IsSelection AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showMinions :: [Restriction Minion] -> ([Handle Minion] -> Effect) -> ShowCard String
+showMinions :: (IsSelection s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> ShowCard String
 showMinions restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    other <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
-    showEffect $ cont [other]
+    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+    showElect $ cont [handle]
 
 
-showPlayers :: ([Handle Player] -> Effect) -> ShowCard String
-showPlayers cont = do
-    other <- genHandle "PLAYER"
-    showEffect $ cont [other]
+showPlayers :: (IsSelection s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> ShowCard String
+showPlayers restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
+    handle <- genHandle $ "PLAYER[" ++ restrictionsStr ++ "]"
+    showElect $ cont [handle]
 
 
-showCharacters :: [Restriction Character] -> ([Handle Character] -> Effect) -> ShowCard String
+showCharacters :: (IsSelection s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> ShowCard String
 showCharacters restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    other <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
-    showEffect $ cont [other]
+    handle <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
+    showElect $ cont [handle]
 
 
-showMinion :: forall a. (Elect' a) => [Restriction Minion] -> (Handle Minion -> ElectionEffect a) -> ShowCard String
+showMinion :: forall s. (IsSelection s) => [Restriction Minion] -> (Handle Minion -> Elect s) -> ShowCard String
 showMinion restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    let sel = showSelection (Proxy :: Proxy a)
+    let sel = showSelection (Proxy :: Proxy s)
     handle <- genNumberedHandle $ sel ++ "MINION[" ++ restrictionsStr ++ "]"
-    showElectionEffect $ cont handle
+    showElect $ cont handle
 
 
-showCharacter :: forall a. (Elect' a) => [Restriction Character] -> (Handle Character -> ElectionEffect a) -> ShowCard String
+showCharacter :: forall s. (IsSelection s) => [Restriction Character] -> (Handle Character -> Elect s) -> ShowCard String
 showCharacter restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    let sel = showSelection (Proxy :: Proxy a)
+    let sel = showSelection (Proxy :: Proxy s)
     handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ restrictionsStr ++ "]"
-    showElectionEffect $ cont handle
+    showElect $ cont handle
 
 
 showRestrictions :: [Restriction a] -> ShowCard String
@@ -349,38 +348,25 @@ showRestriction = \case
     OwnedBy handle -> readHandle handle >>= return . \case
         (is you -> True) -> "FRIENDLY"
         _ -> "ENEMY"
-    OwnerOf handle -> readHandle handle >>= \str -> return $ "OWNER_OF[" ++ str ++ "]"
     Not handle -> readHandle handle >>= return . \case
         (is this -> True) -> ""
         str -> "NOT " ++ str
 
 
-showOwnerOf :: (ShowPlayer e) => Handle a -> (Handle Player -> e) -> ShowCard String
+showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> ShowCard String
 showOwnerOf handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("(CONTROLLER_OF " ++ str ++ ")")
-    showPlayerCont $ cont player
+        str -> genHandle ("(OWNER_OF " ++ str ++ ")")
+    showElect $ cont player
 
 
-showOpponentOf :: (ShowPlayer e) => Handle Player -> (Handle Player -> e) -> ShowCard String
+showOpponentOf :: (IsSelection s) => Handle Player -> (Handle Player -> Elect s) -> ShowCard String
 showOpponentOf minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
         str -> genHandle ("(OPPONENT_OF " ++ str ++ ")")
-    showPlayerCont $ cont player
-
-
-class ShowPlayer e where
-    showPlayerCont :: e -> ShowCard String
-
-
-instance ShowPlayer Effect where
-    showPlayerCont = showEffect
-
-
-instance ShowPlayer (Elect Targeted) where
-    showPlayerCont = showElect
+    showElect $ cont player
 
 
 showSequence :: [Effect] -> ShowCard String

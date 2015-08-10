@@ -36,6 +36,7 @@ import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
 import Hearth.Action
 import Hearth.Cards (cardByName)
+import Hearth.DebugEvent
 import Hearth.DeckToHand
 import Hearth.Engine.Data
 import Hearth.GameEvent
@@ -185,7 +186,9 @@ instance Controllable (Handle a) where
             case players' of
                 [player] -> return $ player^.playerHandle
                 _ -> $logicError 'controllerOf $ "Invalid handle: " ++ show h
-        h @ PlayerHandle {} -> return h
+        h @ PlayerHandle {} -> do
+            prompt $ PromptDebugEvent $ DiagnosticMessage $ "Warning: " ++ show 'controllerOf ++ " used with " ++ show 'PlayerHandle
+            return h
         MinionCharacter h -> controllerOf h
         PlayerCharacter h -> controllerOf h
 
@@ -567,7 +570,7 @@ enactSpell :: (HearthMonad m) => Handle Spell -> Hearth m Result
 enactSpell spell = do
     st <- get
     cont <- view $ getSpell spell.castSpell.spellEffect
-    enactElectionEffect cont (purePick spell) >>= \case
+    enactElect (cont spell) >>= \case
         Available (TargetedPick _) -> return Success
         _ -> put st >> return Failure
 
@@ -576,7 +579,7 @@ enactAnyDeathrattles :: (HearthMonad m) => Handle Minion -> Hearth m ()
 enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
     abilities <- dynamicAbilities bmHandle
     forM_ abilities $ \case
-        KeywordAbility (Deathrattle effect) -> enactDeathrattle bmHandle effect
+        KeywordAbility (Deathrattle elect) -> enactDeathrattle bmHandle elect
         _ -> return ()
 
 
@@ -598,23 +601,22 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
                 return Failure
 
 
-enactDeathrattle :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Effect) -> Hearth m ()
-enactDeathrattle handle f = logCall 'enactDeathrattle $ do
-    _ <- enactEffect $ f handle
+enactDeathrattle :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Elect AtRandom) -> Hearth m ()
+enactDeathrattle handle cont = logCall 'enactDeathrattle $ do
+    _ <- enactElect $ cont handle
     return ()
 
 
-enactBattlecry :: (HearthMonad m) => Handle Minion -> (Handle Minion -> ElectionEffect Targeted) -> Hearth m (SimplePickResult Targeted)
-enactBattlecry handle f = logCall 'enactBattlecry $ do
-    enactElectionEffect f $ purePick handle
+enactBattlecry :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Elect Targeted) -> Hearth m (SimplePickResult Targeted)
+enactBattlecry handle cont = logCall 'enactBattlecry $ do
+    enactElect $ cont handle
 
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m (SimplePickResult AtRandom)
 enactEffect = logCall 'enactEffect . \case
-    Elect elect -> enactElect elect >>= return . \case
+    AtRandom elect -> enactElect elect >>= return . \case
         NotAvailable -> NotAvailable
-        Available (AtRandomPick _) -> purePick ()
-    With with -> enactWith with
+        Available (AtRandomPick _) -> success
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
@@ -642,12 +644,6 @@ destroyMinion handle = logCall 'destroyMinion $ do
     getMinion handle.boardMinionPendingDestroy .= True
 
 
-enactWith :: (HearthMonad m) => With -> Hearth m (SimplePickResult AtRandom)
-enactWith = logCall 'enactWith $ \case
-    All x -> enactAll x
-    Unique restriction cont -> enactPlayer restriction cont
-
-
 enactForEach :: (HearthMonad m) => [a] -> (a -> Effect) -> Hearth m (SimplePickResult AtRandom)
 enactForEach handles cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
@@ -657,7 +653,7 @@ sequenceEffects :: (HearthMonad m) => [Effect] -> Hearth m (SimplePickResult AtR
 sequenceEffects effects = liftM condensePickResults $ mapM enactEffect effects
 
 
-condensePickResults :: (EnactElectionEffect s) => [SimplePickResult s] -> SimplePickResult s
+condensePickResults :: (PurePick s) => [SimplePickResult s] -> SimplePickResult s
 condensePickResults results = case dropWhile (== purePick ()) results of
     [] -> purePick ()
     r : _ -> r
@@ -873,79 +869,94 @@ data Available a = Available a | NotAvailable
 type SimplePickResult s = Available (PickResult s ())
 
 
-class (PickFrom s, Eq (PickResult s ())) => EnactElectionEffect s where
-    enactElectionEffect :: (HearthMonad m) => (a -> ElectionEffect s) -> (Available (PickResult s a)) -> Hearth m (SimplePickResult s)
+class (Eq (PickResult s ())) => PurePick s where
     purePick :: a -> Available (PickResult s a)
 
 
-instance EnactElectionEffect Targeted where
-    enactElectionEffect cont = \case
-        NotAvailable -> return NotAvailable
-        Available result -> case result of
-            TargetedPick choice -> case cont choice of
-                Targeted elect -> enactElect elect
-                Effect effect -> enactEffect effect >>= \case
-                    NotAvailable -> return NotAvailable
-                    Available (AtRandomPick ()) -> return $ Available $ TargetedPick ()
-            AbortTargetedPick -> return $ Available AbortTargetedPick
+instance PurePick Targeted where
     purePick = Available . TargetedPick
 
 
-instance EnactElectionEffect AtRandom where
-    enactElectionEffect cont = \case
-        NotAvailable -> $todo 'enactElectionEffect "xxx"
-        Available (AtRandomPick choice) -> case cont choice of
-            FromRandom effect -> enactEffect effect
+instance PurePick AtRandom where
     purePick = Available . AtRandomPick
 
 
-enactElect :: (HearthMonad m, EnactElectionEffect s) => Elect s -> Hearth m (SimplePickResult s)
-enactElect = logCall 'enactElect . \case
+enactElect :: (HearthMonad m, PickFrom s) => Elect s -> Hearth m (SimplePickResult s)
+enactElect = logCall 'enactElect $ \case
+    A x -> enactA x
+    All x -> enactAll x
+    Effect x -> enactElectedEffect x
+    OwnerOf handle cont -> enactOwnerOf handle cont
+    OpponentOf handle cont -> enactOpponentOf handle cont
+
+
+enactOwnerOf :: (HearthMonad m, PickFrom s) => Handle a -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
+enactOwnerOf handle cont = logCall 'enactOwnerOf $ do
+    controllerOf handle >>= enactElect . cont
+
+
+enactOpponentOf :: (HearthMonad m, PickFrom s) => Handle Player -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
+enactOpponentOf handle cont = logCall 'enactOpponentOf $ do
+    handles <- getPlayerHandles
+    case filter (/= handle) handles of
+        [opponent] -> enactElect $ cont opponent
+        _ -> $logicError 'enactOpponentOf "Opponent should exist and be unique."
+
+
+enactElectedEffect :: (HearthMonad m, PickFrom s) => Effect -> Hearth m (SimplePickResult s)
+enactElectedEffect = logCall 'enactElectedEffect $ enactEffect >=> \case
+    NotAvailable -> return NotAvailable
+    Available (AtRandomPick ()) -> return $ purePick ()
+
+
+class EnactElect s where
+    enactElect' :: (HearthMonad m) => (a -> Elect s) -> Available (PickResult s a) -> Hearth m (SimplePickResult s)
+
+
+instance EnactElect AtRandom where
+    enactElect' cont = \case
+        NotAvailable -> return NotAvailable
+        Available (AtRandomPick x) -> enactElect $ cont x
+
+
+instance EnactElect Targeted where
+    enactElect' cont = \case
+        NotAvailable -> return NotAvailable
+        Available p -> case p of
+            AbortTargetedPick -> return $ Available AbortTargetedPick
+            TargetedPick x -> enactElect $ cont x
+
+
+enactA :: (HearthMonad m, PickFrom s) => A s -> Hearth m (SimplePickResult s)
+enactA = logCall 'enactA $ \case
     Minion restrictions cont -> enactMinion restrictions cont
-    Player restriction cont -> enactPlayer restriction cont
+    Player restrictions cont -> enactPlayer restrictions cont
     Character restrictions cont -> enactCharacter restrictions cont
 
 
-enactAll :: (HearthMonad m) => All -> Hearth m (SimplePickResult AtRandom)
+enactAll :: (HearthMonad m, PickFrom s) => All s -> Hearth m (SimplePickResult s)
 enactAll = logCall 'enactAll . \case
     Minions restrictions cont -> enactMinions restrictions cont
-    Players cont -> enactPlayers cont
+    Players restrictions cont -> enactPlayers restrictions cont
     Characters restrictions cont -> enactCharacters restrictions cont
 
 
-class (EnactElectionEffect s) => EnactPlayer e s where
-    enactPlayerCont :: (HearthMonad m) => e -> Hearth m (SimplePickResult s)
-
-
-instance EnactPlayer Effect AtRandom where
-    enactPlayerCont = enactEffect
-
-
-instance EnactPlayer (Elect Targeted) Targeted where
-    enactPlayerCont = enactElect
-
-
-enactMinion :: (HearthMonad m, EnactElectionEffect s) => [Restriction Minion] -> (Handle Minion -> ElectionEffect s) -> Hearth m (SimplePickResult s)
+enactMinion :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> (Handle Minion -> Elect s) -> Hearth m (SimplePickResult s)
 enactMinion restrictions cont = logCall 'enactMinion $ do
     pHandles <- getPlayerHandles
     candidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         return $ map (\bm -> bm^.boardMinionHandle) bms
-    restrict restrictions candidates >>= pickFrom >>= enactElectionEffect cont
+    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
 
 
-enactPlayer :: (HearthMonad m, EnactPlayer e s) => Restriction Player -> (Handle Player -> e) -> Hearth m (SimplePickResult s)
-enactPlayer restriction cont = logCall 'enactPlayer $ case restriction of
-    OwnedBy handle -> enactPlayerCont $ cont handle
-    OwnerOf handle -> controllerOf handle >>= enactPlayerCont . cont
-    Not handle -> do
-        active <- getActivePlayerHandle
-        case handle == active of
-            True -> getNonActivePlayerHandle >>= enactPlayerCont . cont
-            False -> enactPlayerCont $ cont active
+enactPlayer :: (HearthMonad m, PickFrom s) => [Restriction Player] -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
+enactPlayer restrictions cont = logCall 'enactPlayer $ do
+    candidates <- getPlayerHandles
+    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
 
 
-enactCharacter :: (HearthMonad m, EnactElectionEffect s) => [Restriction Character] -> (Handle Character -> ElectionEffect s) -> Hearth m (SimplePickResult s)
+enactCharacter :: (HearthMonad m, PickFrom s) => [Restriction Character] -> (Handle Character -> Elect s) -> Hearth m (SimplePickResult s)
 enactCharacter restrictions cont = logCall 'enactCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -953,27 +964,27 @@ enactCharacter restrictions cont = logCall 'enactCharacter $ do
         return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
     let playerCandidates = map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
-    restrict restrictions candidates >>= pickFrom >>= enactElectionEffect cont
+    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
 
 
-enactMinions :: (HearthMonad m) => [Restriction Minion] -> ([Handle Minion] -> Effect) -> Hearth m (SimplePickResult AtRandom)
+enactMinions :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> Hearth m (SimplePickResult s)
 enactMinions restrictions cont = logCall 'enactMinions $ do
     candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    restrict restrictions candidates >>= enactEffect . cont
+    restrict restrictions candidates >>= enactElect . cont
 
 
-enactPlayers :: (HearthMonad m) => ([Handle Player] -> Effect) -> Hearth m (SimplePickResult AtRandom)
-enactPlayers cont = logCall 'enactPlayers $ do
+enactPlayers :: (HearthMonad m, PickFrom s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> Hearth m (SimplePickResult s)
+enactPlayers restrictions cont = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
-    enactEffect $ cont candidates
+    restrict restrictions candidates >>= enactElect . cont
 
 
-enactCharacters :: (HearthMonad m) => [Restriction Character] -> ([Handle Character] -> Effect) -> Hearth m (SimplePickResult AtRandom)
+enactCharacters :: (HearthMonad m, PickFrom s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> Hearth m (SimplePickResult s)
 enactCharacters restrictions cont = logCall 'enactCharacters $ do
     playerCandidates <- getPlayerHandles
     minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     let candidates = map PlayerCharacter playerCandidates ++ map MinionCharacter minionCandidates
-    restrict restrictions candidates >>= enactEffect . cont
+    restrict restrictions candidates >>= enactElect . cont
 
 
 restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle a]
@@ -983,7 +994,6 @@ restrict rs hs = flip filterM hs $ \h -> allM (flip isPermitted h) rs
 isPermitted :: (HearthMonad m) => Restriction a -> Handle a -> Hearth m Bool
 isPermitted restriction candidate = case restriction of
     OwnedBy owner -> liftM (owner ==) $ controllerOf candidate
-    OwnerOf object -> liftM (candidate ==) $ controllerOf object
     Not bannedObject -> return $ candidate /= bannedObject
 
 
@@ -1007,7 +1017,7 @@ instance Pickable s CharacterHandle where
     pickFailError _ = InvalidCharacter
 
 
-class PickFrom s where
+class (EnactElect s, PurePick s) => PickFrom s where
     pickFrom :: forall m a. (HearthMonad m, Pickable s a) => [a] -> Hearth m (Available (PickResult s a))
 
 
