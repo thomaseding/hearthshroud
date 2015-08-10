@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -32,28 +33,18 @@ data HearthError
     deriving (Show, Eq, Ord)
 
 
-class (Functor (PickResult s)) => IsPickResult s where
-    data PickResult s a
+data family PickResult :: Selection -> * -> *
 
 
-instance IsPickResult AtRandom where
-    data PickResult AtRandom a = AtRandomPick a
-        deriving (Show, Eq, Ord)
+data instance PickResult AtRandom a
+    = AtRandomPick a
+    deriving (Show, Eq, Ord)
 
 
-instance Functor (PickResult AtRandom) where
-    fmap f (AtRandomPick x) = AtRandomPick (f x)
-
-
-instance IsPickResult Targeted where
-    data PickResult Targeted a = TargetedPick a | AbortTargetedPick
-        deriving (Show, Eq, Ord)
-
-
-instance Functor (PickResult Targeted) where
-    fmap f = \case
-        TargetedPick x -> TargetedPick (f x)
-        AbortTargetedPick -> AbortTargetedPick
+data instance PickResult Targeted a
+    = TargetedPick a
+    | AbortTargetedPick
+    deriving (Show, Eq, Ord)
 
 
 data HearthPrompt :: * -> * where
@@ -67,7 +58,7 @@ data HearthPrompt :: * -> * where
     PromptPickTargeted :: PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
 
 
-data PromptPick :: * -> * -> * where
+data PromptPick :: Selection -> * -> * where
     PickMinion :: GameSnapshot -> NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
     PickPlayer :: GameSnapshot -> NonEmpty (Handle Player) -> PromptPick s (Handle Player)
     PickCharacter :: GameSnapshot -> NonEmpty (Handle Character) -> PromptPick s (Handle Character)

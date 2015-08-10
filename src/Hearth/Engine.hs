@@ -1,8 +1,10 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
@@ -614,9 +616,7 @@ enactBattlecry handle cont = logCall 'enactBattlecry $ do
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m (SimplePickResult AtRandom)
 enactEffect = logCall 'enactEffect . \case
-    AtRandom elect -> enactElect elect >>= return . \case
-        NotAvailable -> NotAvailable
-        Available (AtRandomPick _) -> success
+    Elect elect -> enactEffectElect elect
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
@@ -629,6 +629,12 @@ enactEffect = logCall 'enactEffect . \case
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
     where
         success = purePick ()
+
+
+enactEffectElect :: (HearthMonad m) => Elect AtRandom -> Hearth m (SimplePickResult AtRandom)
+enactEffectElect elect = enactElect elect >>= return . \case
+    NotAvailable -> NotAvailable
+    Available (AtRandomPick _) -> purePick ()
 
 
 restoreHealth :: (HearthMonad m) => Handle Character -> Int -> Hearth m ()
@@ -997,24 +1003,24 @@ isPermitted restriction candidate = case restriction of
     Not bannedObject -> return $ candidate /= bannedObject
 
 
-class (Eq a) => Pickable s a where
+class (Eq a) => Pickable (s :: Selection) a where
     promptPick :: GameSnapshot -> NonEmpty a -> PromptPick s a
-    pickFailError :: Proxy (s, a) -> HearthError
+    pickFailError :: Proxy s -> Proxy a -> HearthError
 
 
 instance Pickable s MinionHandle where
     promptPick = PickMinion
-    pickFailError _ = InvalidMinion
+    pickFailError _ _ = InvalidMinion
 
 
 instance Pickable s PlayerHandle where
     promptPick = PickPlayer
-    pickFailError _ = InvalidPlayer
+    pickFailError _ _ = InvalidPlayer
 
 
 instance Pickable s CharacterHandle where
     promptPick = PickCharacter
-    pickFailError _ = InvalidCharacter
+    pickFailError _ _ = InvalidCharacter
 
 
 class (EnactElect s, PurePick s) => PickFrom s where
@@ -1031,7 +1037,7 @@ instance PickFrom AtRandom where
                 AtRandomPick x -> case x `elem` xs of
                     True -> return True
                     False -> do
-                        prompt $ PromptError $ pickFailError (Proxy :: Proxy (AtRandom, a))
+                        prompt $ PromptError $ pickFailError (Proxy :: Proxy AtRandom) (Proxy :: Proxy a)
                         return False
 
 
@@ -1046,7 +1052,7 @@ instance PickFrom Targeted where
                 TargetedPick x -> case x `elem` xs of
                     True -> return True
                     False -> do
-                        prompt $ PromptError $ pickFailError (Proxy :: Proxy (Targeted, a))
+                        prompt $ PromptError $ pickFailError (Proxy :: Proxy Targeted) (Proxy :: Proxy a)
                         return False
 
 

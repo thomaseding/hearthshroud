@@ -1,9 +1,11 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -219,7 +221,7 @@ showBattlecry cont = do
 
 showEffect :: Effect -> ShowCard String
 showEffect = \case
-    AtRandom elect -> showElect elect
+    Elect elect -> showElect elect
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
@@ -284,7 +286,7 @@ showAll = \case
     Characters restrictions cont -> showCharacters restrictions cont
 
 
-class IsSelection s where
+class IsSelection (s :: Selection) where
     showSelection :: Proxy s -> String
 
 

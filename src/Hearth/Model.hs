@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -129,9 +130,7 @@ data Cost :: * where
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
--- TODO: Group these into a Selection data type and use DataKinds
-data Targeted
-data AtRandom
+data Selection = Targeted | AtRandom
 
 
 data Restriction :: * -> * where
@@ -139,7 +138,7 @@ data Restriction :: * -> * where
     Not :: Handle a -> Restriction a
 
 
-data Elect :: * -> * where
+data Elect :: Selection -> * where
     OwnerOf :: Handle a -> (Handle Player -> Elect s) -> Elect s
     OpponentOf :: Handle Player -> (Handle Player -> Elect s) -> Elect s
     A :: A s -> Elect s
@@ -148,20 +147,20 @@ data Elect :: * -> * where
     deriving (Typeable)
 
 
-data A :: * -> * where
+data A :: Selection -> * where
     Minion :: [Restriction Minion] -> (Handle Minion -> Elect s) -> A s
     Player :: [Restriction Player] -> (Handle Player -> Elect s) -> A s
     Character :: [Restriction Character] -> (Handle Character -> Elect s) -> A s
 
 
-data All :: * -> * where
+data All :: Selection -> * where
     Minions :: [Restriction Minion] -> ([Handle Minion] -> Elect s) -> All s
     Players :: [Restriction Player] -> ([Handle Player] -> Elect s) -> All s
     Characters :: [Restriction Character] -> ([Handle Character] -> Elect s) -> All s
 
 
 data Effect :: * where
-    AtRandom :: Elect AtRandom -> Effect
+    Elect :: Elect AtRandom -> Effect
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
