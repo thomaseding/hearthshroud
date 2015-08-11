@@ -321,6 +321,11 @@ gameEvent snapshot = \case
         let minionAttr = ("minion", minionName)
             damageAttr = ("damage", show damage)
         tag 'MinionTakesDamage [minionAttr, damageAttr]
+    HealthRestored character (Health health) -> do
+        characterName <- query $ showHandle character
+        let characterAttr = ("character", characterName)
+            healthAttr = ("health", show health)
+        tag 'HealthRestored [characterAttr, healthAttr]
     MinionDied minion -> do
         minionName <- query $ showHandle minion
         let minionAttr = ("minion", minionName)

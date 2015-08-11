@@ -185,7 +185,7 @@ data Effect :: * where
     GiveAbility :: Handle Minion -> [Ability] -> Effect
     GainManaCrystal :: CrystalState -> Handle Player -> Effect
     DestroyMinion :: Handle Minion -> Effect
-    RestoreHealth :: Handle Character -> Int -> Effect
+    RestoreHealth :: Handle Character -> Health -> Effect
     deriving (Typeable)
 
 

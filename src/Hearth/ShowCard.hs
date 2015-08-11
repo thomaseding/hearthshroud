@@ -238,8 +238,8 @@ showEffect = \case
     RestoreHealth handle amount -> showRestoreHealth handle amount
 
 
-showRestoreHealth :: Handle Character -> Int -> ShowCard String
-showRestoreHealth character amount = do
+showRestoreHealth :: Handle Character -> Health -> ShowCard String
+showRestoreHealth character (Health amount) = do
     characterStr <- readHandle character
     return $ "Restore " ++ show amount ++ " health on " ++ characterStr
 

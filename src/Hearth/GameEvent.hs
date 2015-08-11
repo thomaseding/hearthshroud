@@ -26,6 +26,7 @@ data GameEvent :: * where
     PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
     HeroTakesDamage :: Handle Player -> Damage -> GameEvent
     MinionTakesDamage :: Handle Minion -> Damage -> GameEvent
+    HealthRestored :: Handle Character -> Health -> GameEvent
     MinionDied :: Handle Minion -> GameEvent
     EnactAttack :: Handle Character -> Handle Character -> GameEvent
     GainsManaCrystal :: Handle Player -> Maybe CrystalState -> GameEvent

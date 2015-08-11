@@ -639,12 +639,19 @@ enactEffectElect elect = enactElect elect >>= return . \case
     Available (AtRandomPick _) -> purePick ()
 
 
-restoreHealth :: (HearthMonad m) => Handle Character -> Int -> Hearth m ()
-restoreHealth charHandle amount = logCall 'restoreHealth $ case charHandle of
-    MinionCharacter handle -> getMinion handle.boardMinionDamage %= restore
-    PlayerCharacter handle -> getPlayer handle.playerHero.boardHeroDamage %= restore
+restoreHealth :: (HearthMonad m) => Handle Character -> Health -> Hearth m ()
+restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
+    actualAmount <- case charHandle of
+        MinionCharacter handle -> zoom (getMinion handle.boardMinionDamage) restoreM
+        PlayerCharacter handle -> zoom (getPlayer handle.playerHero.boardHeroDamage) restoreM
+    snap <- gets GameSnapshot
+    prompt $ PromptGameEvent snap $ HealthRestored charHandle (Health actualAmount)
     where
-        restore = min 0 . (subtract $ Damage amount)
+        restore = max 0 . (subtract $ Damage amount)
+        restoreM = do
+            before <- view id
+            after <- id <%= restore
+            return $ unDamage $ before - after
 
 
 destroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()
