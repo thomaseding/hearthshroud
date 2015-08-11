@@ -17,11 +17,13 @@ import Data.Data
 
 data ClassicCardName
     = Abomination
+    | AldorPeacekeeper
     | AmaniBerserker
     | ArcaneGolem
     | ArgentCommander
     | ArgentProtector
     | ArgentSquire
+    | BattleRage
     | CircleOfHealing
     | ColdlightOracle
     | CruelTaskmaster

@@ -8,7 +8,8 @@ module Hearth.Cards.Basic (
 
 import Hearth.Model
 import Hearth.Names
-import Hearth.Names.Basic
+import Hearth.Names.Basic hiding (Charge)
+import qualified Hearth.Names.Basic as Basic
 
 
 --------------------------------------------------------------------------------
@@ -20,23 +21,30 @@ cards = [
     arcaneIntellect,
     arcaneShot,
     assassinate,
+    backstab,
     blessingOfKings,
     blessingOfMight,
     bluegillWarrior,
     bloodfenRaptor,
     bootyBayBodyguard,
     boulderfistOgre,
+    charge,
     chillwindYeti,
+    cleave,
     consecration,
     coreHound,
     darkscaleHealer,
+    deadlyShot,
+    divineSpirit,
     drainLife,
     dreadInfernal,
     elvenArcher,
+    execute,
     fanOfKnives,
     fireball,
     fireElemental,
     flamestrike,
+    frog,
     frostwolfGrunt,
     gnomishInventor,
     goldshireFootman,
@@ -45,21 +53,27 @@ cards = [
     handOfProtection,
     healingTouch,
     hellfire,
+    hex,
     holyLight,
     holyNova,
     holySmite,
+    humility,
+    hunter'sMark,
     ironbarkProtector,
     innervate,
     ironforgeRifleman,
+    kor'kronElite,
     lordOfTheArena,
     magmaRager,
     markOfTheWild,
     mindBlast,
     moonfire,
+    multiShot,
     murlocRaider,
     nightblade,
     noviceEngineer,
     oasisSnapjaw,
+    polymorph,
     powerWordShield,
     recklessRocketeer,
     riverCrocolisk,
@@ -68,6 +82,7 @@ cards = [
     shadowWordDeath,
     shadowWordPain,
     shatteredSunCleric,
+    sheep,
     shiv,
     silverbackPatriarch,
     sinisterStrike,
@@ -78,8 +93,10 @@ cards = [
     stormwindKnight,
     swipe,
     theCoin,
+    voidwalker,
     voodooDoctor,
     warGolem,
+    whirlwind,
     wildGrowth,
     wolfRider ]
 
@@ -88,7 +105,11 @@ cards = [
 
 
 mkMinion :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> DeckCard
-mkMinion name mana attack health abilities = DeckCardMinion $ Minion' {
+mkMinion name mana attack health abilities = DeckCardMinion $ mkMinion' name mana attack health abilities
+
+
+mkMinion' :: BasicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkMinion' name mana attack health abilities = Minion' {
     _minionCost = ManaCost mana,
     _minionAttack = attack,
     _minionHealth = health,
@@ -133,6 +154,12 @@ assassinate = mkSpell Assassinate 5 $ \_ ->
         Effect $ DestroyMinion target
 
 
+backstab :: DeckCard
+backstab = mkSpell Backstab 0 $ \_ ->
+    A $ Minion [WithMinion Undamaged] $ \target ->
+        Effect $ DealDamage (MinionCharacter target) 2
+
+
 blessingOfKings :: DeckCard
 blessingOfKings = mkSpell BlessingOfKings 4 $ \_ ->
     A $ Minion [] $ \target ->
@@ -165,8 +192,29 @@ boulderfistOgre :: DeckCard
 boulderfistOgre = mkMinion BoulderfistOgre 6 6 7 []
 
 
+charge :: DeckCard
+charge = mkSpell Basic.Charge 3 $ \this ->
+    OwnerOf this $ \owner ->
+        A $ Minion [OwnedBy owner] $ \target ->
+            Effect $ Sequence [
+                Enchant target [
+                    StatsDelta 2 0 ],
+                GiveAbility target [
+                    KeywordAbility Charge ]]
+
+
 chillwindYeti :: DeckCard
 chillwindYeti = mkMinion ChillwindYeti 4 4 5 []
+
+
+cleave :: DeckCard
+cleave = mkSpell Cleave 2 $ \this ->
+    OwnerOf this $ \owner ->
+        OpponentOf owner $ \opponent ->
+            Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
+                A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
+                    Effect $ ForEach [victim1, victim2] $ \victim ->
+                        DealDamage (MinionCharacter victim) 2
 
 
 consecration :: DeckCard
@@ -191,6 +239,21 @@ darkscaleHealer = mkMinion DarkscaleHealer 5 4 5 [
                     RestoreHealth friendly 2 ]
 
 
+deadlyShot :: DeckCard
+deadlyShot = mkSpell DeadlyShot 3 $ \this ->
+    OwnerOf this $ \owner ->
+        OpponentOf owner $ \opponent ->
+            Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim ->
+                Effect $ DestroyMinion victim
+
+
+divineSpirit :: DeckCard
+divineSpirit = mkSpell DivineSpirit 2 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Enchant target [
+            StatsScale 1 2 ]
+
+
 drainLife :: DeckCard
 drainLife = mkSpell DrainLife 3 $ \this ->
     A $ Character [] $ \target ->
@@ -213,6 +276,12 @@ elvenArcher = mkMinion ElvenArcher 1 1 1 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ DealDamage target 1 ]
+
+
+execute :: DeckCard
+execute = mkSpell Execute 1 $ \_ ->
+    A $ Minion [WithMinion Damaged] $ \target ->
+        Effect $ DestroyMinion target
 
 
 fanOfKnives :: DeckCard
@@ -246,6 +315,15 @@ flamestrike = mkSpell Flamestrike 7 $ \this ->
             All $ Minions [OwnedBy opponent] $ \victims ->
                 Effect $ ForEach victims $ \victim ->
                     DealDamage (MinionCharacter victim) 4
+
+
+frog :: DeckCard
+frog = DeckCardMinion frog'
+
+
+frog' :: Minion
+frog' = mkMinion' Frog 0 0 1 [
+    KeywordAbility Taunt ]
 
 
 frostwolfGrunt :: DeckCard
@@ -301,6 +379,12 @@ hellfire = mkSpell Hellfire 4 $ \_ ->
             DealDamage victim 3
 
 
+hex :: DeckCard
+hex = mkSpell Hex 3 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Transform target frog'
+
+
 holyLight :: DeckCard
 holyLight = mkSpell HolyLight 2 $ \_ ->
     A $ Character [] $ \target ->
@@ -324,6 +408,25 @@ holySmite :: DeckCard
 holySmite = mkSpell HolySmite 1 $ \_ ->
     A $ Character [] $ \target ->
         Effect $ DealDamage target 2
+
+
+humility :: DeckCard
+humility = mkSpell Humility 1 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Enchant target [
+            ChangeStat (Left 1) ]
+
+
+hunter'sMark :: DeckCard
+hunter'sMark = mkSpell Hunter'sMark 0 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Enchant target [
+            ChangeStat (Right 1) ]
+
+
+kor'kronElite :: DeckCard
+kor'kronElite = mkMinion Kor'kronElite 4 4 3 [
+    KeywordAbility Charge ]
 
 
 innervate :: DeckCard
@@ -376,6 +479,16 @@ moonfire = mkSpell Moonfire 0 $ \_ ->
         Effect $ DealDamage target 1
 
 
+multiShot :: DeckCard
+multiShot = mkSpell MultiShot 4 $ \this ->
+    OwnerOf this $ \owner ->
+        OpponentOf owner $ \opponent ->
+            Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
+                A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
+                    Effect $ ForEach [victim1, victim2] $ \victim ->
+                        DealDamage (MinionCharacter victim) 3
+
+
 murlocRaider :: DeckCard
 murlocRaider = mkMinion MurlocRaider 1 2 1 []
 
@@ -397,6 +510,12 @@ noviceEngineer = mkMinion NoviceEngineer 2 1 1 [
 
 oasisSnapjaw :: DeckCard
 oasisSnapjaw = mkMinion OasisSnapjaw 4 2 7 []
+
+
+polymorph :: DeckCard
+polymorph = mkSpell Polymorph 4 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Transform target sheep'
 
 
 powerWordShield :: DeckCard
@@ -431,13 +550,13 @@ shadowBolt = mkSpell ShadowBolt 3 $ \_ ->
 
 shadowWordDeath :: DeckCard
 shadowWordDeath = mkSpell ShadowWordDeath 5 $ \_ ->
-    A $ Minion [With $ AttackCond GreaterEqual 5] $ \target ->
+    A $ Minion [AttackCond GreaterEqual 5] $ \target ->
         Effect $ DestroyMinion target
 
 
 shadowWordPain :: DeckCard
 shadowWordPain = mkSpell ShadowWordPain 2 $ \_ ->
-    A $ Minion [With $ AttackCond LessEqual 3] $ \target ->
+    A $ Minion [AttackCond LessEqual 3] $ \target ->
         Effect $ DestroyMinion target
 
 
@@ -448,6 +567,14 @@ shatteredSunCleric = mkMinion ShatteredSunCleric 3 3 2 [
             A $ Minion [OwnedBy owner, Not this] $ \target ->
                 Effect $ Enchant target [
                     StatsDelta 1 1 ]]
+
+
+sheep :: DeckCard
+sheep = DeckCardMinion sheep'
+
+
+sheep' :: Minion
+sheep' = mkMinion' Sheep 0 1 1 []
 
 
 shiv :: DeckCard
@@ -521,6 +648,11 @@ theCoin = mkSpell TheCoin 0 $ \this ->
         Effect $ GainManaCrystal CrystalTemporary owner
 
 
+voidwalker :: DeckCard
+voidwalker = mkMinion Voidwalker 1 1 3 [
+    KeywordAbility Taunt ]
+
+
 voodooDoctor :: DeckCard
 voodooDoctor = mkMinion VoodooDoctor 1 2 1 [
     KeywordAbility $ Battlecry $ \_ ->
@@ -530,6 +662,13 @@ voodooDoctor = mkMinion VoodooDoctor 1 2 1 [
 
 warGolem :: DeckCard
 warGolem = mkMinion WarGolem 7 7 7 []
+
+
+whirlwind :: DeckCard
+whirlwind = mkSpell Whirlwind 1 $ \_ ->
+    All $ Minions [] $ \minions ->
+        Effect $ ForEach minions $ \minion ->
+            DealDamage (MinionCharacter minion) 1
 
 
 wildGrowth :: DeckCard

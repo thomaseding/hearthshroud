@@ -236,6 +236,14 @@ showEffect = \case
     GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
+    Transform handle minion -> showTransform handle minion
+
+
+showTransform :: Handle Minion -> Minion -> ShowCard String
+showTransform oldMinionHandle newMinion = do
+    oldMinionStr <- readHandle oldMinionHandle
+    let newCardStr = showCard $ HandCardMinion newMinion
+    return $ "Transform " ++ oldMinionStr ++ " to " ++ newCardStr
 
 
 showRestoreHealth :: Handle Character -> Health -> ShowCard String
@@ -318,21 +326,21 @@ instance IsSelection AtRandom where
 showMinions :: (IsSelection s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> ShowCard String
 showMinions restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+    handle <- genHandle $ "MINION|" ++ restrictionsStr ++ "|"
     showElect $ cont [handle]
 
 
 showPlayers :: (IsSelection s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> ShowCard String
 showPlayers restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "PLAYER[" ++ restrictionsStr ++ "]"
+    handle <- genHandle $ "PLAYER|" ++ restrictionsStr ++ "|"
     showElect $ cont [handle]
 
 
 showCharacters :: (IsSelection s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> ShowCard String
 showCharacters restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
+    handle <- genHandle $ "CHARACTER|" ++ restrictionsStr ++ "|"
     showElect $ cont [handle]
 
 
@@ -340,7 +348,7 @@ showMinion :: forall s. (IsSelection s) => [Restriction Minion] -> (Handle Minio
 showMinion restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "MINION[" ++ restrictionsStr ++ "]"
+    handle <- genNumberedHandle $ sel ++ "MINION|" ++ restrictionsStr ++ "|"
     showElect $ cont handle
 
 
@@ -348,7 +356,7 @@ showCharacter :: forall s. (IsSelection s) => [Restriction Character] -> (Handle
 showCharacter restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ restrictionsStr ++ "]"
+    handle <- genNumberedHandle $ sel ++ "CHARACTER|" ++ restrictionsStr ++ "|"
     showElect $ cont handle
 
 
@@ -364,21 +372,25 @@ showRestrictions' = \case
 
 showRestriction :: Restriction a -> ShowCard String
 showRestriction = \case
+    WithMinion r -> showRestriction r
+    WithPlayer r -> showRestriction r
     OwnedBy handle -> readHandle handle >>= return . \case
         (is you -> True) -> "FRIENDLY"
-        _ -> "ENEMY"
+        (is opponent -> True) -> "ENEMY"
+        str -> "OWNED_BY|" ++ str ++ "|"
     Not handle -> readHandle handle >>= return . \case
         (is this -> True) -> ""
         str -> "NOT " ++ str
-    With x -> case x of
-        AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
+    AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
+    Damaged -> return "DAMAGED"
+    Undamaged -> return "UNDAMAGED"
 
 
 showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> ShowCard String
 showOwnerOf handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("OWNER_OF[" ++ str ++ "]")
+        str -> genHandle ("OWNER_OF|" ++ str ++ "|")
     showElect $ cont player
 
 
@@ -386,7 +398,7 @@ showOpponentOf :: (IsSelection s) => Handle Player -> (Handle Player -> Elect s)
 showOpponentOf minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
-        str -> genHandle ("OPPONENT_OF[" ++ str ++ "]")
+        str -> genHandle ("OPPONENT_OF|" ++ str ++ "|")
     showElect $ cont player
 
 
@@ -456,6 +468,11 @@ showEnchantments = liftM itemize . mapM showEnchantment
 showEnchantment :: Enchantment -> ShowCard String
 showEnchantment = \case
     StatsDelta (Attack x) (Health y) -> return $ showWithSign x ++ "/" ++ showWithSign y
+    StatsScale (Attack x) (Health y) -> return $ "Scale stats by " ++ show x ++ "/" ++ show y
+    ChangeStat e -> case e of
+        Left (Attack x) -> return $ "Attack changed to " ++ show x
+        Right (Health y) -> return $ "Health changed to " ++ show y
+    SwapStats -> return "Swapped attack and health"
 
 
 showWithSign :: Int -> String

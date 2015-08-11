@@ -134,9 +134,13 @@ data Selection = Targeted | AtRandom
 
 
 data Restriction :: * -> * where
+    WithMinion :: Restriction Character -> Restriction Minion
+    WithPlayer :: Restriction Character -> Restriction Player
     OwnedBy :: Handle Player -> Restriction a
     Not :: Handle a -> Restriction a
-    With :: With a -> Restriction a
+    AttackCond :: Comparison -> Attack -> Restriction Minion
+    Damaged :: Restriction Character
+    Undamaged :: Restriction Character
 
 
 data Comparison
@@ -146,10 +150,6 @@ data Comparison
     | GreaterEqual
     | Greater
     deriving (Show, Eq, Ord)
-
-
-data With :: * -> * where
-    AttackCond :: Comparison -> Attack -> With Minion
 
 
 data Elect :: Selection -> * where
@@ -186,6 +186,7 @@ data Effect :: * where
     GainManaCrystal :: CrystalState -> Handle Player -> Effect
     DestroyMinion :: Handle Minion -> Effect
     RestoreHealth :: Handle Character -> Health -> Effect
+    Transform :: Handle Minion -> Minion -> Effect
     deriving (Typeable)
 
 
@@ -211,6 +212,9 @@ data KeywordAbility :: * where
 
 data Enchantment :: * where
     StatsDelta :: Attack -> Health -> Enchantment
+    StatsScale :: Attack -> Health -> Enchantment
+    ChangeStat :: Either Attack Health -> Enchantment
+    SwapStats :: Enchantment
     --FrozenUntil :: Turn -> Enchantment
     deriving (Show, Eq, Ord, Data, Typeable)
 

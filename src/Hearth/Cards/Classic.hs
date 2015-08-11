@@ -17,11 +17,13 @@ import Hearth.Names.Classic
 cards :: [DeckCard]
 cards = [
     abomination,
+    aldorPeacekeeper,
     amaniBerserker,
     arcaneGolem,
     argentCommander,
     argentProtector,
     argentSquire,
+    battleRage,
     circleOfHealing,
     coldlightOracle,
     cruelTaskmaster,
@@ -77,6 +79,16 @@ amaniBerserker = mkMinion AmaniBerserker 2 2 3 [
     KeywordAbility $ Enrage [] [StatsDelta 3 0] ]
 
 
+aldorPeacekeeper :: DeckCard
+aldorPeacekeeper = mkMinion AldorPeacekeeper 3 3 3 [
+    KeywordAbility $ Battlecry $ \this ->
+        OwnerOf this $ \owner ->
+            OpponentOf owner $ \opponent ->
+        A $ Minion [OwnedBy opponent] $ \target ->
+            Effect $ Enchant target [
+                ChangeStat (Left 1) ]]
+
+
 arcaneGolem :: DeckCard
 arcaneGolem = mkMinion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
@@ -103,6 +115,14 @@ argentProtector = mkMinion ArgentProtector 2 2 2 [
 argentSquire :: DeckCard
 argentSquire = mkMinion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
+
+
+battleRage :: DeckCard
+battleRage = mkSpell BattleRage 2 $ \this ->
+    OwnerOf this $ \owner ->
+        All $ Characters [Damaged] $ \characters ->
+            Effect $ ForEach characters $ \_ ->
+                DrawCards owner 1
 
 
 circleOfHealing :: DeckCard

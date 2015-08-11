@@ -23,7 +23,7 @@ module Hearth.Engine (
 
 
 import Control.Error.TH
-import Control.Lens hiding (Each)
+import Control.Lens hiding (Each, transform)
 import Control.Lens.Helper
 import Control.Monad.Loops
 import Control.Monad.Prompt hiding (Effect)
@@ -629,8 +629,20 @@ enactEffect = logCall 'enactEffect . \case
     GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
     DestroyMinion handle -> destroyMinion handle >> return success
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
+    Transform handle minion -> transform handle minion >> return success
     where
         success = purePick ()
+
+
+transform :: (HearthMonad m) => Handle Minion -> Minion -> Hearth m ()
+transform handle newMinion = zoom (getMinion handle) $ do
+    boardMinionDamage .= 0
+    boardMinionEnchantments .= []
+    boardMinionAbilities .= (newMinion^.minionAbilities)
+    boardMinionAttackCount .= 0
+    boardMinionNewlySummoned .= True
+    boardMinionPendingDestroy .= False
+    boardMinion .= newMinion
 
 
 enactEffectElect :: (HearthMonad m) => Elect AtRandom -> Hearth m (SimplePickResult AtRandom)
@@ -721,34 +733,34 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     return $ baseEnchantments ++ enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
-class GetCharacterHandle a where
+class IsCharacterHandle a where
     characterHandle :: a -> Handle Character
 
 
-instance GetCharacterHandle PlayerHandle where
+instance IsCharacterHandle PlayerHandle where
     characterHandle = PlayerCharacter
 
 
-instance GetCharacterHandle MinionHandle where
+instance IsCharacterHandle MinionHandle where
     characterHandle = MinionCharacter
 
 
-instance GetCharacterHandle CharacterHandle where
+instance IsCharacterHandle CharacterHandle where
     characterHandle = id
 
 
-instance GetCharacterHandle BoardMinion where
+instance IsCharacterHandle BoardMinion where
     characterHandle = characterHandle . _boardMinionHandle
 
 
-class (Controllable a, GetCharacterHandle a) => CharacterTraits a where
-    getDamage :: (HearthMonad m) => a -> Hearth m Damage
-    dynamicAttack :: (HearthMonad m) => a -> Hearth m Attack
-    dynamicMaxHealth :: (HearthMonad m) => a -> Hearth m Health
-    dynamicMaxAttackCount :: (HearthMonad m) => a -> Hearth m Int
-    getAttackCount :: (HearthMonad m) => a -> Hearth m Int
-    bumpAttackCount :: (HearthMonad m) => a -> Hearth m ()
-    hasSummoningSickness :: (HearthMonad m) => a -> Hearth m Bool
+class (Controllable h, IsCharacterHandle h) => CharacterTraits h where
+    getDamage :: (HearthMonad m) => h -> Hearth m Damage
+    dynamicAttack :: (HearthMonad m) => h -> Hearth m Attack
+    dynamicMaxHealth :: (HearthMonad m) => h -> Hearth m Health
+    dynamicMaxAttackCount :: (HearthMonad m) => h -> Hearth m Int
+    getAttackCount :: (HearthMonad m) => h -> Hearth m Int
+    bumpAttackCount :: (HearthMonad m) => h -> Hearth m ()
+    hasSummoningSickness :: (HearthMonad m) => h -> Hearth m Bool
 
 
 instance CharacterTraits PlayerHandle where
@@ -767,21 +779,34 @@ instance CharacterTraits PlayerHandle where
     hasSummoningSickness _ = return False
 
 
+observeEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m a -> Hearth m a
+observeEnchantments handle action = logCall 'observeEnchantments $ local id $ do
+    enchantments <- dynamicEnchantments handle
+    forM_ enchantments $ \case
+        StatsDelta a h -> do
+            getMinion handle.boardMinion.minionAttack += a
+            getMinion handle.boardMinion.minionHealth += h
+        StatsScale a h -> do
+            getMinion handle.boardMinion.minionAttack *= a
+            getMinion handle.boardMinion.minionHealth *= h
+        ChangeStat e -> case e of
+            Left a -> getMinion handle.boardMinion.minionAttack .= a
+            Right h -> getMinion handle.boardMinion.minionHealth .= h
+        SwapStats -> do
+            Attack attack <- view $ getMinion handle.boardMinion.minionAttack
+            Health health <- view $ getMinion handle.boardMinion.minionHealth
+            getMinion handle.boardMinion.minionAttack .= Attack health
+            getMinion handle.boardMinion.minionHealth .= Health attack
+    action
+
+
 instance CharacterTraits MinionHandle where
     getDamage bmHandle = logCall 'getDamage $ do
         view $ getMinion bmHandle.boardMinionDamage
     dynamicAttack bmHandle = logCall 'dynamicAttack $ do
-        bm <- view $ getMinion bmHandle
-        enchantments <- dynamicEnchantments bmHandle
-        let delta = sum $ flip mapMaybe enchantments $ \case
-                StatsDelta a _ -> Just a
-        return $ bm^.boardMinion.minionAttack + delta
+        observeEnchantments bmHandle $ view $ getMinion bmHandle.boardMinion.minionAttack
     dynamicMaxHealth bmHandle = logCall 'dynamicMaxHealth $ do
-        bm <- view $ getMinion bmHandle
-        enchantments <- dynamicEnchantments bmHandle
-        let delta = sum $ flip mapMaybe enchantments $ \case
-                StatsDelta _ h -> Just h
-        return $ bm^.boardMinion.minionHealth + delta
+        observeEnchantments bmHandle $ view $ getMinion bmHandle.boardMinion.minionHealth
     dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
         return 1
     getAttackCount bmHandle = logCall 'getAttackCount $ do
@@ -1022,12 +1047,15 @@ fromComparison = \case
 
 isPermitted :: (HearthMonad m) => Restriction a -> Handle a -> Hearth m Bool
 isPermitted restriction candidate = case restriction of
+    WithMinion r -> isPermitted r $ MinionCharacter candidate
+    WithPlayer r -> isPermitted r $ PlayerCharacter candidate
     OwnedBy owner -> liftM (owner ==) $ controllerOf candidate
     Not bannedObject -> return $ candidate /= bannedObject
-    With x -> case x of
-        AttackCond cmp attackCond -> do
-            actualAttack <- dynamicAttack candidate
-            return $ fromComparison cmp actualAttack attackCond
+    AttackCond cmp attackCond -> do
+        actualAttack <- dynamicAttack candidate
+        return $ fromComparison cmp actualAttack attackCond
+    Damaged -> liftM (> 0) $ getDamage candidate
+    Undamaged -> liftM not $ isPermitted Damaged candidate
 
 
 class Pickable (s :: Selection) a where
