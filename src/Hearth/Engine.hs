@@ -827,9 +827,9 @@ dynamicRemainingHealth h = do
 
 
 receiveDamage :: (HearthMonad m) => Handle Character -> Damage -> Hearth m ()
-receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
+receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
     True -> return ()
-    False -> case ch of
+    False -> case charHandle of
         PlayerCharacter handle -> do
             bh <- view $ getPlayer handle.playerHero
             let dmg = unDamage damage
@@ -841,7 +841,7 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
                 boardHeroDamage += healthDamage
                 boardHeroArmor .= armor'
             snap <- gets GameSnapshot
-            prompt $ PromptGameEvent snap $ HeroTakesDamage handle damage
+            prompt $ PromptGameEvent snap $ TookDamage charHandle damage
         MinionCharacter handle -> do
             bm <- view $ getMinion handle
             case loseDivineShield bm of
@@ -853,7 +853,7 @@ receiveDamage ch damage = logCall 'receiveDamage $ case damage <= 0 of
                     let bm' = bm & boardMinionDamage +~ damage
                     getMinion handle .= bm'
                     snap <- gets GameSnapshot
-                    prompt $ PromptGameEvent snap $ MinionTakesDamage handle damage
+                    prompt $ PromptGameEvent snap $ TookDamage charHandle damage
 
 
 enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()

@@ -311,16 +311,11 @@ gameEvent snapshot = \case
         let playerAttr = ("player", playerName)
             spellAttr = ("spell", spellName)
         tag 'PlayedSpell [playerAttr, spellAttr]
-    HeroTakesDamage player (Damage damage) -> do
-        playerName <- query $ showHandle player
-        let playerAttr = ("player", playerName)
+    TookDamage character (Damage damage) -> do
+        characterName <- query $ showHandle character
+        let characterAttr = ("character", characterName)
             damageAttr = ("damage", show damage)
-        tag 'HeroTakesDamage [playerAttr, damageAttr]
-    MinionTakesDamage minion (Damage damage) -> do
-        minionName <- query $ showHandle minion
-        let minionAttr = ("minion", minionName)
-            damageAttr = ("damage", show damage)
-        tag 'MinionTakesDamage [minionAttr, damageAttr]
+        tag 'TookDamage [characterAttr, damageAttr]
     HealthRestored character (Health health) -> do
         characterName <- query $ showHandle character
         let characterAttr = ("character", characterName)

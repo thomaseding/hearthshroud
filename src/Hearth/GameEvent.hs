@@ -24,8 +24,7 @@ data GameEvent :: * where
     CardDrawn :: Handle Player -> Either DeckCard HandCard -> Deck -> GameEvent
     PlayedMinion :: Handle Player -> Handle Minion -> GameEvent
     PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
-    HeroTakesDamage :: Handle Player -> Damage -> GameEvent
-    MinionTakesDamage :: Handle Minion -> Damage -> GameEvent
+    TookDamage :: Handle Character -> Damage -> GameEvent
     HealthRestored :: Handle Character -> Health -> GameEvent
     MinionDied :: Handle Minion -> GameEvent
     EnactAttack :: Handle Character -> Handle Character -> GameEvent
