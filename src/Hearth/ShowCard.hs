@@ -25,6 +25,7 @@ import Control.Applicative
 import Control.Error.TH
 import Control.Monad.State
 import Data.List (intercalate)
+import Data.List.Utils (replace)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Proxy
@@ -151,10 +152,13 @@ showCard card = let
     stats = case mStats of
         Nothing -> ""
         Just (atk, hlt) -> show atk ++ "/" ++ show hlt
-    in unlines $ filter (/= "") $ lines $ unlines [
-        name ++ " " ++ cost,
-        bt,
-        stats ]
+    in id
+        . replace "[]" ""
+        . unlines
+        . filter (/= "")
+        . lines
+        . unlines
+        $ [ name ++ " " ++ cost, bt, stats ]
 
 
 showName :: HandCard -> String
@@ -251,7 +255,7 @@ showForEach handles cont = case handles of
     [handle] -> do
         str <- readHandle handle
         effectStr <- showEffect $ cont handle
-        return $ "ForEach " ++ str ++ "s: " ++ effectStr
+        return $ "ForEach " ++ str ++ ": " ++ effectStr
     _ -> $logicError 'showForEach "xxx"
 
 
@@ -267,8 +271,12 @@ showElect = \case
 
 showChoice :: (IsSelection s) => [Elect s] -> ShowCard String
 showChoice choices = do
-    strs <- mapM showElect choices
-    let idxs = flip map [(1::Int) ..] $ \n -> "(" ++ show n ++ "). "
+    st <- get
+    strs <- forM choices $ \choice -> do
+        str <- showElect choice
+        put st
+        return str
+    let idxs = flip map [(1::Int) ..] $ \n -> "{" ++ show n ++ "}. "
         strs' = zipWith (++) idxs strs
     return $ unlines $ "Choose One:" : strs'
 
@@ -370,7 +378,7 @@ showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> Show
 showOwnerOf handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("(OWNER_OF " ++ str ++ ")")
+        str -> genHandle ("OWNER_OF[" ++ str ++ "]")
     showElect $ cont player
 
 
@@ -378,7 +386,7 @@ showOpponentOf :: (IsSelection s) => Handle Player -> (Handle Player -> Elect s)
 showOpponentOf minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
-        str -> genHandle ("(OPPONENT_OF " ++ str ++ ")")
+        str -> genHandle ("OPPONENT_OF[" ++ str ++ "]")
     showElect $ cont player
 
 
