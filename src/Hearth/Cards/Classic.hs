@@ -148,8 +148,8 @@ argentSquire = mkMinion ArgentSquire 1 1 1 [
 battleRage :: DeckCard
 battleRage = mkSpell BattleRage 2 $ \this ->
     OwnerOf this $ \you ->
-        All $ Characters [Damaged] $ \characters ->
-            Effect $ ForEach characters $ \_ ->
+        All $ Characters [Damaged, OwnedBy you] $ \friendlies ->
+            Effect $ ForEach friendlies $ \_ ->
                 DrawCards you 1
 
 
