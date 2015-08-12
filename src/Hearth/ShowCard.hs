@@ -153,6 +153,8 @@ showCard card = let
         Nothing -> ""
         Just (atk, hlt) -> show atk ++ "/" ++ show hlt
     in id
+        . replace "[" "|"
+        . replace "]" "|"
         . replace "[]" ""
         . unlines
         . filter (/= "")
@@ -326,21 +328,21 @@ instance IsSelection AtRandom where
 showMinions :: (IsSelection s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> ShowCard String
 showMinions restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "MINION|" ++ restrictionsStr ++ "|"
+    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
     showElect $ cont [handle]
 
 
 showPlayers :: (IsSelection s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> ShowCard String
 showPlayers restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "PLAYER|" ++ restrictionsStr ++ "|"
+    handle <- genHandle $ "PLAYER[" ++ restrictionsStr ++ "]"
     showElect $ cont [handle]
 
 
 showCharacters :: (IsSelection s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> ShowCard String
 showCharacters restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "CHARACTER|" ++ restrictionsStr ++ "|"
+    handle <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
     showElect $ cont [handle]
 
 
@@ -348,7 +350,7 @@ showMinion :: forall s. (IsSelection s) => [Restriction Minion] -> (Handle Minio
 showMinion restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "MINION|" ++ restrictionsStr ++ "|"
+    handle <- genNumberedHandle $ sel ++ "MINION[" ++ restrictionsStr ++ "]"
     showElect $ cont handle
 
 
@@ -356,7 +358,7 @@ showCharacter :: forall s. (IsSelection s) => [Restriction Character] -> (Handle
 showCharacter restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "CHARACTER|" ++ restrictionsStr ++ "|"
+    handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ restrictionsStr ++ "]"
     showElect $ cont handle
 
 
@@ -377,7 +379,7 @@ showRestriction = \case
     OwnedBy handle -> readHandle handle >>= return . \case
         (is you -> True) -> "FRIENDLY"
         (is opponent -> True) -> "ENEMY"
-        str -> "OWNED_BY|" ++ str ++ "|"
+        str -> "OWNED_BY[" ++ str ++ "]"
     Not handle -> readHandle handle >>= return . \case
         (is this -> True) -> ""
         str -> "NOT " ++ str
@@ -390,7 +392,7 @@ showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> Show
 showOwnerOf handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
-        str -> genHandle ("OWNER_OF|" ++ str ++ "|")
+        str -> genHandle ("OWNER_OF[" ++ str ++ "]")
     showElect $ cont player
 
 
@@ -398,7 +400,7 @@ showOpponentOf :: (IsSelection s) => Handle Player -> (Handle Player -> Elect s)
 showOpponentOf minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
-        str -> genHandle ("OPPONENT_OF|" ++ str ++ "|")
+        str -> genHandle ("OPPONENT_OF[" ++ str ++ "]")
     showElect $ cont player
 
 
