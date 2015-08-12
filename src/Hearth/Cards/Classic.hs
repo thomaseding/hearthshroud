@@ -112,9 +112,9 @@ aldorPeacekeeper = mkMinion AldorPeacekeeper 3 3 3 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-        A $ Minion [OwnedBy opponent] $ \target ->
-            Effect $ Enchant target [
-                ChangeStat (Left 1) ]]
+                A $ Minion [OwnedBy opponent] $ \target ->
+                    Effect $ Enchant target [
+                        ChangeStat (Left 1) ]]
 
 
 arcaneGolem :: DeckCard
@@ -155,8 +155,8 @@ battleRage = mkSpell BattleRage 2 $ \this ->
 
 bigGameHunter :: DeckCard
 bigGameHunter = mkMinion BigGameHunter 3 4 2 [
-    KeywordAbility $ Battlecry $ \_ ->
-        A $ Minion [AttackCond GreaterEqual 7] $ \target ->
+    KeywordAbility $ Battlecry $ \this ->
+        A $ Minion [Not this, AttackCond GreaterEqual 7] $ \target ->
             Effect $ DestroyMinion target ]
 
 
@@ -422,9 +422,11 @@ spellbreaker = mkMinion Spellbreaker 4 4 3 [
 
 stampedingKodo :: DeckCard
 stampedingKodo = mkMinion StampedingKodo 5 3 5 [
-    KeywordAbility $ Battlecry $ \_ ->
-        Effect $ Elect $ A $ Minion [AttackCond LessEqual 2] $ \victim ->
-            Effect $ DestroyMinion victim ]
+    KeywordAbility $ Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
+                Effect $ Elect $ A $ Minion [OwnedBy opponent, AttackCond LessEqual 2] $ \victim ->
+                    Effect $ DestroyMinion victim ]
 
 
 starfall :: DeckCard

@@ -655,8 +655,8 @@ voidwalker = mkMinion Voidwalker 1 1 3 [
 
 voodooDoctor :: DeckCard
 voodooDoctor = mkMinion VoodooDoctor 1 2 1 [
-    KeywordAbility $ Battlecry $ \_ ->
-        A $ Character [] $ \character ->
+    KeywordAbility $ Battlecry $ \this ->
+        A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
