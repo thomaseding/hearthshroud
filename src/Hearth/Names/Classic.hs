@@ -24,11 +24,15 @@ data ClassicCardName
     | ArgentProtector
     | ArgentSquire
     | BattleRage
+    | BigGameHunter
+    | BlessedChampion
     | Brawl
     | CircleOfHealing
     | ColdlightOracle
+    | CrazedAlchemist
     | CruelTaskmaster
     | EarthenRingFarseer
+    | EarthShock
     | FenCreeper
     | InjuredBlademaster
     | IronbeakOwl

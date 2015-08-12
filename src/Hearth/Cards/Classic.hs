@@ -24,11 +24,15 @@ cards = [
     argentProtector,
     argentSquire,
     battleRage,
+    bigGameHunter,
+    blessedChampion,
     brawl,
     circleOfHealing,
     coldlightOracle,
+    crazedAlchemist,
     cruelTaskmaster,
     earthenRingFarseer,
+    earthShock,
     fenCreeper,
     injuredBlademaster,
     ironbeakOwl,
@@ -126,6 +130,20 @@ battleRage = mkSpell BattleRage 2 $ \this ->
                 DrawCards owner 1
 
 
+bigGameHunter :: DeckCard
+bigGameHunter = mkMinion BigGameHunter 3 4 2 [
+    KeywordAbility $ Battlecry $ \_ ->
+        A $ Minion [AttackCond GreaterEqual 7] $ \target ->
+            Effect $ DestroyMinion target ]
+
+
+blessedChampion :: DeckCard
+blessedChampion = mkSpell BlessedChampion 5 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Enchant target [
+            StatsScale 2 1 ]
+
+
 brawl :: DeckCard
 brawl = mkSpell Brawl 5 $ \_ ->
     Effect $ Elect $ A $ Minion [] $ \survivor ->
@@ -152,13 +170,22 @@ coldlightOracle = mkMinion ColdlightOracle 3 2 2[
                 DrawCards player 2 ]
 
 
+crazedAlchemist :: DeckCard
+crazedAlchemist = mkMinion CrazedAlchemist 2 2 2 [
+    KeywordAbility $ Battlecry $ \this ->
+        A $ Minion [Not this] $ \target ->
+            Effect $ Enchant target [
+                SwapStats ]]
+
+
 cruelTaskmaster :: DeckCard
 cruelTaskmaster = mkMinion CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
                 DealDamage (MinionCharacter target) 1,
-                Enchant target [StatsDelta 2 0 ]]]
+                Enchant target [
+                    StatsDelta 2 0 ]]]
 
 
 earthenRingFarseer :: DeckCard
@@ -166,6 +193,14 @@ earthenRingFarseer = mkMinion EarthenRingFarseer 3 3 3 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 3 ]
+
+
+earthShock :: DeckCard
+earthShock = mkSpell EarthShock 1 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Sequence [
+            KeywordEffect $ Silence target,
+            DealDamage (MinionCharacter target) 1 ]
 
 
 fenCreeper :: DeckCard
