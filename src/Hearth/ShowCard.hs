@@ -228,6 +228,7 @@ showBattlecry cont = do
 showEffect :: Effect -> ShowCard String
 showEffect = \case
     Elect elect -> showElect elect
+    DoNothing handle -> showDoNothing handle
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
@@ -239,6 +240,12 @@ showEffect = \case
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
     Transform handle minion -> showTransform handle minion
+
+
+showDoNothing :: Handle a -> ShowCard String
+showDoNothing handle = do
+    str <- readHandle handle
+    return $ "DoNothing " ++ str
 
 
 showTransform :: Handle Minion -> Minion -> ShowCard String
@@ -405,7 +412,7 @@ showOpponentOf minion cont = do
 
 
 showSequence :: [Effect] -> ShowCard String
-showSequence = liftM itemize . mapM showEffect
+showSequence = liftM unlines . mapM showEffect
 
 
 showKeywordEffect :: KeywordEffect -> ShowCard String

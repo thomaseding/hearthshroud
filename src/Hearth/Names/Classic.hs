@@ -24,6 +24,7 @@ data ClassicCardName
     | ArgentProtector
     | ArgentSquire
     | BattleRage
+    | Brawl
     | CircleOfHealing
     | ColdlightOracle
     | CruelTaskmaster

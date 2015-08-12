@@ -176,6 +176,7 @@ data All :: Selection -> * where
 
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
+    DoNothing :: Handle a -> Effect
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect

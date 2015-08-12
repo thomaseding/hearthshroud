@@ -8,7 +8,7 @@ module Hearth.Cards.Classic (
 
 import Hearth.Model
 import Hearth.Names
-import Hearth.Names.Classic
+import Hearth.Names.Classic hiding (Silence)
 
 
 --------------------------------------------------------------------------------
@@ -24,6 +24,7 @@ cards = [
     argentProtector,
     argentSquire,
     battleRage,
+    brawl,
     circleOfHealing,
     coldlightOracle,
     cruelTaskmaster,
@@ -123,6 +124,17 @@ battleRage = mkSpell BattleRage 2 $ \this ->
         All $ Characters [Damaged] $ \characters ->
             Effect $ ForEach characters $ \_ ->
                 DrawCards owner 1
+
+
+brawl :: DeckCard
+brawl = mkSpell Brawl 5 $ \_ ->
+    Effect $ Elect $ A $ Minion [] $ \survivor ->
+        A $ Minion [Not survivor] $ \someNonSurvivor ->
+            All $ Minions [Not survivor] $ \victims ->
+                Effect $ Sequence [
+                    DoNothing someNonSurvivor, -- This is because Brawl requires at least 2 minions to play.
+                    ForEach victims $ \victim ->
+                        DestroyMinion victim ]
 
 
 circleOfHealing :: DeckCard
