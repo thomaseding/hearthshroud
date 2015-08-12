@@ -479,25 +479,28 @@ insertAt n x xs = let
     in left ++ [x] ++ right
 
 
+toBoardMinion :: Handle Minion -> Minion -> BoardMinion
+toBoardMinion handle minion = BoardMinion {
+    _boardMinionDamage = 0,
+    _boardMinionEnchantments = [],
+    _boardMinionAbilities = minion^.minionAbilities,
+    _boardMinionAttackCount = 0,
+    _boardMinionNewlySummoned = True,
+    _boardMinionPendingDestroy = False,
+    _boardMinionHandle = handle,
+    _boardMinion = minion }
+
+
 placeOnBoard :: (HearthMonad m) => Handle Player -> BoardPos -> Minion -> Hearth m (Either String MinionHandle)
 placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
-    let minion' = BoardMinion {
-            _boardMinionDamage = 0,
-            _boardMinionEnchantments = [],
-            _boardMinionAbilities = minion^.minionAbilities,
-            _boardMinionAttackCount = 0,
-            _boardMinionNewlySummoned = True,
-            _boardMinionPendingDestroy = False,
-            _boardMinionHandle = minionHandle,
-            _boardMinion = minion }
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
             7 -> return $ Left "Board is too full."
             len -> case 0 <= pos && pos <= len of
                 False -> return $ Left "Invalid board index."
                 True -> do
-                    id %= insertAt pos minion'
+                    id %= insertAt pos (toBoardMinion minionHandle minion)
                     return $ Right minionHandle
 
 
@@ -635,14 +638,10 @@ enactEffect = logCall 'enactEffect . \case
 
 
 transform :: (HearthMonad m) => Handle Minion -> Minion -> Hearth m ()
-transform handle newMinion = zoom (getMinion handle) $ do
-    boardMinionDamage .= 0
-    boardMinionEnchantments .= []
-    boardMinionAbilities .= (newMinion^.minionAbilities)
-    boardMinionAttackCount .= 0
-    boardMinionNewlySummoned .= True
-    boardMinionPendingDestroy .= False
-    boardMinion .= newMinion
+transform handle newMinion = logCall 'transform $ do
+    getMinion handle .= toBoardMinion handle newMinion
+    snap <- gets GameSnapshot
+    prompt $ PromptGameEvent snap $ Transformed handle newMinion
 
 
 enactEffectElect :: (HearthMonad m) => Elect AtRandom -> Hearth m (SimplePickResult AtRandom)

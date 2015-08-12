@@ -321,6 +321,12 @@ gameEvent snapshot = \case
         let characterAttr = ("character", characterName)
             healthAttr = ("health", show health)
         tag 'HealthRestored [characterAttr, healthAttr]
+    Transformed oldMinion newMinion -> do
+        oldMinionName <- query $ showHandle oldMinion
+        let newMinionName = showCardName $ newMinion^.Model.minionName
+            oldMinionAttr = ("oldMinion", oldMinionName)
+            newMinionAttr = ("newMinion", newMinionName)
+        tag 'Transformed [oldMinionAttr, newMinionAttr]
     MinionDied minion -> do
         minionName <- query $ showHandle minion
         let minionAttr = ("minion", minionName)
