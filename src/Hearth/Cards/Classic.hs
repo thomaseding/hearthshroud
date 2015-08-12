@@ -199,7 +199,7 @@ earthShock :: DeckCard
 earthShock = mkSpell EarthShock 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
-            KeywordEffect $ Silence target,
+            Silence target,
             DealDamage (MinionCharacter target) 1 ]
 
 
@@ -218,7 +218,7 @@ ironbeakOwl :: DeckCard
 ironbeakOwl = mkMinion IronbeakOwl 2 2 1 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
-            Effect $ KeywordEffect $ Silence target ]
+            Effect $ Silence target ]
 
 
 leperGnome :: DeckCard
@@ -262,7 +262,7 @@ spellbreaker :: DeckCard
 spellbreaker = mkMinion Spellbreaker 4 4 3 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
-            Effect $ KeywordEffect $ Silence target ]
+            Effect $ Silence target ]
 
 
 sunwalker :: DeckCard

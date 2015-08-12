@@ -626,7 +626,6 @@ enactEffect = logCall 'enactEffect . \case
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
-    KeywordEffect effect -> enactKeywordEffect effect >> return success
     DealDamage handle damage -> receiveDamage handle damage >> return success
     Enchant handle enchantments -> enchant handle enchantments >> return success
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
@@ -634,6 +633,7 @@ enactEffect = logCall 'enactEffect . \case
     DestroyMinion handle -> destroyMinion handle >> return success
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
     Transform handle minion -> transform handle minion >> return success
+    Silence handle -> silence handle >> return success
     where
         success = purePick ()
 
@@ -879,11 +879,6 @@ receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
                     getMinion handle .= bm'
                     snap <- gets GameSnapshot
                     prompt $ PromptGameEvent snap $ TookDamage charHandle damage
-
-
-enactKeywordEffect :: (HearthMonad m) => KeywordEffect -> Hearth m ()
-enactKeywordEffect = logCall 'enactKeywordEffect . \case
-    Silence handle -> silence handle
 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()

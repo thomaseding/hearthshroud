@@ -232,7 +232,6 @@ showEffect = \case
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
-    KeywordEffect effect -> showKeywordEffect effect
     DealDamage handle damage -> showDealDamage handle damage
     Enchant handle enchantments -> showEnchant handle enchantments
     GiveAbility handle abilities -> showGiveAbility handle abilities
@@ -240,6 +239,7 @@ showEffect = \case
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
     Transform handle minion -> showTransform handle minion
+    Silence handle -> showSilence handle
 
 
 showDoNothing :: Handle a -> ShowCard String
@@ -413,11 +413,6 @@ showOpponentOf minion cont = do
 
 showSequence :: [Effect] -> ShowCard String
 showSequence = liftM unlines . mapM showEffect
-
-
-showKeywordEffect :: KeywordEffect -> ShowCard String
-showKeywordEffect = \case
-    Silence handle -> showSilence handle
 
 
 showSilence :: Handle Minion -> ShowCard String

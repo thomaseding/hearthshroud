@@ -180,7 +180,6 @@ data Effect :: * where
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
-    KeywordEffect :: KeywordEffect -> Effect
     DealDamage :: Handle Character -> Damage -> Effect
     Enchant :: Handle Minion -> [Enchantment] -> Effect
     GiveAbility :: Handle Minion -> [Ability] -> Effect
@@ -188,12 +187,8 @@ data Effect :: * where
     DestroyMinion :: Handle Minion -> Effect
     RestoreHealth :: Handle Character -> Health -> Effect
     Transform :: Handle Minion -> Minion -> Effect
+    Silence :: Handle Minion -> Effect
     deriving (Typeable)
-
-
-data KeywordEffect :: * where
-    Silence :: Handle Minion -> KeywordEffect
-    deriving (Show, Typeable)
 
 
 data Ability :: * where
