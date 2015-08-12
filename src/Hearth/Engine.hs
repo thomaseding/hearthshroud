@@ -370,8 +370,13 @@ runTurn = logCall 'runTurn $ do
     endTurn
 
 
-gainManaCrystal :: (HearthMonad m) => CrystalState -> Handle Player -> Hearth m ()
-gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ do
+gainManaCrystals :: (HearthMonad m) => Handle Player -> Int -> CrystalState -> Hearth m ()
+gainManaCrystals handle amount crystalState = logCall 'gainManaCrystals $ do
+    replicateM_ amount $ gainManaCrystal handle crystalState
+
+
+gainManaCrystal :: (HearthMonad m) => Handle Player -> CrystalState -> Hearth m ()
+gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
     totalCount <- view $ getPlayer handle.playerTotalManaCrystals
     let promptGameEvent e = do
             snap <- gets GameSnapshot
@@ -396,13 +401,12 @@ gainManaCrystal crystalState handle = logCall 'gainManaCrystal $ do
                 CrystalFull -> return ()
                 CrystalEmpty -> playerEmptyManaCrystals += 1
                 CrystalTemporary -> playerTemporaryManaCrystals += 1
-            promptGameEvent $ GainsManaCrystal handle $ Just crystalState
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ do
     handle <- getActivePlayerHandle
-    gainManaCrystal CrystalFull handle
+    gainManaCrystal handle CrystalFull
     zoom (getPlayer handle) $ do
         playerEmptyManaCrystals .= 0
         playerHero.boardHeroAttackCount .= 0
@@ -629,7 +633,7 @@ enactEffect = logCall 'enactEffect . \case
     DealDamage handle damage -> receiveDamage handle damage >> return success
     Enchant handle enchantments -> enchant handle enchantments >> return success
     GiveAbility handle abilities -> giveAbilities handle abilities >> return success
-    GainManaCrystal crystalState handle -> gainManaCrystal crystalState handle >> return success
+    GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
     DestroyMinion handle -> destroyMinion handle >> return success
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
     Transform handle minion -> transform handle minion >> return success

@@ -235,7 +235,7 @@ showEffect = \case
     DealDamage handle damage -> showDealDamage handle damage
     Enchant handle enchantments -> showEnchant handle enchantments
     GiveAbility handle abilities -> showGiveAbility handle abilities
-    GainManaCrystal crystalState handle -> showGainManaCrystal crystalState handle
+    GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
     Transform handle minion -> showTransform handle minion
@@ -452,13 +452,16 @@ showGiveAbility minion abilities = do
     return $ unwords ["Give", minionStr, abilitiesStr]
 
 
-showGainManaCrystal :: CrystalState -> Handle Player -> ShowCard String
-showGainManaCrystal crystalState player = do
+showGainManaCrystals :: Handle Player -> Int -> CrystalState -> ShowCard String
+showGainManaCrystals player amount crystalState = do
     playerStr <- readHandle player
-    let crystalStr = case crystalState of
-            CrystalFull -> "a Mana Crystal"
-            CrystalEmpty -> "an empty Mana Crystal"
-            CrystalTemporary -> "a Mana Crystal this turn only"
+    let s = case amount of
+            1 -> ""
+            _ -> "s"
+        crystalStr = show amount ++ case crystalState of
+            CrystalFull -> " Mana Crystal" ++ s
+            CrystalEmpty -> " Empty Mana Crystal" ++ s
+            CrystalTemporary -> " Mana Crystal" ++ s ++ "this turn only"
         gainStr = case is playerStr you of
             True -> "gain"
             False -> "gains"

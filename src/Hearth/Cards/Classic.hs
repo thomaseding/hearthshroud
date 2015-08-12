@@ -9,6 +9,7 @@ module Hearth.Cards.Classic (
 import Hearth.Model
 import Hearth.Names
 import Hearth.Names.Classic hiding (Silence)
+import qualified Hearth.Names.Classic as Classic
 
 
 --------------------------------------------------------------------------------
@@ -33,17 +34,38 @@ cards = [
     cruelTaskmaster,
     earthenRingFarseer,
     earthShock,
+    equality,
     fenCreeper,
+    flameImp,
+    grommashHellscream,
+    holyFire,
     injuredBlademaster,
+    innerRage,
     ironbeakOwl,
+    layOnHands,
     leperGnome,
     lootHoarder,
+    markOfNature,
+    massDispel,
     mogu'shanWarden,
+    naturalize,
+    nourish,
+    pitLord,
     priestessOfElune,
+    pyroblast,
+    rampage,
     scarletCrusader,
+    shieldbearer,
+    silence,
     silvermoonGuardian,
+    siphonSoul,
     spellbreaker,
+    stampedingKodo,
+    starfall,
     sunwalker,
+    taurenWarrior,
+    templeEnforcer,
+    twistingNether,
     wisp,
     wrath ]
 
@@ -81,14 +103,15 @@ abomination = mkMinion Abomination 5 4 4 [
 
 amaniBerserker :: DeckCard
 amaniBerserker = mkMinion AmaniBerserker 2 2 3 [
-    KeywordAbility $ Enrage [] [StatsDelta 3 0] ]
+    KeywordAbility $ Enrage [] [
+        StatsDelta 3 0 ]]
 
 
 aldorPeacekeeper :: DeckCard
 aldorPeacekeeper = mkMinion AldorPeacekeeper 3 3 3 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            OpponentOf owner $ \opponent ->
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
         A $ Minion [OwnedBy opponent] $ \target ->
             Effect $ Enchant target [
                 ChangeStat (Left 1) ]]
@@ -98,9 +121,9 @@ arcaneGolem :: DeckCard
 arcaneGolem = mkMinion ArcaneGolem 3 4 2 [
     KeywordAbility Charge,
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            OpponentOf owner $ \opponent ->
-                Effect $ GainManaCrystal CrystalFull opponent ]
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
+                Effect $ GainManaCrystals opponent 1 CrystalFull ]
 
 
 argentCommander :: DeckCard
@@ -112,8 +135,8 @@ argentCommander = mkMinion ArgentCommander 6 4 2 [
 argentProtector :: DeckCard
 argentProtector = mkMinion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            A $ Minion [OwnedBy owner, Not this] $ \target ->
+        OwnerOf this $ \you ->
+            A $ Minion [OwnedBy you, Not this] $ \target ->
                 Effect $ GiveAbility target [KeywordAbility DivineShield ]]
 
 
@@ -124,10 +147,10 @@ argentSquire = mkMinion ArgentSquire 1 1 1 [
 
 battleRage :: DeckCard
 battleRage = mkSpell BattleRage 2 $ \this ->
-    OwnerOf this $ \owner ->
+    OwnerOf this $ \you ->
         All $ Characters [Damaged] $ \characters ->
             Effect $ ForEach characters $ \_ ->
-                DrawCards owner 1
+                DrawCards you 1
 
 
 bigGameHunter :: DeckCard
@@ -203,15 +226,55 @@ earthShock = mkSpell EarthShock 1 $ \_ ->
             DealDamage (MinionCharacter target) 1 ]
 
 
+equality :: DeckCard
+equality = mkSpell Equality 2 $ \_ ->
+    All $ Minions [] $ \minions ->
+        Effect $ ForEach minions $ \minion ->
+            Enchant minion [
+                ChangeStat (Right 1) ]
+
+
 fenCreeper :: DeckCard
 fenCreeper = mkMinion FenCreeper 5 3 6 [
     KeywordAbility Taunt ]
+
+
+flameImp :: DeckCard
+flameImp = mkMinion FlameImp 1 3 2 [
+    KeywordAbility $ Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ DealDamage (PlayerCharacter you) 3 ]
+
+
+grommashHellscream :: DeckCard
+grommashHellscream = mkMinion GrommashHellscream 8 4 9 [
+    KeywordAbility Charge,
+    KeywordAbility $ Enrage [] [
+        StatsDelta 6 0 ]]
+
+
+holyFire :: DeckCard
+holyFire = mkSpell HolyFire 6 $ \this ->
+    A $ Character [] $ \target ->
+        OwnerOf this $ \you ->
+            Effect $ Sequence [
+                DealDamage target 5,
+                RestoreHealth (PlayerCharacter you) 5 ]
 
 
 injuredBlademaster :: DeckCard
 injuredBlademaster = mkMinion InjuredBlademaster 3 4 7 [
     KeywordAbility $ Battlecry $ \this ->
         Effect $ DealDamage (MinionCharacter this) 4 ]
+
+
+innerRage :: DeckCard
+innerRage = mkSpell InnerRage 0 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Sequence [
+            DealDamage (MinionCharacter target) 1,
+            Enchant target [
+                StatsDelta 2 0 ]]
 
 
 ironbeakOwl :: DeckCard
@@ -221,19 +284,53 @@ ironbeakOwl = mkMinion IronbeakOwl 2 2 1 [
             Effect $ Silence target ]
 
 
+layOnHands :: DeckCard
+layOnHands = mkSpell LayOnHands 8 $ \this ->
+    A $ Character [] $ \target ->
+        OwnerOf this $ \you ->
+            Effect $ Sequence [
+                RestoreHealth target 6,
+                DrawCards you 3 ]
+
+
 leperGnome :: DeckCard
 leperGnome = mkMinion LeperGnome 1 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
-        OwnerOf this $ \owner ->
-            OpponentOf owner $ \opponent ->
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
                 Effect $ DealDamage (PlayerCharacter opponent) 2 ]
 
 
 lootHoarder :: DeckCard
 lootHoarder = mkMinion LootHoarder 2 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
-        OwnerOf this $ \owner ->
-            Effect $ DrawCards owner 1 ]
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1 ]
+
+
+markOfNature :: DeckCard
+markOfNature = mkSpell MarkOfNature 3 $ \_ ->
+    Choice [
+        A $ Minion [] $ \target ->
+            Effect $ Enchant target [
+                StatsDelta 4 0 ],
+        A $ Minion [] $ \target ->
+            Effect $ Sequence [
+                Enchant target [
+                    StatsDelta 0 4 ],
+                GiveAbility target [
+                    KeywordAbility Taunt ]]]
+
+
+massDispel :: DeckCard
+massDispel = mkSpell MassDispel 4 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            All $ Minions [OwnedBy opponent] $ \victims ->
+                Effect $ Sequence [
+                    ForEach victims $ \victim ->
+                        Silence victim,
+                    DrawCards you 1 ]
 
 
 mogu'shanWarden :: DeckCard
@@ -241,11 +338,49 @@ mogu'shanWarden = mkMinion Mogu'shanWarden 4 1 7 [
     KeywordAbility Taunt ]
 
 
+naturalize :: DeckCard
+naturalize = mkSpell Naturalize 1 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            A $ Minion [] $ \target ->
+                Effect $ Sequence [
+                    DestroyMinion target,
+                    DrawCards opponent 2 ]
+
+
+nourish :: DeckCard
+nourish = mkSpell Nourish 5 $ \this ->
+    OwnerOf this $ \you ->
+        Choice [
+            Effect $ GainManaCrystals you 2 CrystalFull,
+            Effect $ DrawCards you 3 ]
+
+
+pitLord :: DeckCard
+pitLord = mkMinion PitLord 4 5 6 [
+    KeywordAbility $ Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ DealDamage (PlayerCharacter you) 5 ]
+
+
 priestessOfElune :: DeckCard
 priestessOfElune = mkMinion PriestessOfElune 6 5 4 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            Effect $ RestoreHealth (PlayerCharacter owner) 4 ]
+        OwnerOf this $ \you ->
+            Effect $ RestoreHealth (PlayerCharacter you) 4 ]
+
+
+pyroblast :: DeckCard
+pyroblast = mkSpell Pyroblast 10 $ \_ ->
+    A $ Character [] $ \target ->
+        Effect $ DealDamage target 10
+
+
+rampage :: DeckCard
+rampage = mkSpell Rampage 2 $ \_ ->
+    A $ Minion [WithMinion Damaged] $ \target ->
+        Effect $ Enchant target [
+            StatsDelta 3 3 ]
 
 
 scarletCrusader :: DeckCard
@@ -253,9 +388,29 @@ scarletCrusader = mkMinion ScarletCrusader 3 3 1 [
     KeywordAbility DivineShield ]
 
 
+shieldbearer :: DeckCard
+shieldbearer = mkMinion Shieldbearer 1 0 4 [
+    KeywordAbility Taunt ]
+
+
+silence :: DeckCard
+silence = mkSpell Classic.Silence 0 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Silence target
+
+
 silvermoonGuardian :: DeckCard
 silvermoonGuardian = mkMinion SilvermoonGuardian 4 3 3 [
     KeywordAbility DivineShield ]
+
+
+siphonSoul :: DeckCard
+siphonSoul = mkSpell SiphonSoul 6 $ \this ->
+    A $ Minion [] $ \target ->
+        OwnerOf this $ \you ->
+            Effect $ Sequence [
+                DestroyMinion target,
+                RestoreHealth (PlayerCharacter you) 3 ]
 
 
 spellbreaker :: DeckCard
@@ -265,10 +420,52 @@ spellbreaker = mkMinion Spellbreaker 4 4 3 [
             Effect $ Silence target ]
 
 
+stampedingKodo :: DeckCard
+stampedingKodo = mkMinion StampedingKodo 5 3 5 [
+    KeywordAbility $ Battlecry $ \_ ->
+        Effect $ Elect $ A $ Minion [AttackCond LessEqual 2] $ \victim ->
+            Effect $ DestroyMinion victim ]
+
+
+starfall :: DeckCard
+starfall = mkSpell Starfall 5 $ \this ->
+    Choice [
+        A $ Minion [] $ \target ->
+            Effect $ DealDamage (MinionCharacter target) 5,
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
+                All $ Minions [OwnedBy opponent] $ \victims ->
+                    Effect $ ForEach victims $ \victim ->
+                        DealDamage (MinionCharacter victim) 2 ]
+
+
 sunwalker :: DeckCard
 sunwalker = mkMinion Sunwalker 6 4 5 [
     KeywordAbility Taunt,
     KeywordAbility DivineShield ]
+
+
+taurenWarrior :: DeckCard
+taurenWarrior = mkMinion TaurenWarrior 3 2 3 [
+    KeywordAbility Taunt,
+    KeywordAbility $ Enrage [] [
+        StatsDelta 3 0 ]]
+
+
+templeEnforcer :: DeckCard
+templeEnforcer = mkMinion TempleEnforcer 6 6 6 [
+    KeywordAbility $ Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            A $ Minion [OwnedBy you, Not this] $ \target ->
+                Effect $ Enchant target [
+                    StatsDelta 0 3 ]]
+
+
+twistingNether :: DeckCard
+twistingNether = mkSpell TwistingNether 8 $ \_ ->
+    All $ Minions [] $ \minions ->
+        Effect $ ForEach minions $ \minion ->
+            DestroyMinion minion
 
 
 wisp :: DeckCard
@@ -281,10 +478,10 @@ wrath = mkSpell Wrath 2 $ \this ->
         A $ Minion [] $ \target ->
             Effect $ DealDamage (MinionCharacter target) 3,
         A $ Minion [] $ \target ->
-            OwnerOf this $ \owner ->
+            OwnerOf this $ \you ->
                 Effect $ Sequence [
                     DealDamage (MinionCharacter target) 1,
-                    DrawCards owner 1 ]]
+                    DrawCards you 1 ]]
 
 
 

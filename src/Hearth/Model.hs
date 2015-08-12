@@ -183,7 +183,7 @@ data Effect :: * where
     DealDamage :: Handle Character -> Damage -> Effect
     Enchant :: Handle Minion -> [Enchantment] -> Effect
     GiveAbility :: Handle Minion -> [Ability] -> Effect
-    GainManaCrystal :: CrystalState -> Handle Player -> Effect
+    GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
     RestoreHealth :: Handle Character -> Health -> Effect
     Transform :: Handle Minion -> Minion -> Effect

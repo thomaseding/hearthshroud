@@ -129,8 +129,8 @@ mkSpell name mana effect = DeckCardSpell $ Spell' {
 
 arcaneExplosion :: DeckCard
 arcaneExplosion = mkSpell ArcaneExplosion 2 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \enemies ->
                 Effect $ ForEach enemies $ \enemy ->
                     DealDamage (MinionCharacter enemy) 1
@@ -138,8 +138,8 @@ arcaneExplosion = mkSpell ArcaneExplosion 2 $ \this ->
 
 arcaneIntellect :: DeckCard
 arcaneIntellect = mkSpell ArcaneIntellect 3 $ \this ->
-    OwnerOf this $ \owner ->
-        Effect $ DrawCards owner 2
+    OwnerOf this $ \you ->
+        Effect $ DrawCards you 2
 
 
 arcaneShot :: DeckCard
@@ -194,8 +194,8 @@ boulderfistOgre = mkMinion BoulderfistOgre 6 6 7 []
 
 charge :: DeckCard
 charge = mkSpell Basic.Charge 3 $ \this ->
-    OwnerOf this $ \owner ->
-        A $ Minion [OwnedBy owner] $ \target ->
+    OwnerOf this $ \you ->
+        A $ Minion [OwnedBy you] $ \target ->
             Effect $ Sequence [
                 Enchant target [
                     StatsDelta 2 0 ],
@@ -209,8 +209,8 @@ chillwindYeti = mkMinion ChillwindYeti 4 4 5 []
 
 cleave :: DeckCard
 cleave = mkSpell Cleave 2 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
                 A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ ForEach [victim1, victim2] $ \victim ->
@@ -219,8 +219,8 @@ cleave = mkSpell Cleave 2 $ \this ->
 
 consecration :: DeckCard
 consecration = mkSpell Consecration 4 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             All $ Characters [OwnedBy opponent] $ \enemies ->
                 Effect $ ForEach enemies $ \enemy ->
                     DealDamage enemy 2
@@ -233,16 +233,16 @@ coreHound = mkMinion CoreHound 7 9 5 []
 darkscaleHealer :: DeckCard
 darkscaleHealer = mkMinion DarkscaleHealer 5 4 5 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            All $ Characters [OwnedBy owner] $ \friendlies ->
+        OwnerOf this $ \you ->
+            All $ Characters [OwnedBy you] $ \friendlies ->
                 Effect $ ForEach friendlies $ \friendly ->
                     RestoreHealth friendly 2 ]
 
 
 deadlyShot :: DeckCard
 deadlyShot = mkSpell DeadlyShot 3 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim ->
                 Effect $ DestroyMinion victim
 
@@ -257,10 +257,10 @@ divineSpirit = mkSpell DivineSpirit 2 $ \_ ->
 drainLife :: DeckCard
 drainLife = mkSpell DrainLife 3 $ \this ->
     A $ Character [] $ \target ->
-        OwnerOf this $ \owner ->
+        OwnerOf this $ \you ->
             Effect $ Sequence [
                 DealDamage target 2,
-                RestoreHealth (PlayerCharacter owner) 2 ]
+                RestoreHealth (PlayerCharacter you) 2 ]
 
 
 dreadInfernal :: DeckCard
@@ -286,13 +286,13 @@ execute = mkSpell Execute 1 $ \_ ->
 
 fanOfKnives :: DeckCard
 fanOfKnives = mkSpell FanOfKnives 4 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \enemies ->
                 Effect $ Sequence [
                     ForEach enemies $ \enemy ->
                         DealDamage (MinionCharacter enemy) 1,
-                    DrawCards owner 1 ]
+                    DrawCards you 1 ]
 
 
 fireball :: DeckCard
@@ -310,8 +310,8 @@ fireElemental = mkMinion FireElemental 6 6 5 [
 
 flamestrike :: DeckCard
 flamestrike = mkSpell Flamestrike 7 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \victims ->
                 Effect $ ForEach victims $ \victim ->
                     DealDamage (MinionCharacter victim) 4
@@ -334,8 +334,8 @@ frostwolfGrunt = mkMinion FrostwolfGrunt 2 2 2 [
 gnomishInventor :: DeckCard
 gnomishInventor = mkMinion GnomishInventor 4 2 4 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            Effect $ DrawCards owner 1 ]
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1 ]
 
 
 goldshireFootman :: DeckCard
@@ -346,17 +346,17 @@ goldshireFootman = mkMinion GoldshireFootman 1 1 2 [
 guardianOfKings :: DeckCard
 guardianOfKings = mkMinion GuardianOfKings 7 5 6 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            Effect $ RestoreHealth (PlayerCharacter owner) 6 ]
+        OwnerOf this $ \you ->
+            Effect $ RestoreHealth (PlayerCharacter you) 6 ]
 
 
 hammerOfWrath :: DeckCard
 hammerOfWrath = mkSpell HammerOfWrath 4 $ \this ->
     A $ Character [] $ \target ->
-        OwnerOf this $ \owner ->
+        OwnerOf this $ \you ->
             Effect $ Sequence [
                 DealDamage target 3,
-                DrawCards owner 1 ]
+                DrawCards you 1 ]
 
 
 handOfProtection :: DeckCard
@@ -393,9 +393,9 @@ holyLight = mkSpell HolyLight 2 $ \_ ->
 
 holyNova :: DeckCard
 holyNova = mkSpell HolyNova 5 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
-            All $ Characters [OwnedBy owner] $ \friendlies ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            All $ Characters [OwnedBy you] $ \friendlies ->
                 All $ Characters [OwnedBy opponent] $ \enemies ->
                     Effect $ Sequence [
                         ForEach enemies $ \enemy ->
@@ -431,8 +431,8 @@ kor'kronElite = mkMinion Kor'kronElite 4 4 3 [
 
 innervate :: DeckCard
 innervate = mkSpell Innervate 0 $ \this ->
-    OwnerOf this $ \owner ->
-        Effect $ Sequence $ replicate 2 $ GainManaCrystal CrystalTemporary owner
+    OwnerOf this $ \you ->
+        Effect $ GainManaCrystals you 2 CrystalTemporary
 
 
 ironbarkProtector :: DeckCard
@@ -468,8 +468,8 @@ magmaRager = mkMinion MagmaRager 3 5 1 []
 
 mindBlast :: DeckCard
 mindBlast = mkSpell MindBlast 2 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             Effect $ DealDamage (PlayerCharacter opponent) 5
 
 
@@ -481,8 +481,8 @@ moonfire = mkSpell Moonfire 0 $ \_ ->
 
 multiShot :: DeckCard
 multiShot = mkSpell MultiShot 4 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
                 A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ ForEach [victim1, victim2] $ \victim ->
@@ -496,16 +496,16 @@ murlocRaider = mkMinion MurlocRaider 1 2 1 []
 nightblade :: DeckCard
 nightblade = mkMinion Nightblade 5 4 4 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            OpponentOf owner $ \opponent ->
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
                 Effect $ DealDamage (PlayerCharacter opponent) 3 ]
 
 
 noviceEngineer :: DeckCard
 noviceEngineer = mkMinion NoviceEngineer 2 1 1 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            Effect $ DrawCards owner 1 ]
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1 ]
 
 
 oasisSnapjaw :: DeckCard
@@ -521,11 +521,11 @@ polymorph = mkSpell Polymorph 4 $ \_ ->
 powerWordShield :: DeckCard
 powerWordShield = mkSpell PowerWordShield 1 $ \this ->
     A $ Minion [] $ \target ->
-        OwnerOf this $ \owner ->
+        OwnerOf this $ \you ->
             Effect $ Sequence [
                 Enchant target [
                     StatsDelta 0 2 ],
-                DrawCards owner 1 ]
+                DrawCards you 1 ]
 
 
 recklessRocketeer :: DeckCard
@@ -563,8 +563,8 @@ shadowWordPain = mkSpell ShadowWordPain 2 $ \_ ->
 shatteredSunCleric :: DeckCard
 shatteredSunCleric = mkMinion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ \this ->
-        OwnerOf this $ \owner ->
-            A $ Minion [OwnedBy owner, Not this] $ \target ->
+        OwnerOf this $ \you ->
+            A $ Minion [OwnedBy you, Not this] $ \target ->
                 Effect $ Enchant target [
                     StatsDelta 1 1 ]]
 
@@ -580,10 +580,10 @@ sheep' = mkMinion' Sheep 0 1 1 []
 shiv :: DeckCard
 shiv = mkSpell Shiv 2 $ \this ->
     A $ Character [] $ \target ->
-        OwnerOf this $ \owner ->
+        OwnerOf this $ \you ->
             Effect $ Sequence [
                 DealDamage target 1,
-                DrawCards owner 1 ]
+                DrawCards you 1 ]
 
 
 silverbackPatriarch :: DeckCard
@@ -593,24 +593,24 @@ silverbackPatriarch = mkMinion SilverbackPatriarch 3 1 4 [
 
 sinisterStrike :: DeckCard
 sinisterStrike = mkSpell SinisterStrike 1 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             Effect $ DealDamage (PlayerCharacter opponent) 3
 
 
 sprint :: DeckCard
 sprint = mkSpell Sprint 7 $ \this ->
-    OwnerOf this $ \owner ->
-        Effect $ DrawCards owner 4
+    OwnerOf this $ \you ->
+        Effect $ DrawCards you 4
 
 
 starfire :: DeckCard
 starfire = mkSpell Starfire 6 $ \this ->
     A $ Character [] $ \target ->
-        OwnerOf this $ \owner ->
+        OwnerOf this $ \you ->
             Effect $ Sequence [
                 DealDamage target 5,
-                DrawCards owner 1 ]
+                DrawCards you 1 ]
 
 
 stonetuskBoar :: DeckCard
@@ -632,8 +632,8 @@ stormwindKnight = mkMinion StormwindKnight 4 2 5 [
 
 swipe :: DeckCard
 swipe = mkSpell Swipe 4 $ \this ->
-    OwnerOf this $ \owner ->
-        OpponentOf owner $ \opponent ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
             A $ Character [OwnedBy opponent] $ \target ->
                 All $ Characters [Not target] $ \others ->
                     Effect $ Sequence [
@@ -644,8 +644,8 @@ swipe = mkSpell Swipe 4 $ \this ->
 
 theCoin :: DeckCard
 theCoin = mkSpell TheCoin 0 $ \this ->
-    OwnerOf this $ \owner ->
-        Effect $ GainManaCrystal CrystalTemporary owner
+    OwnerOf this $ \you ->
+        Effect $ GainManaCrystals you 1 CrystalTemporary
 
 
 voidwalker :: DeckCard
@@ -673,8 +673,8 @@ whirlwind = mkSpell Whirlwind 1 $ \_ ->
 
 wildGrowth :: DeckCard
 wildGrowth = mkSpell WildGrowth 2 $ \this ->
-    OwnerOf this $ \owner ->
-        Effect $ GainManaCrystal CrystalEmpty owner
+    OwnerOf this $ \you ->
+        Effect $ GainManaCrystals you 1 CrystalEmpty
 
 
 wolfRider :: DeckCard
