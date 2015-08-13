@@ -54,19 +54,15 @@ instance Monad m => Zoom (Hearth' st m) (Hearth' st' m) st st' where
     zoom l = Hearth . zoom l . unHearth
 
 
-instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth' st m) where
-    prompt = lift . prompt
-
-
 class LogCall a where
     logCall :: Name -> a -> a
 
 
 instance (HearthMonad m) => LogCall (Hearth' st m a) where
     logCall funcName m = do
-        prompt $ PromptDebugEvent $ FunctionEntered funcName
+        lift $ prompt $ PromptDebugEvent $ FunctionEntered funcName
         x <- m
-        prompt $ PromptDebugEvent $ FunctionExited funcName
+        lift $ prompt $ PromptDebugEvent $ FunctionExited funcName
         return x
 
 

@@ -11,6 +11,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 
 module Hearth.Engine (
@@ -50,6 +51,15 @@ import Hearth.Prompt
 
 
 --------------------------------------------------------------------------------
+
+
+instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth m) where
+    prompt p = do
+        result <- lift (prompt p)
+        case p of
+            PromptGameEvent _ e -> handleGameEvent e
+            _ -> return ()
+        return result
 
 
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> m Bool) -> m a
@@ -334,17 +344,15 @@ isMortallyWounded = logCall 'isMortallyWounded $ liftM (<= 0) . dynamicRemaining
 
 shuffleDeck :: (HearthMonad m) => Handle Player -> Hearth m ()
 shuffleDeck handle = logCall 'shuffleDeck $ do
-    deck' <- zoom (getPlayer handle) $ do
-        Deck deck <- view playerDeck
-        deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ \deck' -> let
-            f = sort . map deckCardName
-            in case on (==) f deck deck' of
-                True -> return True
-                False -> do
-                    prompt $ PromptError InvalidShuffle
-                    return False
-        playerDeck .= deck'
-        return deck'
+    Deck deck <- view $ getPlayer handle.playerDeck
+    deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ \deck' -> let
+        f = sort . map deckCardName
+        in case on (==) f deck deck' of
+            True -> return True
+            False -> do
+                prompt $ PromptError InvalidShuffle
+                return False
+    getPlayer handle.playerDeck .= deck'
     snap <- gets GameSnapshot
     prompt $ PromptGameEvent snap $ DeckShuffled handle deck'
 
@@ -1283,6 +1291,8 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
+handleGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()
+handleGameEvent _ = return ()
 
 
 
