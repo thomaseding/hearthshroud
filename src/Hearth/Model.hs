@@ -141,6 +141,7 @@ data Restriction :: * -> * where
     AttackCond :: Comparison -> Attack -> Restriction Minion
     Damaged :: Restriction Character
     Undamaged :: Restriction Character
+    IsMinion :: Restriction Character
 
 
 data Comparison
@@ -177,6 +178,7 @@ data All :: Selection -> * where
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
     DoNothing :: Handle a -> Effect
+    When :: Handle a -> [Restriction a] -> Effect -> Effect
     ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
@@ -188,11 +190,18 @@ data Effect :: * where
     RestoreHealth :: Handle Character -> Health -> Effect
     Transform :: Handle Minion -> Minion -> Effect
     Silence :: Handle Minion -> Effect
+    GainArmor :: Handle Player -> Armor -> Effect
     deriving (Typeable)
+
+
+data Event :: * -> * where
+    SpellIsCast :: (Handle a -> Handle Spell -> Elect AtRandom) -> Event a
+    TakesDamage :: (Handle a -> Handle Character -> Elect AtRandom) -> Event a
 
 
 data Ability :: * where
     KeywordAbility :: KeywordAbility -> Ability
+    Whenever :: Event Minion -> Ability
     deriving (Typeable)
 
 

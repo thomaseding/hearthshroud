@@ -23,6 +23,7 @@ data ClassicCardName
     | ArgentCommander
     | ArgentProtector
     | ArgentSquire
+    | Armorsmith
     | BattleRage
     | BigGameHunter
     | BlessedChampion
@@ -36,6 +37,7 @@ data ClassicCardName
     | Equality
     | FenCreeper
     | FlameImp
+    | GadgetzanAuctioneer
     | GrommashHellscream
     | HolyFire
     | InjuredBlademaster

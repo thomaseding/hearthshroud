@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -631,10 +632,15 @@ enactBattlecry handle cont = logCall 'enactBattlecry $ do
     enactElect $ cont handle
 
 
+whenM :: (Monad m) => m Bool -> m () -> m ()
+whenM bool action = bool >>= flip when action
+
+
 enactEffect :: (HearthMonad m) => Effect -> Hearth m (SimplePickResult AtRandom)
 enactEffect = logCall 'enactEffect . \case
     Elect elect -> enactEffectElect elect
     DoNothing _ -> return success
+    When handle restrictions effect -> enactWhen handle restrictions effect >> return success
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
@@ -646,8 +652,16 @@ enactEffect = logCall 'enactEffect . \case
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
     Transform handle minion -> transform handle minion >> return success
     Silence handle -> silence handle >> return success
+    GainArmor handle armor -> gainArmor handle armor >> return success
     where
         success = purePick ()
+
+
+enactWhen :: (HearthMonad m) => Handle a -> [Restriction a] -> Effect -> Hearth m ()
+enactWhen handle restrictions effect = do
+    whenM (isPermitted restrictions handle) $ do
+        _ <- enactEffect effect
+        return ()
 
 
 transform :: (HearthMonad m) => Handle Minion -> Minion -> Hearth m ()
@@ -661,6 +675,13 @@ enactEffectElect :: (HearthMonad m) => Elect AtRandom -> Hearth m (SimplePickRes
 enactEffectElect elect = enactElect elect >>= return . \case
     NotAvailable -> NotAvailable
     Available (AtRandomPick _) -> purePick ()
+
+
+gainArmor :: (HearthMonad m) => Handle Player -> Armor -> Hearth m ()
+gainArmor handle armor = logCall 'gainArmor $ do
+    getPlayer handle.playerHero.boardHeroArmor += armor
+    snap <- gets GameSnapshot
+    prompt $ PromptGameEvent snap $ GainedArmor handle armor
 
 
 restoreHealth :: (HearthMonad m) => Handle Character -> Health -> Hearth m ()
@@ -1040,7 +1061,7 @@ enactCharacters restrictions cont = logCall 'enactCharacters $ do
 
 
 restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle a]
-restrict rs hs = flip filterM hs $ \h -> allM (flip isPermitted h) rs
+restrict rs hs = flip filterM hs $ \h -> isPermitted rs h
 
 
 fromComparison :: (Ord a) => Comparison -> (a -> a -> Bool)
@@ -1052,17 +1073,28 @@ fromComparison = \case
     Greater -> (>)
 
 
-isPermitted :: (HearthMonad m) => Restriction a -> Handle a -> Hearth m Bool
-isPermitted restriction candidate = case restriction of
-    WithMinion r -> isPermitted r $ MinionCharacter candidate
-    WithPlayer r -> isPermitted r $ PlayerCharacter candidate
-    OwnedBy owner -> liftM (owner ==) $ controllerOf candidate
-    Not bannedObject -> return $ candidate /= bannedObject
-    AttackCond cmp attackCond -> do
-        actualAttack <- dynamicAttack candidate
-        return $ fromComparison cmp actualAttack attackCond
-    Damaged -> liftM (> 0) $ getDamage candidate
-    Undamaged -> liftM not $ isPermitted Damaged candidate
+class IsPermitted r a | r -> a where
+    isPermitted :: (HearthMonad m) => r -> Handle a -> Hearth m Bool
+
+
+instance IsPermitted (Restriction a) a where
+    isPermitted restriction candidate = case restriction of
+        WithMinion r -> isPermitted r $ MinionCharacter candidate
+        WithPlayer r -> isPermitted r $ PlayerCharacter candidate
+        OwnedBy owner -> liftM (owner ==) $ controllerOf candidate
+        Not bannedObject -> return $ candidate /= bannedObject
+        AttackCond cmp attackCond -> do
+            actualAttack <- dynamicAttack candidate
+            return $ fromComparison cmp actualAttack attackCond
+        Damaged -> liftM (> 0) $ getDamage candidate
+        Undamaged -> liftM not $ isPermitted Damaged candidate
+        IsMinion -> return $ case candidate of
+            MinionCharacter {} -> True
+            _ -> False
+
+
+instance IsPermitted [Restriction a] a where
+    isPermitted rs h = allM (flip isPermitted h) rs
 
 
 class Pickable (s :: Selection) a where
@@ -1291,8 +1323,32 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
+minionEventHandlers :: (HearthMonad m) => Hearth m [(Handle Minion, Event Minion)]
+minionEventHandlers = do
+    minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+    liftM concat $ forM minions $ \minion -> do
+        abilities <- dynamicAbilities minion
+        let handlers = flip mapMaybe abilities $ \case
+                Whenever event -> Just event
+                _ -> Nothing
+        return $ zip (repeat minion) handlers
+
+
+processEvent :: (HearthMonad m) => (Handle Minion -> Event Minion -> Hearth m ()) -> Hearth m ()
+processEvent f = minionEventHandlers >>= mapM_ (uncurry f)
+
+
 handleGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()
-handleGameEvent _ = return ()
+handleGameEvent = \case
+    PlayedSpell _ spell -> processEvent $ \listener -> \case
+        SpellIsCast cont -> run $ cont listener spell
+        _ -> return ()
+    TookDamage victim _ -> processEvent $ \listener -> \case
+        TakesDamage cont -> run $ cont listener victim
+        _ -> return ()
+    _ -> return ()
+    where
+        run cont = enactElect cont >> return ()
 
 
 

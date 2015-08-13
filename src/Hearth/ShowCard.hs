@@ -194,6 +194,29 @@ showAbilities = liftM unlines . mapM showAbility
 showAbility :: Ability -> ShowCard String
 showAbility = \case
     KeywordAbility ability -> showKeywordAbility ability
+    Whenever event -> showWhenever event
+
+
+showWhenever :: (GenHandle a) => Event a -> ShowCard String
+showWhenever event = do
+    str <- case event of
+        SpellIsCast cont -> showSpellIsCast cont
+        TakesDamage cont -> showTakesDamage cont
+    return $ "Whenever " ++ str
+
+
+showSpellIsCast :: (GenHandle a) => (Handle a -> Handle Spell -> Elect AtRandom) -> ShowCard String
+showSpellIsCast cont = do
+    thisHandle <- genHandle this
+    spellHandle <- genHandle "CAST_SPELL"
+    liftM ("a spell is cast: " ++) $ showElect $ cont thisHandle spellHandle
+
+
+showTakesDamage :: (GenHandle a) => (Handle a -> Handle Character -> Elect AtRandom) -> ShowCard String
+showTakesDamage cont = do
+    thisHandle <- genHandle this
+    characterHandle <- genHandle "DAMAGED_CHARACTER"
+    liftM ("a character takes damage: " ++) $ showElect $ cont thisHandle characterHandle
 
 
 showKeywordAbility :: KeywordAbility -> ShowCard String
@@ -229,6 +252,7 @@ showEffect :: Effect -> ShowCard String
 showEffect = \case
     Elect elect -> showElect elect
     DoNothing handle -> showDoNothing handle
+    When handle restrictions effect -> showWhen handle restrictions effect
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
@@ -240,6 +264,17 @@ showEffect = \case
     RestoreHealth handle amount -> showRestoreHealth handle amount
     Transform handle minion -> showTransform handle minion
     Silence handle -> showSilence handle
+    GainArmor handle amount -> showGainArmor handle amount
+
+
+showWhen :: Handle a -> [Restriction a] -> Effect -> ShowCard String
+showWhen handle restrictions effect = case restrictions of
+    [] -> showEffect effect
+    _ -> do
+        handleStr <- readHandle handle
+        restrictionsStr <- showRestrictions restrictions
+        effectStr <- showEffect effect
+        return $ "When " ++ handleStr ++ "[" ++ restrictionsStr ++ "]: " ++ effectStr
 
 
 showDoNothing :: Handle a -> ShowCard String
@@ -253,6 +288,12 @@ showTransform oldMinionHandle newMinion = do
     oldMinionStr <- readHandle oldMinionHandle
     let newCardStr = showCard $ HandCardMinion newMinion
     return $ "Transform " ++ oldMinionStr ++ " to " ++ newCardStr
+
+
+showGainArmor :: Handle Player -> Armor -> ShowCard String
+showGainArmor player (Armor amount) = do
+    playerStr <- readHandle player
+    return $ playerStr ++ " gains " ++ show amount ++ " armor"
 
 
 showRestoreHealth :: Handle Character -> Health -> ShowCard String
@@ -393,6 +434,7 @@ showRestriction = \case
     AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
     Damaged -> return "DAMAGED"
     Undamaged -> return "UNDAMAGED"
+    IsMinion -> return "IS_MINION"
 
 
 showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> ShowCard String

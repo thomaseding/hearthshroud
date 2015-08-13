@@ -24,6 +24,7 @@ cards = [
     argentCommander,
     argentProtector,
     argentSquire,
+    armorsmith,
     battleRage,
     bigGameHunter,
     blessedChampion,
@@ -37,6 +38,7 @@ cards = [
     equality,
     fenCreeper,
     flameImp,
+    gadgetzanAuctioneer,
     grommashHellscream,
     holyFire,
     injuredBlademaster,
@@ -145,6 +147,13 @@ argentSquire = mkMinion ArgentSquire 1 1 1 [
     KeywordAbility DivineShield ]
 
 
+armorsmith :: DeckCard
+armorsmith = mkMinion Armorsmith 2 1 4 [
+    Whenever $ TakesDamage $ \this victim ->
+        OwnerOf this $ \you ->
+            Effect $ When victim [OwnedBy you, IsMinion] $ GainArmor you 1 ]
+
+
 battleRage :: DeckCard
 battleRage = mkSpell BattleRage 2 $ \this ->
     OwnerOf this $ \you ->
@@ -244,6 +253,13 @@ flameImp = mkMinion FlameImp 1 3 2 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DealDamage (PlayerCharacter you) 3 ]
+
+
+gadgetzanAuctioneer :: DeckCard
+gadgetzanAuctioneer = mkMinion GadgetzanAuctioneer 6 4 4 [
+    Whenever $ SpellIsCast $ \this spell ->
+        OwnerOf this $ \you ->
+            Effect $ When spell [OwnedBy you] $ DrawCards you 1 ]
 
 
 grommashHellscream :: DeckCard

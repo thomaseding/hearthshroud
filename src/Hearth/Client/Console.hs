@@ -321,6 +321,11 @@ gameEvent snapshot = \case
         let characterAttr = ("character", characterName)
             healthAttr = ("health", show health)
         tag 'HealthRestored [characterAttr, healthAttr]
+    GainedArmor player (Armor armor) -> do
+        playerName <- query $ showHandle player
+        let playerAttr = ("player", playerName)
+            armorAttr = ("armor", show armor)
+        tag 'GainedArmor [playerAttr, armorAttr]
     Transformed oldMinion newMinion -> do
         oldMinionName <- query $ showHandle oldMinion
         let newMinionName = showCardName $ newMinion^.Model.minionName
@@ -585,8 +590,8 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroPower = power,
             _heroName = BasicHeroName name }
         cards = filter ((/= BasicCardName TheCoin) . deckCardName) Universe.cards
-        deck1 = Deck $ take 30 $ cycle cards
-        deck2 = Deck $ take 30 $ cycle $ reverse cards
+        deck1 = Deck cards
+        deck2 = deck1
         player1 = PlayerData (hero Thrall) deck1
         player2 = PlayerData (hero Rexxar) deck2
 
