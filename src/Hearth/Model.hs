@@ -272,7 +272,8 @@ type HeroPowerEffect = Handle Player -> Elect Targeted
 
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
-    _heroPowerEffect :: HeroPowerEffect
+    _heroPowerEffect :: HeroPowerEffect,
+    _heroPowerName :: HeroPowerName
 } deriving (Typeable)
 
 
@@ -288,6 +289,8 @@ data BoardHero = BoardHero {
     _boardHeroDamage :: Damage,
     _boardHeroArmor :: Armor,
     _boardHeroAttackCount :: Int,
+    _boardHeroPower :: HeroPower,
+    _boardHeroPowerCount :: Int,
     _boardHero :: Hero
 } deriving (Typeable)
 

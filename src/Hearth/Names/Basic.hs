@@ -2,6 +2,7 @@
 
 
 module Hearth.Names.Basic (
+    BasicHeroPowerName(..),
     BasicCardName(..),
 ) where
 
@@ -13,6 +14,12 @@ import Data.Data
 
 
 --------------------------------------------------------------------------------
+
+
+data BasicHeroPowerName
+    = Fireblast
+    | LifeTap
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 data BasicCardName

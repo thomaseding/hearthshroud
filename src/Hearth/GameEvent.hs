@@ -22,6 +22,7 @@ data GameEvent :: * where
     GameEnds :: GameResult -> GameEvent
     DeckShuffled :: Handle Player -> Deck -> GameEvent
     CardDrawn :: Handle Player -> Either DeckCard HandCard -> Deck -> GameEvent
+    UsedHeroPower :: Handle Player -> HeroPower -> GameEvent
     PlayedMinion :: Handle Player -> Handle Minion -> GameEvent
     PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
     TookDamage :: Handle Character -> Damage -> GameEvent

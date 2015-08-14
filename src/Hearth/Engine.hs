@@ -118,6 +118,8 @@ mkBoardHero hero = BoardHero {
     _boardHeroDamage = 0,
     _boardHeroArmor = 0,
     _boardHeroAttackCount = 0,
+    _boardHeroPower = hero^.heroPower,
+    _boardHeroPowerCount = 0,
     _boardHero = hero }
 
 
@@ -419,6 +421,7 @@ beginTurn = logCall 'beginTurn $ do
     zoom (getPlayer handle) $ do
         playerEmptyManaCrystals .= 0
         playerHero.boardHeroAttackCount .= 0
+        playerHero.boardHeroPowerCount .= 0
         playerMinions.traversed.boardMinionAttackCount .= 0
         playerMinions.traversed.boardMinionNewlySummoned .= False
     _ <- drawCard handle
@@ -465,8 +468,8 @@ performAction = logCall 'performAction $ do
     return $ case evolution of
         Left _ -> Left ()
         Right EndTurn -> Right EndTurn
-    
-    
+
+
 enactAction :: (HearthMonad m) => Action -> Hearth m (Either Result EndTurn)
 enactAction = logCall 'enactAction . \case
     ActionPlayerConceded p -> concede p >> return (Left Success)
@@ -474,10 +477,40 @@ enactAction = logCall 'enactAction . \case
     ActionPlaySpell card -> liftM Left $ actionPlaySpell card
     ActionAttack attacker defender -> liftM Left $ actionAttack attacker defender
     ActionEndTurn -> return $ Right EndTurn
+    ActionHeroPower -> liftM Left actionHeroPower
+
+
+actionHeroPower :: (HearthMonad m) => Hearth m Result
+actionHeroPower = logCall 'actionHeroPower $ do
+    st <- get
+    handle <- getActivePlayerHandle
+    hero <- view $ getPlayer handle.playerHero
+    let power = hero^.boardHeroPower
+        timesUsed = hero^.boardHeroPowerCount
+        cost = power^.heroPowerCost
+        cont = power^.heroPowerEffect
+    case timesUsed == 0 of
+        False -> return $ Failure "Hero power limit has been reached."
+        True -> payCost handle cost >>= \case
+            Failure msg -> return $ Failure msg
+            Success -> do
+                snap <- gets GameSnapshot
+                prompt $ PromptGameEvent snap $ UsedHeroPower handle power
+                enactElect (cont handle) >>= \case
+                    NotAvailable -> do
+                        put st
+                        return $ Failure "No targets available."
+                    Available result' -> case result' of
+                        TargetedPick _ -> do
+                            getPlayer handle.playerHero.boardHeroPowerCount += 1
+                            return Success
+                        AbortTargetedPick -> do
+                            put st
+                            return $ Failure "Targeted pick aborted."
 
 
 concede :: (HearthMonad m) => Handle Player -> Hearth m ()
-concede p = do
+concede p = logCall 'concede $ do
     health <- dynamicMaxHealth p
     getPlayer p.playerHero.boardHeroDamage .= Damage (unHealth health)
 

@@ -57,7 +57,7 @@ import Hearth.GameEvent
 import Hearth.Model hiding (minionName, spellName)
 import qualified Hearth.Model as Model
 import Hearth.Names
-import Hearth.Names.Basic (BasicCardName(TheCoin))
+import Hearth.Names.Basic (BasicCardName(TheCoin), BasicHeroPowerName(..))
 import Hearth.Names.Hero
 import Hearth.Prompt
 import Hearth.ShowCard
@@ -182,13 +182,26 @@ instance Zoom (Console' st) (Console' st') st st' where
     zoom l = Console . zoom l . unConsole
 
 
-localQuiet :: Console a -> Console a
-localQuiet m = do
-    v <- view $ logState.verbosity
-    logState.verbosity .= Quiet
-    x <- m
-    logState.verbosity .= v
-    return x
+class LocalQuiet m where
+    localQuiet :: m a -> m a
+
+
+instance LocalQuiet Console where
+    localQuiet m = do
+        v <- view $ logState.verbosity
+        logState.verbosity .= Quiet
+        x <- m
+        logState.verbosity .= v
+        return x
+
+
+instance LocalQuiet (Hearth Console) where
+    localQuiet m = do
+        v <- lift $ view $ logState.verbosity
+        lift $ logState.verbosity .= Quiet
+        x <- m
+        lift $ logState.verbosity .= v
+        return x
 
 
 newLogLine :: Console ()
@@ -299,6 +312,12 @@ gameEvent snapshot = \case
             cardAttr = ("card", either deckCardName' handCardName' deckOrHandCard)
             resultAttr = ("result", either (const $ show 'Failure) (const $ show Success) deckOrHandCard)
         tag 'CardDrawn [playerAttr, cardAttr, resultAttr]
+    UsedHeroPower player power -> do
+        playerName <- query $ showHandle player
+        let powerName = power^.heroPowerName.to showHeroPowerName
+            playerAttr = ("player", playerName)
+            powerAttr = ("heroPower", powerName)
+        tag 'UsedHeroPower [playerAttr, powerAttr]
     PlayedMinion player minion -> do
         playerName <- query $ showHandle player
         minionName <- query $ showHandle minion
@@ -403,6 +422,11 @@ showCardName :: CardName -> String
 showCardName = \case
     BasicCardName name -> show name
     ClassicCardName name -> show name
+
+
+showHeroPowerName :: HeroPowerName -> String
+showHeroPowerName = \case
+    BasicHeroPowerName name -> show name
 
 
 showHeroName :: HeroName -> String
@@ -581,10 +605,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 _tagDepth = 0,
                 _useShortTag = False,
                 _verbosity = defaultVerbosity } }
-        power = HeroPower {
-            _heroPowerCost = ManaCost 0,
-            _heroPowerEffect = \p -> Effect $ DrawCards p 1 }
-        hero name = Hero {
+        hero name power = Hero {
             _heroAttack = 0,
             _heroHealth = 30,
             _heroPower = power,
@@ -592,8 +613,27 @@ runTestGame = flip evalStateT st $ unConsole $ do
         cards = filter ((/= BasicCardName TheCoin) . deckCardName) Universe.cards
         deck1 = Deck cards
         deck2 = deck1
-        player1 = PlayerData (hero Thrall) deck1
-        player2 = PlayerData (hero Rexxar) deck2
+        player1 = PlayerData (hero Jaina fireblast) deck1
+        player2 = PlayerData (hero Gul'dan lifeTap) deck2
+
+
+fireblast :: HeroPower
+fireblast = HeroPower {
+    _heroPowerName = BasicHeroPowerName Fireblast,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \_ ->
+        A $ Character [] $ \target ->
+            Effect $ DealDamage target 1 }
+
+
+lifeTap :: HeroPower
+lifeTap = HeroPower {
+    _heroPowerName = BasicHeroPowerName LifeTap,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you -> 
+        Effect $ Sequence [
+            DrawCards you 1,
+            DealDamage (PlayerCharacter you) 2 ]}
 
 
 getWindowSize :: IO (Window Int)
@@ -685,6 +725,8 @@ actionOptions = do
         playCardAction
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
         attackAction
+    addOption (kw "3" `argText` "TARGETS*" `text` "Use hero power.")
+        useHeroPowerAction
     addOption (kw "?" `argText` "CARD" `text` "Read CARD from a player's hand.")
         readCardInHandAction
     addOption (kw "?" `text` "Display detailed help text.")
@@ -849,6 +891,7 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             tryAttackPlayerPlayer,
             tryAttackPlayerMinion,
             tryAttackMinionPlayer,
+            tryHeroPower,
             tryAttackMinionMinion ]
         tryPlayMinion = do
             handle <- getActivePlayerHandle
@@ -862,6 +905,8 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlayMinion card pos
+        tryHeroPower = do
+                return $ Just $ return $ GameAction ActionHeroPower
         tryPlaySpell = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
@@ -984,6 +1029,20 @@ attackAction attackerIdx defenderIdx = do
             Just defender -> return $ GameAction $ ActionAttack attacker defender
 
 
+useHeroPowerAction :: List SignedInt -> Hearth Console ConsoleAction
+useHeroPowerAction (List targets) = localQuiet $ do
+    lift $ pendingTargets .= targets
+    local id $ enactAction ActionHeroPower >>= \case
+        Right EndTurn -> $logicError 'useHeroPowerAction "This should never get hit."
+        Left result -> case result of
+            Failure msg -> return $ ComplainRetryAction msg
+            Success -> lift (view pendingTargets) >>= \case
+                (_ : _) -> return $ ComplainRetryAction "Too many targets."
+                [] -> do
+                    lift $ pendingTargets .= targets
+                    return $ GameAction ActionHeroPower
+
+
 playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
 
@@ -1017,13 +1076,10 @@ playCardAction = let
     go' targets = \case
         GameAction action -> do
             lift $ pendingTargets .= targets
-            result <- local id $ do
-                v <- lift $ view $ logState.verbosity
-                lift $ logState.verbosity .= Quiet
+            result <- local id $ localQuiet $ do
                 result <- enactAction action >>= return . \case
                     Right EndTurn -> $logicError 'playCardAction "This should never get hit."
                     Left result -> result
-                lift $ logState.verbosity .= v
                 return result
             case result of
                 Success -> lift (view pendingTargets) >>= \case

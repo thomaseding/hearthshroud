@@ -18,6 +18,7 @@ import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.Render.BoardHeroColumn
 import Hearth.Client.Console.Render.DeckColumn
+import Hearth.Client.Console.Render.HeroPowerColumn
 import Hearth.Client.Console.Render.ManaColumn
 import Hearth.Client.Console.SGRString
 
@@ -32,6 +33,8 @@ playerColumn player = do
         deckColumn $ player^.playerDeck,
         txt "",
         manaColumn player,
+        txt "",
+        heroPowerColumn player,
         txt "",
         bhc ]
     where

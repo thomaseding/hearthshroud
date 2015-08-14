@@ -18,6 +18,11 @@ import Hearth.Names.Hero
 --------------------------------------------------------------------------------
 
 
+data HeroPowerName :: * where
+    BasicHeroPowerName :: BasicHeroPowerName -> HeroPowerName
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
 data HeroName :: * where
     BasicHeroName :: BasicHeroName -> HeroName
     deriving (Show, Eq, Ord, Data, Typeable)
