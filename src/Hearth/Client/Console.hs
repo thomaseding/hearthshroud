@@ -726,7 +726,7 @@ actionOptions = do
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
         attackAction
     addOption (kw "3" `argText` "TARGETS*" `text` "Use hero power.")
-        useHeroPowerAction
+        heroPowerAction
     addOption (kw "?" `argText` "CARD" `text` "Read CARD from a player's hand.")
         readCardInHandAction
     addOption (kw "?" `text` "Display detailed help text.")
@@ -1029,18 +1029,27 @@ attackAction attackerIdx defenderIdx = do
             Just defender -> return $ GameAction $ ActionAttack attacker defender
 
 
-useHeroPowerAction :: List SignedInt -> Hearth Console ConsoleAction
-useHeroPowerAction (List targets) = localQuiet $ do
+tryAction :: Action -> [SignedInt] -> Hearth Console ConsoleAction
+tryAction action targets = localQuiet $ do
     lift $ pendingTargets .= targets
-    local id $ enactAction ActionHeroPower >>= \case
-        Right EndTurn -> $logicError 'useHeroPowerAction "This should never get hit."
+    local id $ enactAction action >>= \case
+        Right EndTurn -> return $ GameAction action
         Left result -> case result of
-            Failure msg -> return $ ComplainRetryAction msg
+            Failure message -> complain message
             Success -> lift (view pendingTargets) >>= \case
-                (_ : _) -> return $ ComplainRetryAction "Too many targets."
+                (_ : _) -> complain "Too many targets."
                 [] -> do
                     lift $ pendingTargets .= targets
-                    return $ GameAction ActionHeroPower
+                    return $ GameAction action
+    where
+        complain msg = do
+            liftIO $ print targets
+            lift $ pendingTargets .= []
+            return $ ComplainRetryAction msg
+
+
+heroPowerAction :: List SignedInt -> Hearth Console ConsoleAction
+heroPowerAction = tryAction ActionHeroPower . unList
 
 
 playCardAction :: List SignedInt -> Hearth Console ConsoleAction
@@ -1074,23 +1083,9 @@ playCardAction = let
 
     go' :: [SignedInt] -> ConsoleAction -> Hearth Console ConsoleAction
     go' targets = \case
-        GameAction action -> do
-            lift $ pendingTargets .= targets
-            result <- local id $ localQuiet $ do
-                result <- enactAction action >>= return . \case
-                    Right EndTurn -> $logicError 'playCardAction "This should never get hit."
-                    Left result -> result
-                return result
-            case result of
-                Success -> lift (view pendingTargets) >>= \case
-                    [] -> do
-                        lift $ pendingTargets .= targets
-                        return $ GameAction action
-                    _ -> return $ ComplainRetryAction "Too many targets."
-                Failure msg -> do
-                    liftIO $ print targets
-                    return $ ComplainRetryAction msg
+        GameAction action -> tryAction action targets
         action -> return action
+
     in \case
         List (SignedInt Positive handIdx : args) -> go handIdx args
         _ -> return $ ComplainRetryAction "Hand card index must be positive when playing a card."
