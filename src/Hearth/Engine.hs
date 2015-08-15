@@ -743,6 +743,8 @@ restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
 destroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()
 destroyMinion handle = logCall 'destroyMinion $ do
     getMinion handle.boardMinionPendingDestroy .= True
+    snap <- gets GameSnapshot
+    prompt $ PromptGameEvent snap $ MinionDestroyed handle
 
 
 enactForEach :: (HearthMonad m) => [a] -> (a -> Effect) -> Hearth m (SimplePickResult AtRandom)

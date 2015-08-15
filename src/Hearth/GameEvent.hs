@@ -28,6 +28,7 @@ data GameEvent :: * where
     TookDamage :: Handle Character -> Damage -> GameEvent
     HealthRestored :: Handle Character -> Health -> GameEvent
     GainedArmor :: Handle Player -> Armor -> GameEvent
+    MinionDestroyed :: Handle Minion -> GameEvent
     MinionDied :: Handle Minion -> GameEvent
     EnactAttack :: Handle Character -> Handle Character -> GameEvent
     GainsManaCrystal :: Handle Player -> Maybe CrystalState -> GameEvent

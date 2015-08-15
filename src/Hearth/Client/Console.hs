@@ -351,6 +351,10 @@ gameEvent snapshot = \case
             oldMinionAttr = ("oldMinion", oldMinionName)
             newMinionAttr = ("newMinion", newMinionName)
         tag 'Transformed [oldMinionAttr, newMinionAttr]
+    MinionDestroyed minion -> do
+        minionName <- query $ showHandle minion
+        let minionAttr = ("minion", minionName)
+        tag 'MinionDestroyed [minionAttr]
     MinionDied minion -> do
         minionName <- query $ showHandle minion
         let minionAttr = ("minion", minionName)
