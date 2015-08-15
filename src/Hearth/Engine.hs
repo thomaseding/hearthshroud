@@ -769,7 +769,7 @@ grantAbilities handle abilities = logCall 'grantAbilities $ do
 
 enchant :: (HearthMonad m) => Handle Minion -> [Enchantment] -> Hearth m ()
 enchant handle enchantments = logCall 'enchant $ do
-    getMinion handle.boardMinionEnchantments %= (enchantments ++)
+    getMinion handle.boardMinionEnchantments %= (++ enchantments)
 
 
 isDamaged :: BoardMinion -> Bool
@@ -858,25 +858,65 @@ instance CharacterTraits PlayerHandle where
     hasSummoningSickness _ = return False
 
 
-observeEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m a -> Hearth m a
-observeEnchantments handle action = logCall 'observeEnchantments $ local id $ do
-    enchantments <- dynamicEnchantments handle
-    forM_ enchantments $ \case
-        StatsDelta a h -> do
-            getMinion handle.boardMinion.minionAttack += a
-            getMinion handle.boardMinion.minionHealth += h
-        StatsScale a h -> do
-            getMinion handle.boardMinion.minionAttack *= a
-            getMinion handle.boardMinion.minionHealth *= h
-        ChangeStat e -> case e of
-            Left a -> getMinion handle.boardMinion.minionAttack .= a
-            Right h -> getMinion handle.boardMinion.minionHealth .= h
-        SwapStats -> do
-            Attack attack <- view $ getMinion handle.boardMinion.minionAttack
-            Health health <- view $ getMinion handle.boardMinion.minionHealth
-            getMinion handle.boardMinion.minionAttack .= Attack health
-            getMinion handle.boardMinion.minionHealth .= Health attack
+auraAbilitiesOf :: [Ability] -> [Handle Minion -> Aura]
+auraAbilitiesOf = mapMaybe $ \case
+    Aura aura -> Just aura
+    _ -> Nothing
+
+
+observeDynamicState :: (HearthMonad m) => Handle Minion -> Hearth m a -> Hearth m a
+observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
+    applyAuras
+    applyEnchantments
     action
+    where
+        applyAuras = do
+            minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+            forM_ minions $ \minion -> do
+                auras <- liftM auraAbilitiesOf $ dynamicAbilities minion
+                forM_ auras $ enactAura . ($ minion)
+        applyEnchantments = do
+            enchantments <- dynamicEnchantments handle
+            forM_ enchantments $ \case
+                StatsDelta a h -> do
+                    getMinion handle.boardMinion.minionAttack += a
+                    getMinion handle.boardMinion.minionHealth += h
+                StatsScale a h -> do
+                    getMinion handle.boardMinion.minionAttack *= a
+                    getMinion handle.boardMinion.minionHealth *= h
+                ChangeStat e -> case e of
+                    Left a -> getMinion handle.boardMinion.minionAttack .= a
+                    Right h -> getMinion handle.boardMinion.minionHealth .= h
+                SwapStats -> do
+                    Attack attack <- view $ getMinion handle.boardMinion.minionAttack
+                    Health health <- view $ getMinion handle.boardMinion.minionHealth
+                    getMinion handle.boardMinion.minionAttack .= Attack health
+                    getMinion handle.boardMinion.minionHealth .= Health attack
+
+
+enactAura :: (HearthMonad m) => Aura -> Hearth m ()
+enactAura = logCall 'enactAura $ \case
+    AuraOwnerOf handle cont -> ownerOf handle >>= enactAura . cont
+    AuraOpponentOf handle cont -> opponentOf handle >>= enactAura . cont
+    While handle restrictions aura -> enactWhile handle restrictions aura
+    EachMinion restrictions cont -> enactEachMinion restrictions cont
+    Has handle enchantments -> enactHas handle enchantments
+
+
+enactEachMinion :: (HearthMonad m) => [Restriction Minion] -> (Handle Minion -> Aura) -> Hearth m ()
+enactEachMinion restrictions cont = logCall 'enactEachMinion $ do
+    minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+    forM_ minions $ \minion -> do
+        whenM (isPermitted restrictions minion) $ enactAura $ cont minion
+
+
+enactWhile :: (HearthMonad m) => Handle a -> [Restriction a] -> Aura -> Hearth m ()
+enactWhile handle restrictions = logCall 'enactWhile $ whenM (isPermitted restrictions handle) . enactAura
+
+
+enactHas :: (HearthMonad m) => Handle Minion -> [Enchantment] -> Hearth m ()
+enactHas handle enchantments = logCall 'enactHas $ do
+    getMinion handle.boardMinionEnchantments %= (++ enchantments)
 
 
 instance CharacterTraits MinionHandle where

@@ -195,6 +195,45 @@ showAbility :: Ability -> ShowCard String
 showAbility = \case
     KeywordAbility ability -> showKeywordAbility ability
     Whenever event -> showWhenever event
+    Aura aura -> showAuraAbility aura
+
+
+showAuraAbility :: (Handle Minion -> Aura) -> ShowCard String
+showAuraAbility cont = genHandle this >>= showAura . cont
+
+
+showAura :: Aura -> ShowCard String
+showAura = \case
+    AuraOwnerOf handle cont -> showOwnerOf showAura handle cont
+    AuraOpponentOf handle cont -> showOpponentOf showAura handle cont
+    While handle restrictions cont -> showWhile handle restrictions cont
+    EachMinion restrictions cont -> showEachMinion restrictions cont
+    Has handle enchantments -> showHas handle enchantments
+
+
+showEachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> ShowCard String
+showEachMinion restrictions cont = do
+    restrictionsStr <- showRestrictions restrictions
+    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+    auraStr <- showAura $ cont handle
+    return $ "Each minion: " ++ auraStr
+
+
+showHas :: Handle Minion -> [Enchantment] -> ShowCard String
+showHas minion enchantments = do
+    minionStr <- readHandle minion
+    enchantmentsStr <- showEnchantments enchantments
+    return $ unwords [minionStr, "has", enchantmentsStr]
+
+
+showWhile :: Handle a -> [Restriction a] -> Aura -> ShowCard String
+showWhile handle restrictions aura = case restrictions of
+    [] -> showAura aura
+    _ -> do
+        handleStr <- readHandle handle
+        restrictionsStr <- showRestrictions restrictions
+        auraStr <- showAura aura
+        return $ "While " ++ handleStr ++ "[" ++ restrictionsStr ++ "]: " ++ auraStr
 
 
 showWhenever :: (GenHandle a) => Event a -> ShowCard String
@@ -322,8 +361,8 @@ showElect = \case
     A x -> showA x
     All x -> showAll x
     Effect x -> showEffect x
-    OwnerOf handle cont -> showOwnerOf handle cont
-    OpponentOf handle cont -> showOpponentOf handle cont
+    OwnerOf handle cont -> showOwnerOf showElect handle cont
+    OpponentOf handle cont -> showOpponentOf showElect handle cont
     Choice choices -> showChoice choices
 
 
@@ -429,7 +468,6 @@ showRestriction = \case
         (is opponent -> True) -> "ENEMY"
         str -> "OWNED_BY[" ++ str ++ "]"
     Not handle -> readHandle handle >>= return . \case
-        (is this -> True) -> ""
         str -> "NOT " ++ str
     AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
     Damaged -> return "DAMAGED"
@@ -437,20 +475,20 @@ showRestriction = \case
     IsMinion -> return "IS_MINION"
 
 
-showOwnerOf :: (IsSelection s) => Handle a -> (Handle Player -> Elect s) -> ShowCard String
-showOwnerOf handle cont = do
+showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle Player -> x) -> ShowCard String
+showOwnerOf showX handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
         str -> genHandle ("OWNER_OF[" ++ str ++ "]")
-    showElect $ cont player
+    showX $ cont player
 
 
-showOpponentOf :: (IsSelection s) => Handle Player -> (Handle Player -> Elect s) -> ShowCard String
-showOpponentOf minion cont = do
+showOpponentOf :: (x -> ShowCard String) -> Handle Player -> (Handle Player -> x) -> ShowCard String
+showOpponentOf showX minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
         str -> genHandle ("OPPONENT_OF[" ++ str ++ "]")
-    showElect $ cont player
+    showX $ cont player
 
 
 showSequence :: [Effect] -> ShowCard String

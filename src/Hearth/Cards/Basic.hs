@@ -90,6 +90,7 @@ cards = [
     starfire,
     stonetuskBoar,
     stormpikeCommando,
+    stormwindChampion,
     stormwindKnight,
     swipe,
     theCoin,
@@ -628,6 +629,15 @@ stormpikeCommando = mkMinion StormpikeCommando 5 4 2 [
 stormwindKnight :: DeckCard
 stormwindKnight = mkMinion StormwindKnight 4 2 5 [
     KeywordAbility Charge ]
+
+
+stormwindChampion :: DeckCard
+stormwindChampion = mkMinion StormwindChampion 7 6 6 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [OwnedBy you, Not this] $ \minion ->
+                Has minion [
+                    StatsDelta 1 1 ]]
 
 
 swipe :: DeckCard

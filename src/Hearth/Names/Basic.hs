@@ -96,6 +96,7 @@ data BasicCardName
     | Starfire
     | StonetuskBoar
     | StormpikeCommando
+    | StormwindChampion
     | StormwindKnight
     | Swipe
     | TheCoin

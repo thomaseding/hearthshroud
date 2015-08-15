@@ -199,9 +199,19 @@ data Event :: * -> * where
     TakesDamage :: (Handle a -> Handle Character -> Elect AtRandom) -> Event a
 
 
+-- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)
+data Aura :: * where
+    AuraOwnerOf :: Handle a -> (Handle Player -> Aura) -> Aura
+    AuraOpponentOf :: Handle Player -> (Handle Player -> Aura) -> Aura
+    While :: Handle a -> [Restriction a] -> Aura -> Aura
+    EachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> Aura
+    Has :: Handle Minion -> [Enchantment] -> Aura
+
+
 data Ability :: * where
     KeywordAbility :: KeywordAbility -> Ability
     Whenever :: Event Minion -> Ability
+    Aura :: (Handle Minion -> Aura) -> Ability
     deriving (Typeable)
 
 
