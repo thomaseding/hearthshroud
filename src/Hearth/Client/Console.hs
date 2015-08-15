@@ -882,11 +882,13 @@ instance PickRandom (NonEmpty a) a where
 
 
 autoplayAction :: Hearth Console ConsoleAction
-autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= decideAction
+autoplayAction = do
+    lift $ isAutoplay .= True
+    liftIO (shuffleM activities) >>= decideAction
     where
         decideAction = \case
             [] -> endTurnAction
-            m : ms -> m >>= \case
+            m : ms -> local id m >>= \case
                 Nothing -> decideAction ms
                 Just action -> action
         activities = [
@@ -903,18 +905,20 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
             maxPos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
             let positions = [BoardPos 0 .. maxPos]
             pos <- liftM head $ liftIO $ shuffleM positions
-            allowedCards <- flip filterM (reverse cards) $ \card -> local id (playMinion handle card pos) >>= \case
+            allowedCards <- flip filterM (reverse cards) $ \card -> playMinion handle card pos >>= \case
                 Failure {} -> return False
                 Success -> return True
             pickRandom allowedCards >>= return . \case
                 Nothing -> Nothing
                 Just card -> Just $ return $ GameAction $ ActionPlayMinion card pos
         tryHeroPower = do
-                return $ Just $ return $ GameAction ActionHeroPower
+            actionHeroPower >>= return . \case
+                Failure {} -> Nothing
+                Success -> Just $ return $ GameAction ActionHeroPower
         tryPlaySpell = do
             handle <- getActivePlayerHandle
             cards <- view $ getPlayer handle.playerHand.handCards
-            allowedCards <- flip filterM (reverse cards) $ \card -> local id (playSpell handle card) >>= \case
+            allowedCards <- flip filterM (reverse cards) $ \card -> playSpell handle card >>= \case
                 Failure {} -> return False
                 Success -> return True
             pickRandom allowedCards >>= return . \case
@@ -932,7 +936,7 @@ autoplayAction = lift (isAutoplay .= True) >> liftIO (shuffleM activities) >>= d
                     ++ [(PlayerCharacter activeHandle, na) | na <- nonActiveMinions]
                     ++ [(a, PlayerCharacter nonActiveHandle) | a <- activeMinions]
             allowedPairs <- flip filterM pairs $ \(activeChar, nonActiveChar) -> do
-                local id $ enactAttack activeChar nonActiveChar >>= \case
+                enactAttack activeChar nonActiveChar >>= \case
                     Failure {} -> return False
                     Success -> return True
             pickRandom allowedPairs >>= return . \case
