@@ -199,7 +199,7 @@ charge = mkSpell Basic.Charge 3 $ \this ->
             Effect $ Sequence [
                 Enchant target [
                     StatsDelta 2 0 ],
-                GiveAbility target [
+                GrantAbilities target [
                     KeywordAbility Charge ]]
 
 
@@ -362,7 +362,7 @@ hammerOfWrath = mkSpell HammerOfWrath 4 $ \this ->
 handOfProtection :: DeckCard
 handOfProtection = mkSpell HandOfProtection 1 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ GiveAbility target [
+        Effect $ GrantAbilities target [
             KeywordAbility DivineShield ]
 
 
@@ -456,7 +456,7 @@ markOfTheWild :: DeckCard
 markOfTheWild = mkSpell MarkOfTheWild 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
-            GiveAbility target [
+            GrantAbilities target [
                 KeywordAbility Taunt ],
             Enchant target [
                 StatsDelta 2 2 ]]

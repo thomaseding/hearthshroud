@@ -272,7 +272,7 @@ verbosityGate name m = do
             'dynamicAttack,
             'dynamicMaxHealth,
             'getActivePlayerHandle,
-            'controllerOf ]
+            'ownerOf ]
 
 
 debugEvent :: DebugEvent -> Console ()

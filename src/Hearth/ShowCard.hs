@@ -258,7 +258,7 @@ showEffect = \case
     DrawCards handle n -> showDrawCards handle n
     DealDamage handle damage -> showDealDamage handle damage
     Enchant handle enchantments -> showEnchant handle enchantments
-    GiveAbility handle abilities -> showGiveAbility handle abilities
+    GrantAbilities handle abilities -> showGrantAbilities handle abilities
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
@@ -487,11 +487,11 @@ showEnchant minion enchantments = do
     return $ unwords ["Give", minionStr, enchantmentsStr]
 
 
-showGiveAbility :: Handle Minion -> [Ability] -> ShowCard String
-showGiveAbility minion abilities = do
+showGrantAbilities :: Handle Minion -> [Ability] -> ShowCard String
+showGrantAbilities minion abilities = do
     minionStr <- readHandle minion
     abilitiesStr <- showAbilities abilities
-    return $ unwords ["Give", minionStr, abilitiesStr]
+    return $ unwords ["Grant", minionStr, abilitiesStr]
 
 
 showGainManaCrystals :: Handle Player -> Int -> CrystalState -> ShowCard String

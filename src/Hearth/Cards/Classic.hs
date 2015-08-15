@@ -139,7 +139,8 @@ argentProtector = mkMinion ArgentProtector 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ GiveAbility target [KeywordAbility DivineShield ]]
+                Effect $ GrantAbilities target [
+                    KeywordAbility DivineShield ]]
 
 
 argentSquire :: DeckCard
@@ -334,7 +335,7 @@ markOfNature = mkSpell MarkOfNature 3 $ \_ ->
             Effect $ Sequence [
                 Enchant target [
                     StatsDelta 0 4 ],
-                GiveAbility target [
+                GrantAbilities target [
                     KeywordAbility Taunt ]]]
 
 
