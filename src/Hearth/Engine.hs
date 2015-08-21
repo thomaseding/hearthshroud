@@ -1174,6 +1174,7 @@ instance IsPermitted (Restriction a) a where
         IsMinion -> return $ case candidate of
             MinionCharacter {} -> True
             _ -> False
+        AdjacentTo handle -> areAdjacent handle candidate
 
 
 instance IsPermitted [Restriction a] a where
@@ -1282,6 +1283,22 @@ clearDeadMinions = logCall 'clearDeadMinions $ do
             prompt $ PromptGameEvent snap $ MinionDied minion
             enactAnyDeathrattles minion
             removeMinion minion
+
+
+comesAfter :: (Eq a) => a -> a -> [a] -> Bool
+comesAfter x y = \case
+    v : w : zs -> case x == v && y == w of
+        True -> True
+        False -> comesAfter x y (w : zs)
+    _ -> False
+
+
+areAdjacent :: (HearthMonad m) => Handle Minion -> Handle Minion -> Hearth m Bool
+areAdjacent handle1 handle2 = do
+    minionsByPlayer <- viewListOf $ gamePlayers.traversed.playerMinions
+    return $ flip any minionsByPlayer $ \minions -> let
+        handles = map _boardMinionHandle minions
+        in comesAfter handle1 handle2 handles || comesAfter handle2 handle1 handles
 
 
 removeMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()

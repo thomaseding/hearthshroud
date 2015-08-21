@@ -50,6 +50,7 @@ data BasicCardName
     | Fireball
     | FireElemental
     | Flamestrike
+    | FlametongueTotem
     | Frog
     | FrostwolfGrunt
     | GnomishInventor
@@ -81,6 +82,7 @@ data BasicCardName
     | OasisSnapjaw
     | Polymorph
     | PowerWordShield
+    | RaidLeader
     | RecklessRocketeer
     | RiverCrocolisk
     | Sen'jinShieldmasta

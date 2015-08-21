@@ -44,6 +44,7 @@ cards = [
     fireball,
     fireElemental,
     flamestrike,
+    flametongueTotem,
     frog,
     frostwolfGrunt,
     gnomishInventor,
@@ -75,6 +76,7 @@ cards = [
     oasisSnapjaw,
     polymorph,
     powerWordShield,
+    raidLeader,
     recklessRocketeer,
     riverCrocolisk,
     sen'jinShieldmasta,
@@ -318,6 +320,14 @@ flamestrike = mkSpell Flamestrike 7 $ \this ->
                     DealDamage (MinionCharacter victim) 4
 
 
+flametongueTotem :: DeckCard
+flametongueTotem = mkMinion FlametongueTotem 2 0 3 [
+    Aura $ \this ->
+        EachMinion [AdjacentTo this] $ \minion ->
+            Has minion [
+                StatsDelta 2 0 ]]
+
+
 frog :: DeckCard
 frog = DeckCardMinion frog'
 
@@ -529,6 +539,15 @@ powerWordShield = mkSpell PowerWordShield 1 $ \this ->
                 DrawCards you 1 ]
 
 
+raidLeader :: DeckCard
+raidLeader = mkMinion RaidLeader 3 2 2 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [OwnedBy you, Not this] $ \minion ->
+                Has minion [
+                    StatsDelta 1 0 ]]
+
+
 recklessRocketeer :: DeckCard
 recklessRocketeer = mkMinion RecklessRocketeer 6 5 2 [
     KeywordAbility Charge ]
@@ -645,7 +664,7 @@ swipe = mkSpell Swipe 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             A $ Character [OwnedBy opponent] $ \target ->
-                All $ Characters [Not target] $ \others ->
+                All $ Characters [OwnedBy opponent, Not target] $ \others ->
                     Effect $ Sequence [
                         DealDamage target 4,
                         ForEach others $ \other ->

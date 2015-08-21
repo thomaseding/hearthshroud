@@ -32,6 +32,7 @@ data ClassicCardName
     | ColdlightOracle
     | CrazedAlchemist
     | CruelTaskmaster
+    | DireWolfAlpha
     | EarthenRingFarseer
     | EarthShock
     | Equality

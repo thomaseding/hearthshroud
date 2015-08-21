@@ -33,6 +33,7 @@ cards = [
     coldlightOracle,
     crazedAlchemist,
     cruelTaskmaster,
+    direWolfAlpha,
     earthenRingFarseer,
     earthShock,
     equality,
@@ -219,6 +220,14 @@ cruelTaskmaster = mkMinion CruelTaskmaster 2 2 2 [
                 DealDamage (MinionCharacter target) 1,
                 Enchant target [
                     StatsDelta 2 0 ]]]
+
+
+direWolfAlpha :: DeckCard
+direWolfAlpha = mkMinion DireWolfAlpha 2 2 2 [
+    Aura $ \this ->
+        EachMinion [AdjacentTo this] $ \minion ->
+            Has minion [
+                StatsDelta 1 0 ]]
 
 
 earthenRingFarseer :: DeckCard

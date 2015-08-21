@@ -473,6 +473,7 @@ showRestriction = \case
     Damaged -> return "DAMAGED"
     Undamaged -> return "UNDAMAGED"
     IsMinion -> return "IS_MINION"
+    AdjacentTo handle -> readHandle handle >>= \str -> return ("ADJACENT_TO " ++ str)
 
 
 showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle Player -> x) -> ShowCard String

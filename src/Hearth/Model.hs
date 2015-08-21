@@ -142,6 +142,7 @@ data Restriction :: * -> * where
     Damaged :: Restriction Character
     Undamaged :: Restriction Character
     IsMinion :: Restriction Character
+    AdjacentTo :: Handle Minion -> Restriction Minion
 
 
 data Comparison
