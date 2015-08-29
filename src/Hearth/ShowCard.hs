@@ -219,11 +219,11 @@ showEachMinion restrictions cont = do
     return $ "Each minion: " ++ auraStr
 
 
-showHas :: Handle Minion -> [Enchantment] -> ShowCard String
-showHas minion enchantments = do
+showHas :: Handle Minion -> Enchantment a -> ShowCard String
+showHas minion enchantment = do
     minionStr <- readHandle minion
-    enchantmentsStr <- showEnchantments enchantments
-    return $ unwords [minionStr, "has", enchantmentsStr]
+    enchantmentStr <- showEnchantment enchantment
+    return $ unwords [minionStr, "has", enchantmentStr]
 
 
 showWhile :: Handle a -> [Restriction a] -> Aura -> ShowCard String
@@ -268,7 +268,7 @@ showKeywordAbility = \case
     Taunt -> return "Taunt"
 
 
-showEnrage :: [Ability] -> [Enchantment] -> ShowCard String
+showEnrage :: [Ability] -> [Enchantment Continuous] -> ShowCard String
 showEnrage abilities enchantments = do
     asStr <- mapM showAbility abilities
     esStr <- mapM showEnchantment enchantments
@@ -519,11 +519,13 @@ showDealDamage character (Damage amount) = do
     return $ unwords ["Deal", show amount, "damage to", characterStr]
 
 
-showEnchant :: Handle Minion -> [Enchantment] -> ShowCard String
-showEnchant minion enchantments = do
+showEnchant :: Handle Minion -> AnyEnchantment -> ShowCard String
+showEnchant minion enchantment = do
     minionStr <- readHandle minion
-    enchantmentsStr <- showEnchantments enchantments
-    return $ unwords ["Give", minionStr, enchantmentsStr]
+    enchantmentStr <- case enchantment of
+        Continuous e -> showEnchantment e
+        Limited e -> showEnchantment e
+    return $ unwords ["Give", minionStr, enchantmentStr]
 
 
 showGrantAbilities :: Handle Minion -> [Ability] -> ShowCard String
@@ -549,11 +551,7 @@ showGainManaCrystals player amount crystalState = do
     return $ unwords [playerStr, gainStr, crystalStr]
 
 
-showEnchantments :: [Enchantment] -> ShowCard String
-showEnchantments = liftM itemize . mapM showEnchantment
-
-
-showEnchantment :: Enchantment -> ShowCard String
+showEnchantment :: Enchantment a -> ShowCard String
 showEnchantment = \case
     StatsDelta (Attack x) (Health y) -> return $ showWithSign x ++ "/" ++ showWithSign y
     StatsScale (Attack x) (Health y) -> return $ "Scale stats by " ++ show x ++ "/" ++ show y

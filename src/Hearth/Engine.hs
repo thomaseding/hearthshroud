@@ -686,7 +686,7 @@ enactEffect = logCall 'enactEffect . \case
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
     DealDamage handle damage -> receiveDamage handle damage >> return success
-    Enchant handle enchantments -> enchant handle enchantments >> return success
+    Enchant handle enchantment -> enchant handle enchantment >> return success
     GrantAbilities handle abilities -> grantAbilities handle abilities >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
     DestroyMinion handle -> destroyMinion handle >> return success
@@ -767,9 +767,9 @@ grantAbilities handle abilities = logCall 'grantAbilities $ do
     getMinion handle.boardMinionAbilities %= (abilities ++)
 
 
-enchant :: (HearthMonad m) => Handle Minion -> [Enchantment] -> Hearth m ()
-enchant handle enchantments = logCall 'enchant $ do
-    getMinion handle.boardMinionEnchantments %= (++ enchantments)
+enchant :: (HearthMonad m) => Handle Minion -> AnyEnchantment -> Hearth m ()
+enchant handle enchantment = logCall 'enchant $ do
+    getMinion handle.boardMinionEnchantments %= (++ [enchantment])
 
 
 isDamaged :: BoardMinion -> Bool
@@ -800,7 +800,7 @@ dynamicAbilities bmHandle = do
         _ -> [ability]
 
 
-dynamicEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [Enchantment]
+dynamicEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment]
 dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
@@ -809,7 +809,7 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
             True -> bm^.boardMinionAbilities >>= \case
                 KeywordAbility (Enrage _ es) -> es
                 _ -> []
-    return $ baseEnchantments ++ enrageEnchantments -- TODO: Need to check correct interleaving.
+    return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
 class IsCharacterHandle a where
@@ -870,6 +870,10 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
     applyEnchantments
     action
     where
+        underAnyEnchantment :: forall m. (forall a. Enchantment a -> Hearth m ()) -> AnyEnchantment -> Hearth m ()
+        underAnyEnchantment f = \case
+            Continuous e -> f e
+            Limited e -> f e
         applyAuras = do
             minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
             forM_ minions $ \minion -> do
@@ -877,7 +881,7 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                 forM_ auras $ enactAura . ($ minion)
         applyEnchantments = do
             enchantments <- dynamicEnchantments handle
-            forM_ enchantments $ \case
+            forM_ enchantments $ underAnyEnchantment $ \case
                 StatsDelta a h -> do
                     getMinion handle.boardMinion.minionAttack += a
                     getMinion handle.boardMinion.minionHealth += h
@@ -900,7 +904,7 @@ enactAura = logCall 'enactAura $ \case
     AuraOpponentOf handle cont -> opponentOf handle >>= enactAura . cont
     While handle restrictions aura -> enactWhile handle restrictions aura
     EachMinion restrictions cont -> enactEachMinion restrictions cont
-    Has handle enchantments -> enactHas handle enchantments
+    Has handle enchantment -> enactHas handle enchantment
 
 
 enactEachMinion :: (HearthMonad m) => [Restriction Minion] -> (Handle Minion -> Aura) -> Hearth m ()
@@ -914,9 +918,9 @@ enactWhile :: (HearthMonad m) => Handle a -> [Restriction a] -> Aura -> Hearth m
 enactWhile handle restrictions = logCall 'enactWhile $ whenM (isPermitted restrictions handle) . enactAura
 
 
-enactHas :: (HearthMonad m) => Handle Minion -> [Enchantment] -> Hearth m ()
-enactHas handle enchantments = logCall 'enactHas $ do
-    getMinion handle.boardMinionEnchantments %= (++ enchantments)
+enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous -> Hearth m ()
+enactHas handle enchantment = logCall 'enactHas $ do
+    getMinion handle.boardMinionEnchantments %= (++ [Continuous enchantment])
 
 
 instance CharacterTraits MinionHandle where

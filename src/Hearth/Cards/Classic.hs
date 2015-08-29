@@ -116,8 +116,7 @@ aldorPeacekeeper = mkMinion AldorPeacekeeper 3 3 3 [
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 A $ Minion [OwnedBy opponent] $ \target ->
-                    Effect $ Enchant target [
-                        ChangeStat (Left 1) ]]
+                    Effect $ Enchant target $ Continuous $ ChangeStat (Left 1) ]
 
 
 arcaneGolem :: DeckCard
@@ -174,8 +173,7 @@ bigGameHunter = mkMinion BigGameHunter 3 4 2 [
 blessedChampion :: DeckCard
 blessedChampion = mkSpell BlessedChampion 5 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            StatsScale 2 1 ]
+        Effect $ Enchant target $ Continuous $ StatsScale 2 1
 
 
 brawl :: DeckCard
@@ -208,8 +206,7 @@ crazedAlchemist :: DeckCard
 crazedAlchemist = mkMinion CrazedAlchemist 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
-            Effect $ Enchant target [
-                SwapStats ]]
+            Effect $ Enchant target $ Continuous SwapStats ]
 
 
 cruelTaskmaster :: DeckCard
@@ -218,16 +215,14 @@ cruelTaskmaster = mkMinion CruelTaskmaster 2 2 2 [
         A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
                 DealDamage (MinionCharacter target) 1,
-                Enchant target [
-                    StatsDelta 2 0 ]]]
+                Enchant target $ Continuous $ StatsDelta 2 0 ]]
 
 
 direWolfAlpha :: DeckCard
 direWolfAlpha = mkMinion DireWolfAlpha 2 2 2 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
-            Has minion [
-                StatsDelta 1 0 ]]
+            Has minion $ StatsDelta 1 0 ]
 
 
 earthenRingFarseer :: DeckCard
@@ -249,8 +244,7 @@ equality :: DeckCard
 equality = mkSpell Equality 2 $ \_ ->
     All $ Minions [] $ \minions ->
         Effect $ ForEach minions $ \minion ->
-            Enchant minion [
-                ChangeStat (Right 1) ]
+            Enchant minion $ Continuous $ ChangeStat (Right 1)
 
 
 fenCreeper :: DeckCard
@@ -299,8 +293,7 @@ innerRage = mkSpell InnerRage 0 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
             DealDamage (MinionCharacter target) 1,
-            Enchant target [
-                StatsDelta 2 0 ]]
+            Enchant target $ Continuous $ StatsDelta 2 0 ]
 
 
 ironbeakOwl :: DeckCard
@@ -338,12 +331,10 @@ markOfNature :: DeckCard
 markOfNature = mkSpell MarkOfNature 3 $ \_ ->
     Choice [
         A $ Minion [] $ \target ->
-            Effect $ Enchant target [
-                StatsDelta 4 0 ],
+            Effect $ Enchant target $ Continuous $ StatsDelta 4 0,
         A $ Minion [] $ \target ->
             Effect $ Sequence [
-                Enchant target [
-                    StatsDelta 0 4 ],
+                Enchant target $ Continuous $ StatsDelta 0 4,
                 GrantAbilities target [
                     KeywordAbility Taunt ]]]
 
@@ -405,8 +396,7 @@ pyroblast = mkSpell Pyroblast 10 $ \_ ->
 rampage :: DeckCard
 rampage = mkSpell Rampage 2 $ \_ ->
     A $ Minion [WithMinion Damaged] $ \target ->
-        Effect $ Enchant target [
-            StatsDelta 3 3 ]
+        Effect $ Enchant target $ Continuous $ StatsDelta 3 3
 
 
 scarletCrusader :: DeckCard
@@ -485,8 +475,7 @@ templeEnforcer = mkMinion TempleEnforcer 6 6 6 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ Enchant target [
-                    StatsDelta 0 3 ]]
+                Effect $ Enchant target $ Continuous $ StatsDelta 0 3 ]
 
 
 twistingNether :: DeckCard

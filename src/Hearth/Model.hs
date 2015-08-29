@@ -184,7 +184,7 @@ data Effect :: * where
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
     DealDamage :: Handle Character -> Damage -> Effect
-    Enchant :: Handle Minion -> [Enchantment] -> Effect
+    Enchant :: Handle Minion -> AnyEnchantment -> Effect
     GrantAbilities :: Handle Minion -> [Ability] -> Effect
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
@@ -206,7 +206,7 @@ data Aura :: * where
     AuraOpponentOf :: Handle Player -> (Handle Player -> Aura) -> Aura
     While :: Handle a -> [Restriction a] -> Aura -> Aura
     EachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> Aura
-    Has :: Handle Minion -> [Enchantment] -> Aura
+    Has :: Handle Minion -> Enchantment Continuous -> Aura
 
 
 data Ability :: * where
@@ -221,18 +221,28 @@ data KeywordAbility :: * where
     Deathrattle :: (Handle Minion -> Elect AtRandom) -> KeywordAbility
     Charge :: KeywordAbility
     DivineShield :: KeywordAbility
-    Enrage :: [Ability] -> [Enchantment] -> KeywordAbility
+    Enrage :: [Ability] -> [Enchantment Continuous] -> KeywordAbility
     Taunt :: KeywordAbility
     deriving (Typeable)
 
 
-data Enchantment :: * where
-    StatsDelta :: Attack -> Health -> Enchantment
-    StatsScale :: Attack -> Health -> Enchantment
-    ChangeStat :: Either Attack Health -> Enchantment
-    SwapStats :: Enchantment
-    --FrozenUntil :: Turn -> Enchantment
-    deriving (Show, Eq, Ord, Data, Typeable)
+data Continuous
+data Limited
+
+
+data Enchantment :: * -> * where
+    StatsDelta :: Attack -> Health -> Enchantment Continuous
+    StatsScale :: Attack -> Health -> Enchantment Continuous
+    ChangeStat :: Either Attack Health -> Enchantment Continuous
+    SwapStats :: Enchantment Continuous
+    --Until :: Enchantment Continuous -> Enchantment Limited
+    deriving (Typeable)
+
+
+data AnyEnchantment :: * where
+    Continuous :: Enchantment Continuous -> AnyEnchantment
+    Limited :: Enchantment Limited -> AnyEnchantment
+    deriving (Typeable)
 
 
 type SpellEffect = Handle Spell -> Elect Targeted
@@ -262,7 +272,7 @@ data Minion = Minion' {
 
 data BoardMinion = BoardMinion {
     _boardMinionDamage :: Damage,
-    _boardMinionEnchantments :: [Enchantment],
+    _boardMinionEnchantments :: [AnyEnchantment],
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,

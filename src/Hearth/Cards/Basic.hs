@@ -166,15 +166,13 @@ backstab = mkSpell Backstab 0 $ \_ ->
 blessingOfKings :: DeckCard
 blessingOfKings = mkSpell BlessingOfKings 4 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            StatsDelta 4 4 ]
+        Effect $ Enchant target $ Continuous $ StatsDelta 4 4
 
 
 blessingOfMight :: DeckCard
 blessingOfMight = mkSpell BlessingOfMight 4 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            StatsDelta 3 0 ]
+        Effect $ Enchant target $ Continuous $ StatsDelta 3 0
 
 
 bluegillWarrior :: DeckCard
@@ -200,8 +198,7 @@ charge = mkSpell Basic.Charge 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion [OwnedBy you] $ \target ->
             Effect $ Sequence [
-                Enchant target [
-                    StatsDelta 2 0 ],
+                Enchant target $ Continuous $ StatsDelta 2 0,
                 GrantAbilities target [
                     KeywordAbility Charge ]]
 
@@ -253,8 +250,7 @@ deadlyShot = mkSpell DeadlyShot 3 $ \this ->
 divineSpirit :: DeckCard
 divineSpirit = mkSpell DivineSpirit 2 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            StatsScale 1 2 ]
+        Effect $ Enchant target $ Continuous $ StatsScale 1 2
 
 
 drainLife :: DeckCard
@@ -324,8 +320,7 @@ flametongueTotem :: DeckCard
 flametongueTotem = mkMinion FlametongueTotem 2 0 3 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
-            Has minion [
-                StatsDelta 2 0 ]]
+            Has minion $ StatsDelta 2 0 ]
 
 
 frog :: DeckCard
@@ -424,15 +419,13 @@ holySmite = mkSpell HolySmite 1 $ \_ ->
 humility :: DeckCard
 humility = mkSpell Humility 1 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            ChangeStat (Left 1) ]
+        Effect $ Enchant target $ Continuous $ ChangeStat (Left 1)
 
 
 hunter'sMark :: DeckCard
 hunter'sMark = mkSpell Hunter'sMark 0 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target [
-            ChangeStat (Right 1) ]
+        Effect $ Enchant target $ Continuous $ ChangeStat (Right 1)
 
 
 kor'kronElite :: DeckCard
@@ -469,8 +462,7 @@ markOfTheWild = mkSpell MarkOfTheWild 2 $ \_ ->
         Effect $ Sequence [
             GrantAbilities target [
                 KeywordAbility Taunt ],
-            Enchant target [
-                StatsDelta 2 2 ]]
+            Enchant target $ Continuous $ StatsDelta 2 2 ]
 
 
 magmaRager :: DeckCard
@@ -534,8 +526,7 @@ powerWordShield = mkSpell PowerWordShield 1 $ \this ->
     A $ Minion [] $ \target ->
         OwnerOf this $ \you ->
             Effect $ Sequence [
-                Enchant target [
-                    StatsDelta 0 2 ],
+                Enchant target $ Continuous $ StatsDelta 0 2,
                 DrawCards you 1 ]
 
 
@@ -544,8 +535,7 @@ raidLeader = mkMinion RaidLeader 3 2 2 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
-                Has minion [
-                    StatsDelta 1 0 ]]
+                Has minion $ StatsDelta 1 0 ]
 
 
 recklessRocketeer :: DeckCard
@@ -585,8 +575,7 @@ shatteredSunCleric = mkMinion ShatteredSunCleric 3 3 2 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ Enchant target [
-                    StatsDelta 1 1 ]]
+                Effect $ Enchant target $ Continuous $ StatsDelta 1 1 ]
 
 
 sheep :: DeckCard
@@ -655,8 +644,7 @@ stormwindChampion = mkMinion StormwindChampion 7 6 6 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
-                Has minion [
-                    StatsDelta 1 1 ]]
+                Has minion $ StatsDelta 1 1 ]
 
 
 swipe :: DeckCard
