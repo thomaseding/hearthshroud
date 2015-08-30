@@ -64,7 +64,7 @@ boardMinionColumn (idx, bm) = do
 
 
 getMinionName :: Minion -> SGRString
-getMinionName minion = fromString $ case minion^.minionName of
+getMinionName minion = fromString $ case minion^.minionMeta.cardMetaName of
     BasicCardName name -> show name
     ClassicCardName name -> show name
 

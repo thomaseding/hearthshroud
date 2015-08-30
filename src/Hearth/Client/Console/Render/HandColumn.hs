@@ -75,13 +75,13 @@ spellColumn idx spell = let
 
 
 getSpellName :: Spell -> SGRString
-getSpellName spell = fromString $ case spell^.spellName of
+getSpellName spell = fromString $ case spell^.spellMeta.cardMetaName of
     BasicCardName name -> show name
     ClassicCardName name -> show name
 
 
 getMinionName :: Minion -> SGRString
-getMinionName minion = fromString $ case minion^.minionName of
+getMinionName minion = fromString $ case minion^.minionMeta.cardMetaName of
     BasicCardName name -> show name
     ClassicCardName name -> show name
 

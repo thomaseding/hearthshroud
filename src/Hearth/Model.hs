@@ -245,13 +245,50 @@ data AnyEnchantment :: * where
     deriving (Typeable)
 
 
+data Rarity :: * where
+    Free :: Rarity
+    Common :: Rarity
+    Rare :: Rarity
+    Epic :: Rarity
+    Legendary :: Rarity
+    deriving (Show, Eq, Ord)
+
+
+data Class :: * where
+    Neutral :: Class
+    Paladin :: Class
+    Warrior :: Class
+    Shaman :: Class
+    Druid :: Class
+    Hunter :: Class
+    Priest :: Class
+    Mage :: Class
+    Warlock :: Class
+    Rogue :: Class
+    deriving (Show, Eq, Ord)
+
+
+data Collectibility :: * where
+    Collectible :: Collectibility
+    Uncollectible :: Collectibility
+    deriving (Show, Eq, Ord)
+
+
+data CardMeta = CardMeta {
+    _cardMetaName :: CardName,
+    _cardMetaClass :: Class,
+    _cardMetaRarity :: Rarity,
+    _cardMetaCollectibility :: Collectibility }
+    deriving (Typeable)
+
+
 type SpellEffect = Handle Spell -> Elect Targeted
 
 
 data Spell = Spell' {
     _spellCost :: Cost,
     _spellEffect :: SpellEffect,
-    _spellName :: CardName
+    _spellMeta :: CardMeta
 } deriving (Typeable)
 
 
@@ -266,7 +303,7 @@ data Minion = Minion' {
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionAbilities :: [Ability],
-    _minionName :: CardName
+    _minionMeta :: CardMeta
 } deriving (Typeable)
 
 
@@ -373,6 +410,7 @@ data GameResult :: * where
 -- Unfortunately I can't make the lenses alongside
 -- their data declarations. See GHC ticket:
 --   https://ghc.haskell.org/trac/ghc/ticket/10743
+makeLenses ''CardMeta
 makeLenses ''Spell
 makeLenses ''CastSpell
 makeLenses ''Minion
@@ -390,14 +428,14 @@ makeLenses ''GameSnapshot
 
 deckCardName :: DeckCard -> CardName
 deckCardName = \case
-    DeckCardMinion minion -> minion^.minionName
-    DeckCardSpell spell -> spell^.spellName
+    DeckCardMinion minion -> minion^.minionMeta.cardMetaName
+    DeckCardSpell spell -> spell^.spellMeta.cardMetaName
 
 
 handCardName :: HandCard -> CardName
 handCardName = \case
-    HandCardMinion minion -> minion^.minionName
-    HandCardSpell spell -> spell^.spellName
+    HandCardMinion minion -> minion^.minionMeta.cardMetaName
+    HandCardSpell spell -> spell^.spellMeta.cardMetaName
 
 
 

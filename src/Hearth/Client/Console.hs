@@ -54,7 +54,7 @@ import Hearth.Client.Console.SGRString
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
-import Hearth.Model hiding (minionName, spellName)
+import Hearth.Model
 import qualified Hearth.Model as Model
 import Hearth.Names
 import Hearth.Names.Basic (BasicCardName(TheCoin), BasicHeroPowerName(..))
@@ -347,7 +347,7 @@ gameEvent snapshot = \case
         tag 'GainedArmor [playerAttr, armorAttr]
     Transformed oldMinion newMinion -> do
         oldMinionName <- query $ showHandle oldMinion
-        let newMinionName = showCardName $ newMinion^.Model.minionName
+        let newMinionName = showCardName $ newMinion^.Model.minionMeta.cardMetaName
             oldMinionAttr = ("oldMinion", oldMinionName)
             newMinionAttr = ("newMinion", newMinionName)
         tag 'Transformed [oldMinionAttr, newMinionAttr]
@@ -405,11 +405,11 @@ showHandle = mapHandle showSpellHandle showMinionHandle showPlayerHandle showCha
 
 
 showSpellHandle :: Handle Spell -> Hearth Console String
-showSpellHandle h = view $ getSpell h.castSpell.Model.spellName.to showCardName
+showSpellHandle h = view $ getSpell h.castSpell.Model.spellMeta.cardMetaName.to showCardName
 
 
 showMinionHandle :: Handle Minion -> Hearth Console String
-showMinionHandle h = view $ getMinion h.boardMinion.Model.minionName.to showCardName
+showMinionHandle h = view $ getMinion h.boardMinion.Model.minionMeta.cardMetaName.to showCardName
 
 
 showPlayerHandle :: Handle Player -> Hearth Console String
