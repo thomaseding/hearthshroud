@@ -154,10 +154,10 @@ data ConsoleState = ConsoleState {
     _gameSeed :: Maybe Int,
     _runGame :: Bool,
     _pendingTargets :: [SignedInt],
-    _playedMinionIdx :: Maybe Int,
+    _targetsSnapshot :: GameSnapshot,
     _isAutoplay :: Bool,
     _logState :: LogState
-} deriving (Show, Eq, Ord)
+} deriving ()
 makeLenses ''ConsoleState
 
 
@@ -624,7 +624,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _gameSeed = Nothing,
             _runGame = True,
             _pendingTargets = [],
-            _playedMinionIdx = Nothing,
+            _targetsSnapshot = $logicError '_targetsSnapshot "uninitialized",
             _isAutoplay = False,
             _logState = LogState {
                 _loggedLines = [""],
@@ -732,7 +732,6 @@ parseActionResponse :: [String] -> Hearth Console Action
 parseActionResponse response = do
     lift $ do
         isAutoplay .= False
-        playedMinionIdx .= Nothing
     case runOptions actionOptions response of
         Left (ParseFailed err _ _) -> do
             liftIO $ putStrLn err
@@ -1006,10 +1005,13 @@ endTurnAction = return $ GameAction ActionEndTurn
 
 
 lookupIndex :: [a] -> Int -> Maybe a
-lookupIndex (x:xs) n = case n == 0 of
-    True -> Just x
-    False -> lookupIndex xs (n - 1)
-lookupIndex [] _ = Nothing
+lookupIndex = \case
+    [] -> const Nothing
+    x : xs -> \case
+        0 -> Just x
+        n -> case n < 0 of
+            True -> Nothing
+            False -> lookupIndex xs (n - 1)
 
 
 readCardInHandAction :: SignedInt -> Hearth Console ConsoleAction
@@ -1048,21 +1050,14 @@ fetchPlayerHandle (SignedInt sign idx) = case idx of
 
 
 fetchMinionHandle :: SignedInt -> Hearth Console (Maybe MinionHandle)
-fetchMinionHandle (SignedInt sign idx) = case idx of
-    0 -> return Nothing
-    _ -> do
-        mStradleIdx <- lift $ view playedMinionIdx
+fetchMinionHandle (SignedInt sign idx) = do
+    snap <- lift $ view targetsSnapshot
+    lift $ runQuery snap $ do
         p <- case sign of
             Positive -> getActivePlayerHandle
             Negative -> getNonActivePlayerHandle
         ms <- view $ getPlayer p.playerMinions
-        return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1 + case sign of
-            Negative -> 0
-            Positive -> case mStradleIdx of
-                Nothing -> 0
-                Just stradleIdx -> case idx < stradleIdx of
-                    True -> 0
-                    False -> 1
+        return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1
 
 
 fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe CharacterHandle)
@@ -1112,7 +1107,6 @@ playCardAction = let
     goMinion (SignedInt Positive boardIdx) card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
-        lift $ playedMinionIdx .= Just boardIdx
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
             False -> return $ ComplainRetryAction "Invalid board index: Out of bounds."
             True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
@@ -1146,6 +1140,7 @@ playCardAction = let
 
 getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
+    targetsSnapshot .= snapshot
     let name = showName 'getAction
     verbosityGate name $ openTag name []
     action <- localQuiet $ runQuery snapshot getAction'
