@@ -46,7 +46,7 @@ import Data.NonEmpty
 import Data.Ord
 import Data.String
 import Hearth.Action
-import qualified Hearth.Cards as Universe
+import Hearth.Cards
 import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
@@ -58,7 +58,6 @@ import Hearth.GameEvent
 import Hearth.HeroName
 import Hearth.HeroPowerName
 import Hearth.Model
-import qualified Hearth.Model as Model
 import Hearth.Prompt
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
@@ -347,7 +346,7 @@ gameEvent snapshot = \case
         tag 'GainedArmor [playerAttr, armorAttr]
     Transformed oldMinion newMinion -> do
         oldMinionName <- query $ showHandle oldMinion
-        let newMinionName = showCardName $ newMinion^.Model.minionMeta.cardMetaName
+        let newMinionName = showCardName $ cardName newMinion
             oldMinionAttr = ("oldMinion", oldMinionName)
             newMinionAttr = ("newMinion", newMinionName)
         tag 'Transformed [oldMinionAttr, newMinionAttr]
@@ -405,11 +404,11 @@ showHandle = mapHandle showSpellHandle showMinionHandle showPlayerHandle showCha
 
 
 showSpellHandle :: Handle Spell -> Hearth Console String
-showSpellHandle h = view $ getSpell h.castSpell.Model.spellMeta.cardMetaName.to showCardName
+showSpellHandle h = view $ getSpell h.castSpell.to (showCardName . cardName)
 
 
 showMinionHandle :: Handle Minion -> Hearth Console String
-showMinionHandle h = view $ getMinion h.boardMinion.Model.minionMeta.cardMetaName.to showCardName
+showMinionHandle h = view $ getMinion h.boardMinion.to (showCardName . cardName)
 
 
 showPlayerHandle :: Handle Player -> Hearth Console String
@@ -614,7 +613,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroHealth = 30,
             _heroPower = power,
             _heroName = name }
-        collectibleCards = filter isCollectible Universe.cards
+        collectibleCards = filter isCollectible cardUniverse
         newDeck = liftIO $ liftM (Deck . take 30) $ shuffleM collectibleCards
         player1 = PlayerData (hero Jaina fireblast)
         player2 = PlayerData (hero Gul'dan lifeTap)
