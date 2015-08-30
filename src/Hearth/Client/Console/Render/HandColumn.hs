@@ -17,6 +17,7 @@ import Data.List
 import Data.String
 import Hearth.Engine
 import Hearth.Model
+import Hearth.CardName
 import Hearth.Cards
 import Hearth.Client.Console.SGRString
 import System.Console.ANSI
@@ -75,11 +76,11 @@ spellColumn idx spell = let
 
 
 getSpellName :: Spell -> SGRString
-getSpellName = fromString . show . cardName
+getSpellName = fromString . showCardName . cardName
 
 
 getMinionName :: Minion -> SGRString
-getMinionName = fromString . show . cardName
+getMinionName = fromString . showCardName . cardName
 
 
 hasDivineShield :: Minion -> Bool

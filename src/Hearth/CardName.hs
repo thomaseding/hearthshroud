@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 
 
 module Hearth.CardName where
@@ -20,9 +21,13 @@ import Hearth.Set.Classic.Names
 data CardName :: * where
     BasicCardName :: BasicCardName -> CardName
     ClassicCardName :: ClassicCardName -> CardName
-    deriving (Show, Eq, Ord, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 
+showCardName :: CardName -> String
+showCardName = \case
+    BasicCardName name -> show name
+    ClassicCardName name -> show name
 
 
 

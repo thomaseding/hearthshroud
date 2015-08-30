@@ -21,7 +21,7 @@ import qualified Hearth.Set.Classic.Cards as Classic
 
 
 cardUniverse :: [DeckCard]
-cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . show . deckCardName) $ concat [
+cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . showCardName . deckCardName) $ concat [
     Basic.cards,
     Classic.cards ]
 
@@ -31,7 +31,7 @@ cardByName name = let
     mCard = flip find cardUniverse $ \card -> deckCardName card == name
     in case mCard of 
         Just card -> card
-        Nothing -> $logicError 'cardByName $ "Card does not exist: " ++ show name
+        Nothing -> $logicError 'cardByName $ "Card does not exist: " ++ showCardName name
 
 
 class GetCardName a where

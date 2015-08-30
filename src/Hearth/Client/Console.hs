@@ -421,12 +421,6 @@ showCharacterHandle = \case
     MinionCharacter h -> showMinionHandle h
 
 
-showCardName :: CardName -> String
-showCardName = \case
-    BasicCardName name -> show name
-    ClassicCardName name -> show name
-
-
 showHeroPowerName :: HeroPowerName -> String
 showHeroPowerName = show
 

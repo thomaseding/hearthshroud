@@ -18,6 +18,7 @@ import Data.List
 import Data.String
 import Hearth.Engine
 import Hearth.Model
+import Hearth.CardName
 import Hearth.Cards
 import Hearth.Client.Console.SGRString
 import System.Console.ANSI
@@ -64,7 +65,7 @@ boardMinionColumn (idx, bm) = do
 
 
 getMinionName :: Minion -> SGRString
-getMinionName = fromString . show . cardName
+getMinionName = fromString . showCardName . cardName
 
 
 hasDivineShield :: BoardMinion -> Bool
