@@ -426,8 +426,20 @@ scopedPhase phase action = logCall 'scopedPhase $ do
     return x
 
 
+clearUntil :: (HearthMonad m) => TimePoint -> Hearth m ()
+clearUntil timePoint = do
+    minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+    forM_ minions $ \minion -> do
+        getMinion minion.boardMinionEnchantments %= filter predicate
+    where
+        predicate = \case
+            Continuous _ -> True
+            Limited e -> case e of
+                Until timePoint' _ -> timePoint /= timePoint'
+
+
 beginTurn :: (HearthMonad m) => Hearth m ()
-beginTurn = logCall 'beginTurn $ scopedPhase BeginOfTurnPhase $ do
+beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
     handle <- getActivePlayerHandle
     gainManaCrystal handle CrystalFull
     zoom (getPlayer handle) $ do
@@ -441,7 +453,8 @@ beginTurn = logCall 'beginTurn $ scopedPhase BeginOfTurnPhase $ do
 
 
 endTurn :: (HearthMonad m) => Hearth m ()
-endTurn = logCall 'endTurn $ scopedPhase EndOfTurnPhase $ do
+endTurn = logCall 'endTurn $ scopedPhase EndTurnPhase $ do
+    clearUntil EndOfTurn
     handle <- getActivePlayerHandle
     zoom (getPlayer handle) $ do
         tempCount <- view playerTemporaryManaCrystals

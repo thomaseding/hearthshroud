@@ -17,6 +17,7 @@ import Data.Data
 
 data ClassicCardName
     = Abomination
+    | AbusiveSergeant
     | AldorPeacekeeper
     | AmaniBerserker
     | ArcaneGolem

@@ -22,6 +22,7 @@ import qualified Hearth.Set.Classic.Names as Classic
 cards :: [DeckCard]
 cards = let x = toCard in [
     x abomination,
+    x abusiveSergeant,
     x aldorPeacekeeper,
     x amaniBerserker,
     x arcaneGolem,
@@ -98,6 +99,13 @@ abomination = mkMinion Rare Neutral Abomination 5 4 4 [
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
             Effect $ ForEach victims $ \victim ->
                 DealDamage victim 2 ]
+
+
+abusiveSergeant :: Minion
+abusiveSergeant = mkMinion Common Neutral AbusiveSergeant 1 2 1 [
+    KeywordAbility $ Battlecry $ \this ->
+        A $ Minion [Not this] $ \target ->
+            Effect $ Enchant target $ Limited $ Until EndOfTurn $ StatsDelta 2 0 ]
 
 
 amaniBerserker :: Minion

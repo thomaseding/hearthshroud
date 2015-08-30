@@ -235,11 +235,12 @@ data Limited
 data Scoped :: * -> * where
     Begin :: a -> Scoped a
     End :: a -> Scoped a
+    deriving (Eq, Ord)
 
 
 data Phase :: * where
-    BeginOfTurnPhase :: Phase
-    EndOfTurnPhase :: Phase
+    BeginTurnPhase :: Phase
+    EndTurnPhase :: Phase
     BattlecryPhase :: Phase
     DeathrattlePhase :: Phase
     SpellPhase :: Phase
@@ -249,12 +250,17 @@ data Phase :: * where
     deriving (Show, Typeable)
 
 
+data TimePoint :: * where
+    EndOfTurn :: TimePoint
+    deriving (Show, Typeable, Eq, Ord)
+
+
 data Enchantment :: * -> * where
     StatsDelta :: Attack -> Health -> Enchantment Continuous
     StatsScale :: Attack -> Health -> Enchantment Continuous
     ChangeStat :: Either Attack Health -> Enchantment Continuous
     SwapStats :: Enchantment Continuous
-    Until :: Scoped Phase -> Enchantment Continuous -> Enchantment Limited
+    Until :: TimePoint -> Enchantment Continuous -> Enchantment Limited
     deriving (Typeable)
 
 
