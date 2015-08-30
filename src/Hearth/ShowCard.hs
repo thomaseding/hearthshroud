@@ -562,17 +562,15 @@ showEnchantment = \case
     Until timePoint enchantment -> showUntil timePoint enchantment
 
 
-showUntil :: Scoped Phase -> Enchantment Continuous -> ShowCard String
-showUntil phase enchantment = do
-    phaseStr <- showPhase phase
+showUntil :: TimePoint -> Enchantment Continuous -> ShowCard String
+showUntil timePoint enchantment = do
+    timePointStr <- showTimePoint timePoint
     enchantmentStr <- showEnchantment enchantment
-    return $ enchantmentStr ++ " until " ++ phaseStr
+    return $ enchantmentStr ++ " until " ++ timePointStr
 
 
-showPhase :: Scoped Phase -> ShowCard String
-showPhase scopedPhase = return $ case scopedPhase of
-    Begin s -> "BeginOf" ++ show s
-    End s -> "EndOf" ++ show s
+showTimePoint :: TimePoint -> ShowCard String
+showTimePoint = return . show
 
 
 showWithSign :: Int -> String
