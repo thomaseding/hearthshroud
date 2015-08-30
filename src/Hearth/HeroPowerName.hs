@@ -1,9 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.Names.Hero (
-    BasicHeroName(..),
-) where
+module Hearth.HeroPowerName where
 
 
 --------------------------------------------------------------------------------
@@ -15,19 +13,10 @@ import Data.Data
 --------------------------------------------------------------------------------
 
 
-data BasicHeroName
-    = Malfurion
-    | Rexxar
-    | Jaina
-    | Uther
-    | Anduin
-    | Valeera
-    | Thrall
-    | Gul'dan
-    | Garrosh
+data HeroPowerName
+    = Fireblast
+    | LifeTap
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
-
-
 
 
 

@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.Names.Classic (
+module Hearth.Set.Classic.Names (
     ClassicCardName(..),
 ) where
 

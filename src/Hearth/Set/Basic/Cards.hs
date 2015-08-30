@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 
-module Hearth.Cards.Basic (
+module Hearth.Set.Basic.Cards (
     cards,
 ) where
 
@@ -9,11 +9,11 @@ module Hearth.Cards.Basic (
 --------------------------------------------------------------------------------
 
 
-import Hearth.Cards.Combinators
+import Hearth.Authoring.Combinators
+import Hearth.CardName
 import Hearth.Model
-import Hearth.Names
-import Hearth.Names.Basic hiding (Charge)
-import qualified Hearth.Names.Basic as Basic
+import Hearth.Set.Basic.Names hiding (Charge)
+import qualified Hearth.Set.Basic.Names as Basic
 
 
 --------------------------------------------------------------------------------

@@ -3,29 +3,18 @@
 {-# LANGUAGE KindSignatures #-}
 
 
-module Hearth.Names where
+module Hearth.CardName where
 
 
 --------------------------------------------------------------------------------
 
 
 import Data.Data
-import Hearth.Names.Basic
-import Hearth.Names.Classic
-import Hearth.Names.Hero
+import Hearth.Set.Basic.Names
+import Hearth.Set.Classic.Names
 
 
 --------------------------------------------------------------------------------
-
-
-data HeroPowerName :: * where
-    BasicHeroPowerName :: BasicHeroPowerName -> HeroPowerName
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-data HeroName :: * where
-    BasicHeroName :: BasicHeroName -> HeroName
-    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data CardName :: * where

@@ -17,8 +17,8 @@ import Data.List
 import Data.String
 import Hearth.Engine
 import Hearth.Model
+import Hearth.CardName
 import Hearth.Client.Console.SGRString
-import Hearth.Names
 import System.Console.ANSI
 
 

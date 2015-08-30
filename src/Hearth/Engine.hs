@@ -39,6 +39,7 @@ import Data.NonEmpty (NonEmpty)
 import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
 import Hearth.Action
+import Hearth.CardName
 import Hearth.Cards (cardByName)
 import Hearth.DebugEvent
 import Hearth.DeckToHand
@@ -46,9 +47,8 @@ import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.HandToDeck
 import Hearth.Model
-import Hearth.Names (CardName(BasicCardName))
-import Hearth.Names.Basic (BasicCardName(TheCoin))
 import Hearth.Prompt
+import Hearth.Set.Basic.Names (BasicCardName(TheCoin))
 
 
 --------------------------------------------------------------------------------

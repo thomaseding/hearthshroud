@@ -10,10 +10,10 @@ module Hearth.Cards where
 import Control.Error.TH
 import Data.List
 import Data.Ord
-import qualified Hearth.Cards.Basic as Basic
-import qualified Hearth.Cards.Classic as Classic
-import Hearth.Names
+import Hearth.CardName
 import Hearth.Model (DeckCard, deckCardName)
+import qualified Hearth.Set.Basic.Cards as Basic
+import qualified Hearth.Set.Classic.Cards as Classic
 
 
 --------------------------------------------------------------------------------

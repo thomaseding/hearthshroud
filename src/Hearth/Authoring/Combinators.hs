@@ -1,14 +1,14 @@
 {-# LANGUAGE LambdaCase #-}
 
 
-module Hearth.Cards.Combinators where
+module Hearth.Authoring.Combinators where
 
 
 --------------------------------------------------------------------------------
 
 
 import Hearth.Model
-import Hearth.Names
+import Hearth.CardName
 
 
 --------------------------------------------------------------------------------

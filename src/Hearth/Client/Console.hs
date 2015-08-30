@@ -51,14 +51,14 @@ import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
+import Hearth.CardName
 import Hearth.DebugEvent
 import Hearth.Engine
 import Hearth.GameEvent
+import Hearth.HeroName
+import Hearth.HeroPowerName
 import Hearth.Model
 import qualified Hearth.Model as Model
-import Hearth.Names
-import Hearth.Names.Basic (BasicCardName(TheCoin), BasicHeroPowerName(..))
-import Hearth.Names.Hero
 import Hearth.Prompt
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
@@ -429,13 +429,11 @@ showCardName = \case
 
 
 showHeroPowerName :: HeroPowerName -> String
-showHeroPowerName = \case
-    BasicHeroPowerName name -> show name
+showHeroPowerName = show
 
 
 showHeroName :: HeroName -> String
-showHeroName = \case
-    BasicHeroName name -> show name
+showHeroName = show
 
 
 handCardName' :: HandCard -> String
@@ -590,7 +588,9 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 liftIO $ setStdGen $ mkStdGen seed
                 let tag name attrs = openTag name attrs >> closeTag name
                 tag "gameSeed" [("value", show seed)]
-                _ <- runHearth (player1, player2)
+                deck1 <- newDeck
+                deck2 <- newDeck
+                _ <- runHearth (player1 deck1, player2 deck2)
                 liftIO clearScreen
                 window <- liftIO getWindowSize
                 renewLogWindow window 0
@@ -613,17 +613,38 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroAttack = 0,
             _heroHealth = 30,
             _heroPower = power,
-            _heroName = BasicHeroName name }
-        cards = filter ((/= BasicCardName TheCoin) . deckCardName) Universe.cards
-        deck1 = Deck cards
-        deck2 = deck1
-        player1 = PlayerData (hero Jaina fireblast) deck1
-        player2 = PlayerData (hero Gul'dan lifeTap) deck2
+            _heroName = name }
+        collectibleCards = filter isCollectible Universe.cards
+        newDeck = liftIO $ liftM (Deck . take 30) $ shuffleM collectibleCards
+        player1 = PlayerData (hero Jaina fireblast)
+        player2 = PlayerData (hero Gul'dan lifeTap)
+
+
+class IsCollectible a where
+    isCollectible :: a -> Bool
+
+
+instance IsCollectible DeckCard where
+    isCollectible = \case
+        DeckCardMinion x -> isCollectible x
+        DeckCardSpell x -> isCollectible x
+
+
+instance IsCollectible Minion where
+    isCollectible = isCollectible . _minionMeta
+
+
+instance IsCollectible Spell where
+    isCollectible = isCollectible . _spellMeta
+
+
+instance IsCollectible CardMeta where
+    isCollectible = (Collectible ==) . _cardMetaCollectibility
 
 
 fireblast :: HeroPower
 fireblast = HeroPower {
-    _heroPowerName = BasicHeroPowerName Fireblast,
+    _heroPowerName = Fireblast,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \_ ->
         A $ Character [] $ \target ->
@@ -632,7 +653,7 @@ fireblast = HeroPower {
 
 lifeTap :: HeroPower
 lifeTap = HeroPower {
-    _heroPowerName = BasicHeroPowerName LifeTap,
+    _heroPowerName = LifeTap,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you -> 
         Effect $ Sequence [

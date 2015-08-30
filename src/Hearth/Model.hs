@@ -27,8 +27,10 @@ import Control.Lens hiding (Each)
 import Data.Data
 import Data.Function
 import Data.Monoid (Monoid)
-import Hearth.Names
 import GHC.Generics
+import Hearth.CardName
+import Hearth.HeroName
+import Hearth.HeroPowerName
 
 
 --------------------------------------------------------------------------------

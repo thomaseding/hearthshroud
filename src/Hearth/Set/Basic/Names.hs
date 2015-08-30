@@ -1,8 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.Names.Basic (
-    BasicHeroPowerName(..),
+module Hearth.Set.Basic.Names (
     BasicCardName(..),
 ) where
 
@@ -14,12 +13,6 @@ import Data.Data
 
 
 --------------------------------------------------------------------------------
-
-
-data BasicHeroPowerName
-    = Fireblast
-    | LifeTap
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
 data BasicCardName

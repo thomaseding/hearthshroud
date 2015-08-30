@@ -29,8 +29,8 @@ import Data.List.Utils (replace)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Proxy
+import Hearth.CardName
 import Hearth.Model
-import Hearth.Names
 
 
 --------------------------------------------------------------------------------
