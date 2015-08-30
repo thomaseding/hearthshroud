@@ -20,6 +20,7 @@ import Hearth.Model
 data GameEvent :: * where
     GameBegins :: GameEvent
     GameEnds :: GameResult -> GameEvent
+    PhaseEvent :: Scoped Phase -> GameEvent
     DeckShuffled :: Handle Player -> Deck -> GameEvent
     CardDrawn :: Handle Player -> Either DeckCard HandCard -> Deck -> GameEvent
     UsedHeroPower :: Handle Player -> HeroPower -> GameEvent

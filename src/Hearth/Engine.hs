@@ -61,6 +61,12 @@ instance (HearthMonad m) => MonadPrompt HearthPrompt (Hearth m) where
         return result
 
 
+promptGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()
+promptGameEvent event = do
+    snap <- gets GameSnapshot
+    prompt $ PromptGameEvent snap $ event
+
+
 guardedPrompt :: (MonadPrompt p m) => p a -> (a -> m Bool) -> m a
 guardedPrompt p predicate = prompt p >>= \x -> predicate x >>= \case
     True -> return x
@@ -239,15 +245,11 @@ instance GenHandle SpellHandle where
 
 runHearth' :: (HearthMonad m) => Hearth m GameResult
 runHearth' = logCall 'runHearth' $ do
-    do
-        snap <- gets GameSnapshot
-        prompt $ PromptGameEvent snap GameBegins
+    promptGameEvent GameBegins
     initGame
     tickTurn
-    let gameResult = GameResult
-    do
-        snap <- gets GameSnapshot
-        prompt $ PromptGameEvent snap $ GameEnds gameResult
+    let gameResult = GameResult {}
+    promptGameEvent $ GameEnds gameResult
     return gameResult
 
 
@@ -330,8 +332,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
         let c' = deckToHand c
             deck = Deck cs
             promptDraw eCard = do
-                snap <- gets GameSnapshot
-                prompt $ PromptGameEvent snap $ CardDrawn handle eCard deck
+                promptGameEvent $ CardDrawn handle eCard deck
                 return $ either (const Nothing) Just eCard
         getPlayer handle.playerDeck .= deck
         putInHand handle c' >>= \case
@@ -362,8 +363,7 @@ shuffleDeck handle = logCall 'shuffleDeck $ do
                 prompt $ PromptError InvalidShuffle
                 return False
     getPlayer handle.playerDeck .= deck'
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ DeckShuffled handle deck'
+    promptGameEvent $ DeckShuffled handle deck'
 
 
 isGameOver :: (HearthMonad m) => Hearth m Bool
@@ -395,9 +395,6 @@ gainManaCrystals handle amount crystalState = logCall 'gainManaCrystals $ do
 gainManaCrystal :: (HearthMonad m) => Handle Player -> CrystalState -> Hearth m ()
 gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
     totalCount <- view $ getPlayer handle.playerTotalManaCrystals
-    let promptGameEvent e = do
-            snap <- gets GameSnapshot
-            prompt $ PromptGameEvent snap e
     case totalCount of
         10 -> do
             let refillCount = case crystalState of
@@ -418,10 +415,19 @@ gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
                 CrystalFull -> return ()
                 CrystalEmpty -> playerEmptyManaCrystals += 1
                 CrystalTemporary -> playerTemporaryManaCrystals += 1
+            promptGameEvent $ GainsManaCrystal handle $ Just crystalState
+
+
+scopedPhase :: (HearthMonad m) => Phase -> Hearth m a -> Hearth m a
+scopedPhase phase action = logCall 'scopedPhase $ do
+    promptGameEvent $ PhaseEvent $ Begin phase
+    x <- action
+    promptGameEvent $ PhaseEvent $ End phase
+    return x
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
-beginTurn = logCall 'beginTurn $ do
+beginTurn = logCall 'beginTurn $ scopedPhase BeginOfTurnPhase $ do
     handle <- getActivePlayerHandle
     gainManaCrystal handle CrystalFull
     zoom (getPlayer handle) $ do
@@ -435,7 +441,7 @@ beginTurn = logCall 'beginTurn $ do
 
 
 endTurn :: (HearthMonad m) => Hearth m ()
-endTurn = logCall 'endTurn $ do
+endTurn = logCall 'endTurn $ scopedPhase EndOfTurnPhase $ do
     handle <- getActivePlayerHandle
     zoom (getPlayer handle) $ do
         tempCount <- view playerTemporaryManaCrystals
@@ -500,9 +506,8 @@ actionHeroPower = logCall 'actionHeroPower $ do
         True -> payCost handle cost >>= \case
             Failure msg -> return $ Failure msg
             Success -> do
-                snap <- gets GameSnapshot
-                prompt $ PromptGameEvent snap $ UsedHeroPower handle power
-                enactElect (cont handle) >>= \case
+                promptGameEvent $ UsedHeroPower handle power
+                scopedPhase HeroPowerPhase $ enactElect (cont handle) >>= \case
                     NotAvailable -> do
                         put st
                         return $ Failure "No targets available."
@@ -581,8 +586,7 @@ playMinion pHandle card pos = logCall 'playMinion $ do
             put st
             return $ Failure msg
         Right bmHandle -> do
-            snap <- gets GameSnapshot
-            prompt $ PromptGameEvent snap $ PlayedMinion pHandle bmHandle
+            promptGameEvent $ PlayedMinion pHandle bmHandle
             result <- enactAnyBattleCries bmHandle
             when (result /= Success) $ put st
             return result
@@ -602,8 +606,7 @@ playSpell pHandle card = logCall 'playSpell $ do
     result <- playSpell' pHandle card >>= \case
         Left msg -> return $ Failure msg
         Right sHandle -> do
-            snap <- gets GameSnapshot
-            prompt $ PromptGameEvent snap $ PlayedSpell pHandle sHandle
+            promptGameEvent $ PlayedSpell pHandle sHandle
             res <- enactSpell sHandle
             removeSpell sHandle
             return res
@@ -624,7 +627,7 @@ playSpell' pHandle card = logCall 'playSpell' $ playCommon pHandle card >>= \cas
 
 
 enactSpell :: (HearthMonad m) => Handle Spell -> Hearth m Result
-enactSpell spell = do
+enactSpell spell = logCall 'enactSpell $ scopedPhase SpellPhase $ do
     st <- get
     let abort msg = put st >> return (Failure msg)
     cont <- view $ getSpell spell.castSpell.spellEffect
@@ -661,13 +664,13 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
 
 
 enactDeathrattle :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Elect AtRandom) -> Hearth m ()
-enactDeathrattle handle cont = logCall 'enactDeathrattle $ do
+enactDeathrattle handle cont = logCall 'enactDeathrattle $ scopedPhase DeathrattlePhase $ do
     _ <- enactElect $ cont handle
     return ()
 
 
 enactBattlecry :: (HearthMonad m) => Handle Minion -> (Handle Minion -> Elect Targeted) -> Hearth m (SimplePickResult Targeted)
-enactBattlecry handle cont = logCall 'enactBattlecry $ do
+enactBattlecry handle cont = logCall 'enactBattlecry $ scopedPhase BattlecryPhase $ do
     enactElect $ cont handle
 
 
@@ -706,8 +709,7 @@ enactWhen handle restrictions effect = do
 transform :: (HearthMonad m) => Handle Minion -> Minion -> Hearth m ()
 transform handle newMinion = logCall 'transform $ do
     getMinion handle .= toBoardMinion handle newMinion
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ Transformed handle newMinion
+    promptGameEvent $ Transformed handle newMinion
 
 
 enactEffectElect :: (HearthMonad m) => Elect AtRandom -> Hearth m (SimplePickResult AtRandom)
@@ -719,8 +721,7 @@ enactEffectElect elect = enactElect elect >>= return . \case
 gainArmor :: (HearthMonad m) => Handle Player -> Armor -> Hearth m ()
 gainArmor handle armor = logCall 'gainArmor $ do
     getPlayer handle.playerHero.boardHeroArmor += armor
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ GainedArmor handle armor
+    promptGameEvent $ GainedArmor handle armor
 
 
 restoreHealth :: (HearthMonad m) => Handle Character -> Health -> Hearth m ()
@@ -728,8 +729,7 @@ restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
     actualAmount <- case charHandle of
         MinionCharacter handle -> zoom (getMinion handle.boardMinionDamage) restoreM
         PlayerCharacter handle -> zoom (getPlayer handle.playerHero.boardHeroDamage) restoreM
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ HealthRestored charHandle (Health actualAmount)
+    promptGameEvent $ HealthRestored charHandle (Health actualAmount)
     where
         restore = max 0 . (subtract $ Damage amount)
         restoreM = do
@@ -741,8 +741,7 @@ restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
 destroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()
 destroyMinion handle = logCall 'destroyMinion $ do
     getMinion handle.boardMinionPendingDestroy .= True
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ MinionDestroyed handle
+    promptGameEvent $ MinionDestroyed handle
 
 
 enactForEach :: (HearthMonad m) => [a] -> (a -> Effect) -> Hearth m (SimplePickResult AtRandom)
@@ -879,7 +878,9 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                 forM_ auras $ enactAura . ($ minion)
         applyEnchantments = do
             enchantments <- dynamicEnchantments handle
-            forM_ enchantments $ underAnyEnchantment $ \case
+            forM_ enchantments $ underAnyEnchantment applyEnchantment
+        applyEnchantment :: (HearthMonad m) => Enchantment a -> Hearth m ()
+        applyEnchantment = \case
                 StatsDelta a h -> do
                     getMinion handle.boardMinion.minionAttack += a
                     getMinion handle.boardMinion.minionHealth += h
@@ -894,6 +895,7 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                     Health health <- view $ getMinion handle.boardMinion.minionHealth
                     getMinion handle.boardMinion.minionAttack .= Attack health
                     getMinion handle.boardMinion.minionHealth .= Health attack
+                Until _ enchantment -> applyEnchantment enchantment
 
 
 enactAura :: (HearthMonad m) => Aura -> Hearth m ()
@@ -986,20 +988,17 @@ receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
             zoom (getPlayer handle.playerHero) $ do
                 boardHeroDamage += healthDamage
                 boardHeroArmor .= armor'
-            snap <- gets GameSnapshot
-            prompt $ PromptGameEvent snap $ TookDamage charHandle damage
+            promptGameEvent $ TookDamage charHandle damage
         MinionCharacter handle -> do
             bm <- view $ getMinion handle
             case loseDivineShield bm of
                 Just bm' -> do
                     getMinion handle .= bm'
-                    snap <- gets GameSnapshot
-                    prompt $ PromptGameEvent snap $ LostDivineShield $ handle
+                    promptGameEvent $ LostDivineShield $ handle
                 Nothing -> do
                     let bm' = bm & boardMinionDamage +~ damage
                     getMinion handle .= bm'
-                    snap <- gets GameSnapshot
-                    prompt $ PromptGameEvent snap $ TookDamage charHandle damage
+                    promptGameEvent $ TookDamage charHandle damage
 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()
@@ -1014,8 +1013,7 @@ silence victim = logCall 'silence $ do
         in case delta < 0 of
             True -> bm & boardMinionDamage %~ max 0 . (+ delta)
             False -> bm
-    snap <- gets GameSnapshot
-    prompt $ PromptGameEvent snap $ Silenced victim
+    promptGameEvent $ Silenced victim
 
 
 data Available a = Available a | NotAvailable
@@ -1355,34 +1353,32 @@ hasRemainingAttacks c = liftM2 (<) (getAttackCount c) (dynamicMaxAttackCount c)
 
 enactAttack :: (HearthMonad m) => Handle Character -> Handle Character -> Hearth m Result
 enactAttack attacker defender = logCall 'enactAttack $ do
-    snap <- gets GameSnapshot
-    let promptGameEvent = PromptGameEvent snap
-        attackerHandle = characterHandle attacker
+    let attackerHandle = characterHandle attacker
         defenderHandle = characterHandle defender
         defenderHasTaunt = case defender of
             PlayerCharacter _ -> return False
             MinionCharacter m -> dynamicHasTaunt m
     result <- isAlly attacker >>= \case
         False -> do
-            prompt $ promptGameEvent $ AttackFailed AttackWithEnemy
+            promptGameEvent $ AttackFailed AttackWithEnemy
             return $ Failure "Can't attack with an enemy character."
         True -> do
             attack <- dynamicAttack attacker
             case attack <= 0 of
                 True -> do
-                    prompt $ promptGameEvent $ AttackFailed ZeroAttack
+                    promptGameEvent $ AttackFailed ZeroAttack
                     return $ Failure "Can't attack with a zero attack minion"
                 False -> isEnemy defender >>= \case
                     False -> do
-                        prompt $ promptGameEvent $ AttackFailed DefendWithFriendly
+                        promptGameEvent $ AttackFailed DefendWithFriendly
                         return $ Failure "Can't attack into a friendly character."
                     True -> hasSummoningSickness attacker >>= \case
                         True -> do
-                            prompt $ promptGameEvent $ AttackFailed DoesNotHaveCharge
+                            promptGameEvent $ AttackFailed DoesNotHaveCharge
                             return $ Failure "Minion needs charge to attack."
                         False -> hasRemainingAttacks attacker >>= \case
                             False -> do
-                                prompt $ promptGameEvent $ AttackFailed OutOfAttacks
+                                promptGameEvent $ AttackFailed OutOfAttacks
                                 return $ Failure "Character is out of attacks."
                             True -> defenderHasTaunt >>= \case
                                 True -> return Success
@@ -1390,20 +1386,21 @@ enactAttack attacker defender = logCall 'enactAttack $ do
                                     defenderController <- ownerOf defender
                                     hasTauntMinions defenderController >>= \case
                                         True -> do
-                                            prompt $ promptGameEvent $ AttackFailed TauntsExist
+                                            promptGameEvent $ AttackFailed TauntsExist
                                             return $ Failure "Must attack a minion with taunt."
                                         False -> return Success
     case result of
         Failure msg -> return $ Failure msg
         Success -> do
-            prompt $ promptGameEvent $ EnactAttack attackerHandle defenderHandle
+            promptGameEvent $ EnactAttack attackerHandle defenderHandle
             let x `harms` y = do
                     dmg <- liftM (Damage . unAttack) $ dynamicAttack x
                     receiveDamage (characterHandle y) dmg
-            attacker `harms` defender
-            defender `harms` attacker
-            bumpAttackCount attacker
-            return Success
+            scopedPhase AttackResolutionPhase $ do
+                attacker `harms` defender
+                defender `harms` attacker
+                bumpAttackCount attacker
+                return Success
 
 
 replaceMinionByHandle :: (HearthMonad m) => BoardMinion -> Hearth m ()
@@ -1450,7 +1447,7 @@ handleGameEvent = \case
         _ -> return ()
     _ -> return ()
     where
-        run cont = enactElect cont >> return ()
+        run cont = scopedPhase TriggeredEffectPhase $ enactElect cont >> return ()
 
 
 

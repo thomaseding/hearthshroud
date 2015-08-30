@@ -232,12 +232,29 @@ data Continuous
 data Limited
 
 
+data Scoped :: * -> * where
+    Begin :: a -> Scoped a
+    End :: a -> Scoped a
+
+
+data Phase :: * where
+    BeginOfTurnPhase :: Phase
+    EndOfTurnPhase :: Phase
+    BattlecryPhase :: Phase
+    DeathrattlePhase :: Phase
+    SpellPhase :: Phase
+    HeroPowerPhase :: Phase
+    AttackResolutionPhase :: Phase
+    TriggeredEffectPhase :: Phase
+    deriving (Show, Typeable)
+
+
 data Enchantment :: * -> * where
     StatsDelta :: Attack -> Health -> Enchantment Continuous
     StatsScale :: Attack -> Health -> Enchantment Continuous
     ChangeStat :: Either Attack Health -> Enchantment Continuous
     SwapStats :: Enchantment Continuous
-    --Until :: Enchantment Continuous -> Enchantment Limited
+    Until :: Scoped Phase -> Enchantment Continuous -> Enchantment Limited
     deriving (Typeable)
 
 

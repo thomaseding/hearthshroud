@@ -559,6 +559,20 @@ showEnchantment = \case
         Left (Attack x) -> return $ "Attack changed to " ++ show x
         Right (Health y) -> return $ "Health changed to " ++ show y
     SwapStats -> return "Swapped attack and health"
+    Until timePoint enchantment -> showUntil timePoint enchantment
+
+
+showUntil :: Scoped Phase -> Enchantment Continuous -> ShowCard String
+showUntil phase enchantment = do
+    phaseStr <- showPhase phase
+    enchantmentStr <- showEnchantment enchantment
+    return $ enchantmentStr ++ " until " ++ phaseStr
+
+
+showPhase :: Scoped Phase -> ShowCard String
+showPhase scopedPhase = return $ case scopedPhase of
+    Begin s -> "BeginOf" ++ show s
+    End s -> "EndOf" ++ show s
 
 
 showWithSign :: Int -> String

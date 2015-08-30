@@ -53,7 +53,7 @@ import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
 import Hearth.CardName
 import Hearth.DebugEvent
-import Hearth.Engine
+import Hearth.Engine hiding (scopedPhase)
 import Hearth.GameEvent
 import Hearth.HeroName
 import Hearth.HeroPowerName
@@ -301,6 +301,7 @@ gameEvent snapshot = \case
     GameEnds gameResult -> let
         gameResultAttr = ("gameResult", show gameResult)
         in tag 'GameEnds [gameResultAttr]
+    PhaseEvent scopedPhase -> phaseEvent scopedPhase
     DeckShuffled player _ -> do
         playerName <- query $ showHandle player
         let playerAttr = ("player", playerName)
@@ -392,11 +393,41 @@ gameEvent snapshot = \case
         in tag 'AttackFailed [reasonAttr]
     where
         query = runQuery snapshot
-        tag name attrs = let
-            name' = case nameBase name of
-                (c : cs) -> toLower c : cs
-                "" -> ""
-            in verbosityGate name' $ openTag name' attrs >> closeTag name'
+        tag name = gatedTag $ nameBase name
+
+
+phaseEvent :: Scoped Phase -> Console ()
+phaseEvent scopedPhase = let
+    name = case scopedPhase of
+        Begin p -> show p
+        End p -> show p
+    in case scopedPhase of
+        Begin _ -> gatedOpenTag name []
+        End _ -> gatedCloseTag name
+
+
+lowerFirst :: String -> String
+lowerFirst = \case
+    c : cs -> toLower c : cs
+    "" -> ""
+
+
+gatedOpenTag :: String -> [(String, String)] -> Console ()
+gatedOpenTag name attrs = let
+    name' = lowerFirst name
+    in verbosityGate name' $ openTag name' attrs
+
+
+gatedCloseTag :: String -> Console ()
+gatedCloseTag name = let
+    name' = lowerFirst name
+    in verbosityGate name' $ closeTag name'
+
+
+gatedTag :: String -> [(String, String)] -> Console ()
+gatedTag name attrs = do
+    gatedOpenTag name attrs
+    gatedCloseTag name
 
 
 showHandle :: Handle a -> Hearth Console String
