@@ -612,8 +612,8 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 liftIO $ setStdGen $ mkStdGen seed
                 let tag name attrs = openTag name attrs >> closeTag name
                 tag "gameSeed" [("value", show seed)]
-                deck1 <- newDeck
-                deck2 <- newDeck
+                deck1 <- newDeck Mage
+                deck2 <- newDeck Warlock
                 _ <- runHearth (player1 deck1, player2 deck2)
                 liftIO clearScreen
                 window <- liftIO getWindowSize
@@ -638,32 +638,47 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroHealth = 30,
             _heroPower = power,
             _heroName = name }
-        collectibleCards = filter isCollectible cardUniverse
-        newDeck = liftIO $ liftM (Deck . take 30) $ shuffleM collectibleCards
         player1 = PlayerData (hero Jaina fireblast)
         player2 = PlayerData (hero Gul'dan lifeTap)
+        newDeck clazz = liftIO $ do
+            let classCount = 15
+                neutralCount = 30 - min classCount (length classCards)
+                classCards = filter isCollectible $ cardsByClass clazz
+                neutralCards = filter isCollectible $ cardsByClass Neutral
+            classCards' <- shuffleM classCards
+            neutralCards' <- shuffleM neutralCards
+            return $ Deck $ take classCount classCards' ++ take neutralCount neutralCards'
 
 
-class IsCollectible a where
-    isCollectible :: a -> Bool
+cardsByClass :: Class -> [DeckCard]
+cardsByClass clazz = flip filter cardUniverse $ \card ->
+    cardMeta card^.cardMetaClass == clazz
 
 
-instance IsCollectible DeckCard where
-    isCollectible = \case
-        DeckCardMinion x -> isCollectible x
-        DeckCardSpell x -> isCollectible x
+class GetCardMeta a where
+    cardMeta :: a -> CardMeta
 
 
-instance IsCollectible Minion where
-    isCollectible = isCollectible . _minionMeta
+instance GetCardMeta DeckCard where
+    cardMeta = \case
+        DeckCardMinion x -> cardMeta x
+        DeckCardSpell x -> cardMeta x
 
 
-instance IsCollectible Spell where
-    isCollectible = isCollectible . _spellMeta
+instance GetCardMeta Minion where
+    cardMeta = _minionMeta
 
 
-instance IsCollectible CardMeta where
-    isCollectible = (Collectible ==) . _cardMetaCollectibility
+instance GetCardMeta Spell where
+    cardMeta = _spellMeta
+
+
+instance GetCardMeta CardMeta where
+    cardMeta = id
+
+
+isCollectible :: (GetCardMeta a) => a -> Bool
+isCollectible = (Collectible ==) . _cardMetaCollectibility . cardMeta
 
 
 fireblast :: HeroPower
