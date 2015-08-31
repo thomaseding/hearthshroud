@@ -153,6 +153,7 @@ makeLenses ''LogState
 data ConsoleState = ConsoleState {
     _gameSeed :: [Int],
     _exitWithoutMessage :: Bool,
+    _classRestriction :: Bool,
     _pendingTargets :: [SignedInt],
     _targetsSnapshot :: GameSnapshot,
     _isAutoplay :: Bool,
@@ -589,10 +590,12 @@ consoleOptions = do
         liftIO printProgramHelp
     addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity])))
         (logState.verbosity .=)
-    addOption (kw "--seed" `argText` "INT" `text` "Sets the game seed to INT.") $
+    addOption (kw ["-s", "--seed"] `argText` "INT" `text` "Sets the game seed to INT.") $
         \seed -> gameSeed %= (seed :)
-    addOption (kw "--seed-random" `text` "Sets the game seed to a random value.") $
+    addOption (kw ["-S", "--seed-random"] `text` "Sets the game seed to a random value.") $
         liftIO randomIO >>= \seed -> gameSeed %= (seed :)
+    addOption (kw ["-C", "--no-class-restriction"] `text` "Deck cards are not restricted by class.")
+        (classRestriction .= False)
 
 
 main :: IO ()
@@ -630,6 +633,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
         st = ConsoleState {
             _gameSeed = [],
             _exitWithoutMessage = False,
+            _classRestriction = True,
             _pendingTargets = [],
             _targetsSnapshot = $logicError '_targetsSnapshot "uninitialized",
             _isAutoplay = False,
@@ -647,14 +651,18 @@ runTestGame = flip evalStateT st $ unConsole $ do
             _heroName = name }
         player1 = PlayerData (hero Jaina fireblast)
         player2 = PlayerData (hero Gul'dan lifeTap)
-        newDeck clazz = liftIO $ do
-            let classCount = 15
-                neutralCount = 30 - min classCount (length classCards)
-                classCards = filter isCollectible $ cardsByClass clazz
-                neutralCards = filter isCollectible $ cardsByClass Neutral
-            classCards' <- shuffleM classCards
-            neutralCards' <- shuffleM neutralCards
-            return $ Deck $ take classCount classCards' ++ take neutralCount neutralCards'
+        newDeck clazz = view classRestriction >>= \case
+            False -> liftIO $ do
+                cards <- shuffleM $ filter isCollectible cardUniverse
+                return $ Deck $ take 30 cards
+            True -> liftIO $ do
+                let classCount = 15
+                    neutralCount = 30 - min classCount (length classCards)
+                    classCards = filter isCollectible $ cardsByClass clazz
+                    neutralCards = filter isCollectible $ cardsByClass Neutral
+                classCards' <- shuffleM classCards
+                neutralCards' <- shuffleM neutralCards
+                return $ Deck $ take classCount classCards' ++ take neutralCount neutralCards'
 
 
 cardsByClass :: Class -> [DeckCard]
