@@ -151,8 +151,8 @@ makeLenses ''LogState
 
 
 data ConsoleState = ConsoleState {
-    _gameSeed :: Maybe Int,
-    _runGame :: Bool,
+    _gameSeed :: [Int],
+    _exitWithoutMessage :: Bool,
     _pendingTargets :: [SignedInt],
     _targetsSnapshot :: GameSnapshot,
     _isAutoplay :: Bool,
@@ -570,24 +570,29 @@ itemize conj = \case
             Or -> "or"
 
 
-programHelp :: HelpDescription -> Console ()
-programHelp (HelpDescription desc) = do
-    runGame .= False
-    liftIO $ do
-        let desc' = "\n HearthShroud\n\n" ++ desc
-        putStrLn desc'
-        cursorUpLine $ 1 + length (lines desc')
-        printBanner 75
+printProgramHelp :: IO ()
+printProgramHelp = do
+    let desc = getHelpDescription consoleOptions
+    let desc' = unlines [
+            "Usage: hearthshroud [OPTION]...",
+            "",
+            desc ]
+    putStrLn desc'
+    cursorUpLine $ 1 + length (lines desc')
+    printBanner 75
 
 
 consoleOptions :: Options Console () ()
 consoleOptions = do
-    addOption (kw ["-h", "--help"] `text` "Display this help text.")
-        programHelp
+    addOption (kw ["-h", "--help"] `text` "Display this help text.") $ do
+        exitWithoutMessage .= True
+        liftIO printProgramHelp
     addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity])))
         (logState.verbosity .=)
-    addOption (kw "--seed" `argText` "INT" `text` "Sets the random number seed to INT.")
-        ((gameSeed .=) . Just)
+    addOption (kw "--seed" `argText` "INT" `text` "Sets the game seed to INT.") $
+        \seed -> gameSeed %= (seed :)
+    addOption (kw "--seed-random" `text` "Sets the game seed to a random value.") $
+        liftIO randomIO >>= \seed -> gameSeed %= (seed :)
 
 
 main :: IO ()
@@ -600,29 +605,31 @@ runTestGame :: IO ()
 runTestGame = flip evalStateT st $ unConsole $ do
     args <- liftIO getArgs
     case runOptions consoleOptions args of
-        Left (ParseFailed msg _ _) -> liftIO $ do
-            putStrLn msg
-            putStrLn $ getHelpDescription consoleOptions
-        Right ms -> sequence_ ms >> view runGame >>= \case
-            False -> return ()
-            True -> do
-                seed <- view gameSeed >>= \case
-                    Nothing -> liftIO randomIO
-                    Just seed -> return seed
-                liftIO $ setStdGen $ mkStdGen seed
-                let tag name attrs = openTag name attrs >> closeTag name
-                tag "gameSeed" [("value", show seed)]
-                deck1 <- newDeck Mage
-                deck2 <- newDeck Warlock
-                _ <- runHearth (player1 deck1, player2 deck2)
-                liftIO clearScreen
-                window <- liftIO getWindowSize
-                renewLogWindow window 0
-                liftIO enterToContinue
+        Left (ParseFailed msg _ _) -> complain msg
+        Right ms -> sequence_ ms >> view exitWithoutMessage >>= \case
+            True -> return ()
+            False -> do
+                view gameSeed >>= \case
+                    [] -> complain "Need to initialize game seed."
+                    _ : _ : _ -> complain "Must initialize game seed with exactly one value."
+                    [seed] -> do
+                        liftIO $ setStdGen $ mkStdGen seed
+                        let tag name attrs = openTag name attrs >> closeTag name
+                        tag "gameSeed" [("value", show seed)]
+                        deck1 <- newDeck Mage
+                        deck2 <- newDeck Warlock
+                        _ <- runHearth (player1 deck1, player2 deck2)
+                        liftIO clearScreen
+                        window <- liftIO getWindowSize
+                        renewLogWindow window 0
+                        liftIO enterToContinue
     where
+        complain msg = liftIO $ do
+            putStrLn $ unlines [msg, ""]
+            printProgramHelp
         st = ConsoleState {
-            _gameSeed = Nothing,
-            _runGame = True,
+            _gameSeed = [],
+            _exitWithoutMessage = False,
             _pendingTargets = [],
             _targetsSnapshot = $logicError '_targetsSnapshot "uninitialized",
             _isAutoplay = False,
