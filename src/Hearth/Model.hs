@@ -139,6 +139,7 @@ data Restriction :: * -> * where
     WithMinion :: Restriction Character -> Restriction Minion
     WithPlayer :: Restriction Character -> Restriction Player
     OwnedBy :: Handle Player -> Restriction a
+    Is :: Handle a -> Restriction a
     Not :: Handle a -> Restriction a
     AttackCond :: Comparison -> Attack -> Restriction Minion
     Damaged :: Restriction Character
@@ -194,6 +195,7 @@ data Effect :: * where
     Transform :: Handle Minion -> Minion -> Effect
     Silence :: Handle Minion -> Effect
     GainArmor :: Handle Player -> Armor -> Effect
+    Freeze :: Handle Character -> Effect
     deriving (Typeable)
 
 
@@ -251,17 +253,23 @@ data Phase :: * where
 
 
 data TimePoint :: * where
+    Delay :: Int -> TimePoint -> TimePoint
+    BeginOfTurn :: TimePoint
     EndOfTurn :: TimePoint
     deriving (Show, Typeable, Eq, Ord)
 
 
 data Enchantment :: * -> * where
+    Until :: TimePoint -> Enchantment Continuous -> Enchantment Limited
     StatsDelta :: Attack -> Health -> Enchantment Continuous
     StatsScale :: Attack -> Health -> Enchantment Continuous
     ChangeStat :: Either Attack Health -> Enchantment Continuous
     SwapStats :: Enchantment Continuous
-    Until :: TimePoint -> Enchantment Continuous -> Enchantment Limited
+    Frozen :: Enchantment Continuous
     deriving (Typeable)
+
+
+deriving instance Eq (Enchantment a)
 
 
 data AnyEnchantment :: * where

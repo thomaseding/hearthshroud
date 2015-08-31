@@ -427,19 +427,28 @@ scopedPhase phase action = logCall 'scopedPhase $ do
 
 
 clearUntil :: (HearthMonad m) => TimePoint -> Hearth m ()
-clearUntil timePoint = do
+clearUntil candidate = do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     forM_ minions $ \minion -> do
-        getMinion minion.boardMinionEnchantments %= filter predicate
+        getMinion minion.boardMinionEnchantments %= mapMaybe predicate
     where
         predicate = \case
-            Continuous _ -> True
-            Limited e -> case e of
-                Until timePoint' _ -> timePoint /= timePoint'
+            Continuous e -> Just $ Continuous e
+            Limited e -> fmap Limited $ case e of
+                Until timePoint e' -> case timePoint of
+                    Delay n timePoint' -> case timePoint' == candidate of
+                        True -> Just $ case n of
+                            1 -> Until timePoint' e'
+                            _ -> Until (Delay (n - 1) timePoint') e'
+                        False -> Just e
+                    _ -> case timePoint == candidate of
+                        True -> Nothing
+                        False -> Just e
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
+    clearUntil BeginOfTurn
     handle <- getActivePlayerHandle
     gainManaCrystal handle CrystalFull
     zoom (getPlayer handle) $ do
@@ -708,8 +717,24 @@ enactEffect = logCall 'enactEffect . \case
     Transform handle minion -> transform handle minion >> return success
     Silence handle -> silence handle >> return success
     GainArmor handle armor -> gainArmor handle armor >> return success
+    Freeze handle -> freeze handle >> return success
     where
         success = purePick ()
+
+
+freeze :: (HearthMonad m) => Handle Character -> Hearth m ()
+freeze character = logCall 'freeze $ do
+    active <- getActivePlayerHandle
+    owner <- ownerOf character
+    timePoint <- case active == owner of
+        False -> return $ Delay 1 BeginOfTurn
+        True -> liftM (== 0) (getAttackCount character) >>= \case
+            True -> return EndOfTurn
+            False -> return $ Delay 1 EndOfTurn
+    case character of
+        PlayerCharacter {} -> $todo 'freeze "need to implement player enchantments"
+        MinionCharacter minion -> do
+            getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint Frozen])
 
 
 enactWhen :: (HearthMonad m) => Handle a -> [Restriction a] -> Effect -> Hearth m ()
@@ -822,6 +847,27 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
+underAnyEnchantment :: forall b. (forall a. Enchantment a -> b) -> AnyEnchantment -> b
+underAnyEnchantment f = \case
+    Continuous e -> f e
+    Limited e -> f e
+
+
+hasEnchantment :: (HearthMonad m) => Enchantment Continuous -> Handle Minion -> Hearth m Bool
+hasEnchantment candidate minion = logCall 'hasEnchantment $ do
+    enchantments <- dynamicEnchantments minion
+    return $ any (underAnyEnchantment predicate) enchantments
+    where
+        predicate :: Enchantment a -> Bool
+        predicate = \case
+            Until _ e -> predicate e
+            e @ StatsDelta{} -> e == candidate
+            e @ StatsScale{} -> e == candidate
+            e @ ChangeStat{} -> e == candidate
+            e @ SwapStats{} -> e == candidate
+            e @ Frozen{} -> e == candidate
+
+
 class IsCharacterHandle a where
     characterHandle :: a -> Handle Character
 
@@ -850,6 +896,7 @@ class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
     getAttackCount :: (HearthMonad m) => h -> Hearth m Int
     bumpAttackCount :: (HearthMonad m) => h -> Hearth m ()
     hasSummoningSickness :: (HearthMonad m) => h -> Hearth m Bool
+    isFrozen :: (HearthMonad m) => h -> Hearth m Bool
 
 
 instance CharacterTraits PlayerHandle where
@@ -866,6 +913,7 @@ instance CharacterTraits PlayerHandle where
     bumpAttackCount pHandle = logCall 'bumpAttackCount $ do
         getPlayer pHandle.playerHero.boardHeroAttackCount += 1
     hasSummoningSickness _ = return False
+    isFrozen _ = logCall 'isFrozen $ return False
 
 
 auraAbilitiesOf :: [Ability] -> [Handle Minion -> Aura]
@@ -880,10 +928,6 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
     applyEnchantments
     action
     where
-        underAnyEnchantment :: forall m. (forall a. Enchantment a -> Hearth m ()) -> AnyEnchantment -> Hearth m ()
-        underAnyEnchantment f = \case
-            Continuous e -> f e
-            Limited e -> f e
         applyAuras = do
             minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
             forM_ minions $ \minion -> do
@@ -908,6 +952,7 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                     Health health <- view $ getMinion handle.boardMinion.minionHealth
                     getMinion handle.boardMinion.minionAttack .= Attack health
                     getMinion handle.boardMinion.minionHealth .= Health attack
+                Frozen -> return ()
                 Until _ enchantment -> applyEnchantment enchantment
 
 
@@ -954,6 +999,7 @@ instance CharacterTraits MinionHandle where
         case bm^.boardMinionNewlySummoned of
             False -> return False
             True -> liftM not $ dynamicHasCharge bmHandle
+    isFrozen handle = logCall 'isFrozen $ hasEnchantment Frozen handle
 
 
 instance CharacterTraits CharacterHandle where
@@ -978,6 +1024,9 @@ instance CharacterTraits CharacterHandle where
     hasSummoningSickness = logCall 'hasSummoningSickness $ \case
         PlayerCharacter h -> hasSummoningSickness h
         MinionCharacter h -> hasSummoningSickness h
+    isFrozen = logCall 'isFrozen $ \case
+        PlayerCharacter h -> isFrozen h
+        MinionCharacter h -> isFrozen h
 
 
 dynamicRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
@@ -1178,7 +1227,8 @@ instance IsPermitted (Restriction a) a where
         WithMinion r -> isPermitted r $ MinionCharacter candidate
         WithPlayer r -> isPermitted r $ PlayerCharacter candidate
         OwnedBy owner -> liftM (owner ==) $ ownerOf candidate
-        Not bannedObject -> return $ candidate /= bannedObject
+        Is object -> return $ candidate == object
+        Not object -> return $ candidate /= object
         AttackCond cmp attackCond -> do
             actualAttack <- dynamicAttack candidate
             return $ fromComparison cmp actualAttack attackCond
@@ -1393,15 +1443,19 @@ enactAttack attacker defender = logCall 'enactAttack $ do
                             False -> do
                                 promptGameEvent $ AttackFailed OutOfAttacks
                                 return $ Failure "Character is out of attacks."
-                            True -> defenderHasTaunt >>= \case
-                                True -> return Success
-                                False -> do
-                                    defenderController <- ownerOf defender
-                                    hasTauntMinions defenderController >>= \case
-                                        True -> do
-                                            promptGameEvent $ AttackFailed TauntsExist
-                                            return $ Failure "Must attack a minion with taunt."
-                                        False -> return Success
+                            True -> isFrozen attacker >>= \case
+                                True -> do
+                                    promptGameEvent $ AttackFailed AttackerIsFrozen
+                                    return $ Failure "Attacker is frozen."
+                                False -> defenderHasTaunt >>= \case
+                                    True -> return Success
+                                    False -> do
+                                        defenderController <- ownerOf defender
+                                        hasTauntMinions defenderController >>= \case
+                                            True -> do
+                                                promptGameEvent $ AttackFailed TauntsExist
+                                                return $ Failure "Must attack a minion with taunt."
+                                            False -> return Success
     case result of
         Failure msg -> return $ Failure msg
         Success -> do

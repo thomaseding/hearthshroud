@@ -45,6 +45,8 @@ data BasicCardName
     | Flamestrike
     | FlametongueTotem
     | Frog
+    | Frostbolt
+    | FrostNova
     | FrostwolfGrunt
     | GnomishInventor
     | GoldshireFootman

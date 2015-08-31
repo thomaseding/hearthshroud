@@ -304,6 +304,13 @@ showEffect = \case
     Transform handle minion -> showTransform handle minion
     Silence handle -> showSilence handle
     GainArmor handle amount -> showGainArmor handle amount
+    Freeze handle -> showFreeze handle
+
+
+showFreeze :: Handle Character -> ShowCard String
+showFreeze handle = do
+    str <- readHandle handle
+    return $ "Freeze " ++ str
 
 
 showWhen :: Handle a -> [Restriction a] -> Effect -> ShowCard String
@@ -467,6 +474,8 @@ showRestriction = \case
         (is you -> True) -> "FRIENDLY"
         (is opponent -> True) -> "ENEMY"
         str -> "OWNED_BY[" ++ str ++ "]"
+    Is handle -> readHandle handle >>= return . \case
+        str -> "IS " ++ str
     Not handle -> readHandle handle >>= return . \case
         str -> "NOT " ++ str
     AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
@@ -559,6 +568,7 @@ showEnchantment = \case
         Left (Attack x) -> return $ "Attack changed to " ++ show x
         Right (Health y) -> return $ "Health changed to " ++ show y
     SwapStats -> return "Swapped attack and health"
+    Frozen -> return "Frozen"
     Until timePoint enchantment -> showUntil timePoint enchantment
 
 

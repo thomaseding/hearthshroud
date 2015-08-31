@@ -49,6 +49,7 @@ data AttackFailedReason :: * where
     DoesNotHaveCharge :: AttackFailedReason
     OutOfAttacks :: AttackFailedReason
     TauntsExist :: AttackFailedReason
+    AttackerIsFrozen :: AttackFailedReason
     deriving (Show, Typeable)
 
 

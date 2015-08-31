@@ -50,6 +50,8 @@ cards = let x = toCard in [
     x flamestrike,
     x flametongueTotem,
     x frog,
+    x frostbolt,
+    x frostNova,
     x frostwolfGrunt,
     x gnomishInventor,
     x goldshireFootman,
@@ -138,7 +140,7 @@ arcaneIntellect = mkSpell Mage ArcaneIntellect 3 $ \this ->
 
 
 arcaneShot :: Spell
-arcaneShot = mkSpell Mage ArcaneShot 1 $ \_ ->
+arcaneShot = mkSpell Hunter ArcaneShot 1 $ \_ ->
     A $ Character [] $ \target ->
         Effect $ DealDamage target 2
 
@@ -318,6 +320,23 @@ flametongueTotem = mkMinion Shaman FlametongueTotem 2 0 3 [
 frog :: Minion
 frog = uncollectible $ mkMinion Neutral Frog 0 0 1 [
     KeywordAbility Taunt ]
+
+
+frostbolt :: Spell
+frostbolt = mkSpell Mage Frostbolt 2 $ \_ ->
+    A $ Character [] $ \target ->
+        Effect $ Sequence [
+            DealDamage target 3,
+            Freeze target ]
+
+
+frostNova :: Spell
+frostNova = mkSpell Mage FrostNova 3 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            All $ Minions [OwnedBy opponent] $ \victims ->
+                Effect $ ForEach victims $ \victim ->
+                    Freeze (MinionCharacter victim)
 
 
 frostwolfGrunt :: Minion
