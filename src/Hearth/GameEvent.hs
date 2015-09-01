@@ -26,7 +26,7 @@ data GameEvent :: * where
     UsedHeroPower :: Handle Player -> HeroPower -> GameEvent
     PlayedMinion :: Handle Player -> Handle Minion -> GameEvent
     PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
-    TookDamage :: Handle Character -> Damage -> GameEvent
+    DealtDamage :: Handle Character -> Damage -> DamageSource -> GameEvent
     HealthRestored :: Handle Character -> Health -> GameEvent
     GainedArmor :: Handle Player -> Armor -> GameEvent
     MinionDestroyed :: Handle Minion -> GameEvent

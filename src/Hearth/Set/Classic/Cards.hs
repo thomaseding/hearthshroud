@@ -98,7 +98,7 @@ abomination = mkMinion Rare Neutral Abomination 5 4 4 [
     KeywordAbility $ Deathrattle $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
             Effect $ ForEach victims $ \victim ->
-                DealDamage victim 2 ]
+                (this `damages` victim) 2 ]
 
 
 abusiveSergeant :: Minion
@@ -154,7 +154,7 @@ argentSquire = mkMinion Common Neutral ArgentSquire 1 1 1 [
 
 armorsmith :: Minion
 armorsmith = mkMinion Rare Warrior Armorsmith 2 1 4 [
-    Whenever $ TakesDamage $ \this victim ->
+    Whenever $ DamageIsDealt $ \this victim _ _ ->
         OwnerOf this $ \you ->
             Effect $ When victim [OwnedBy you, IsMinion] $ GainArmor you 1 ]
 
@@ -218,7 +218,7 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster 2 2 2 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
-                DealDamage (MinionCharacter target) 1,
+                (this `damages` target) 1,
                 Enchant target $ Continuous $ StatsDelta 2 0 ]]
 
 
@@ -237,11 +237,11 @@ earthenRingFarseer = mkMinion Common Neutral EarthenRingFarseer 3 3 3 [
 
 
 earthShock :: Spell
-earthShock = mkSpell Common Shaman EarthShock 1 $ \_ ->
+earthShock = mkSpell Common Shaman EarthShock 1 $ \this ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
             Silence target,
-            DealDamage (MinionCharacter target) 1 ]
+            (this `damages` target) 1 ]
 
 
 equality :: Spell
@@ -260,7 +260,7 @@ flameImp :: Minion
 flameImp = mkMinion Common Warlock FlameImp 1 3 2 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ DealDamage (PlayerCharacter you) 3 ]
+            Effect $ (this `damages` you) 3 ]
 
 
 gadgetzanAuctioneer :: Minion
@@ -282,21 +282,21 @@ holyFire = mkSpell Rare Priest HolyFire 6 $ \this ->
     A $ Character [] $ \target ->
         OwnerOf this $ \you ->
             Effect $ Sequence [
-                DealDamage target 5,
+                (this `damages` target) 5,
                 RestoreHealth (PlayerCharacter you) 5 ]
 
 
 injuredBlademaster :: Minion
 injuredBlademaster = mkMinion Rare Neutral InjuredBlademaster 3 4 7 [
     KeywordAbility $ Battlecry $ \this ->
-        Effect $ DealDamage (MinionCharacter this) 4 ]
+        Effect $ (this `damages` this) 4 ]
 
 
 innerRage :: Spell
-innerRage = mkSpell Common Warrior InnerRage 0 $ \_ ->
+innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
-            DealDamage (MinionCharacter target) 1,
+            (this `damages` target) 1,
             Enchant target $ Continuous $ StatsDelta 2 0 ]
 
 
@@ -321,7 +321,7 @@ leperGnome = mkMinion Common Neutral LeperGnome 1 2 1 [
     KeywordAbility $ Deathrattle $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-                Effect $ DealDamage (PlayerCharacter opponent) 2 ]
+                Effect $ (this `damages` opponent) 2 ]
 
 
 lootHoarder :: Minion
@@ -381,7 +381,7 @@ pitLord :: Minion
 pitLord = mkMinion Epic Warlock PitLord 4 5 6 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ DealDamage (PlayerCharacter you) 5 ]
+            Effect $ (this `damages` you) 5 ]
 
 
 priestessOfElune :: Minion
@@ -392,9 +392,9 @@ priestessOfElune = mkMinion Common Neutral PriestessOfElune 6 5 4 [
 
 
 pyroblast :: Spell
-pyroblast = mkSpell Epic Mage Pyroblast 10 $ \_ ->
+pyroblast = mkSpell Epic Mage Pyroblast 10 $ \this ->
     A $ Character [] $ \target ->
-        Effect $ DealDamage target 10
+        Effect $ (this `damages` target) 10
 
 
 rampage :: Spell
@@ -453,12 +453,12 @@ starfall :: Spell
 starfall = mkSpell Rare Druid Starfall 5 $ \this ->
     Choice [
         A $ Minion [] $ \target ->
-            Effect $ DealDamage (MinionCharacter target) 5,
+            Effect $ (this `damages` target) 5,
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 All $ Minions [OwnedBy opponent] $ \victims ->
                     Effect $ ForEach victims $ \victim ->
-                        DealDamage (MinionCharacter victim) 2 ]
+                        (this `damages` victim) 2 ]
 
 
 sunwalker :: Minion
@@ -497,11 +497,11 @@ wrath :: Spell
 wrath = mkSpell Common Druid Wrath 2 $ \this ->
     Choice [
         A $ Minion [] $ \target ->
-            Effect $ DealDamage (MinionCharacter target) 3,
+            Effect $ (this `damages` target) 3,
         A $ Minion [] $ \target ->
             OwnerOf this $ \you ->
                 Effect $ Sequence [
-                    DealDamage (MinionCharacter target) 1,
+                    (this `damages` target) 1,
                     DrawCards you 1 ]]
 
 

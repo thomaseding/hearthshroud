@@ -331,11 +331,13 @@ gameEvent snapshot = \case
         let playerAttr = ("player", playerName)
             spellAttr = ("spell", spellName)
         tag 'PlayedSpell [playerAttr, spellAttr]
-    TookDamage character (Damage damage) -> do
-        characterName <- query $ showHandle character
-        let characterAttr = ("character", characterName)
+    DealtDamage victim (Damage damage) source -> do
+        victimName <- query $ showHandle victim
+        sourceString <- query $ showDamageSource source
+        let victimAttr = ("victim", victimName)
             damageAttr = ("damage", show damage)
-        tag 'TookDamage [characterAttr, damageAttr]
+            sourceAttr = ("source", sourceString)
+        tag 'DealtDamage [victimAttr, damageAttr, sourceAttr]
     HealthRestored character (Health health) -> do
         characterName <- query $ showHandle character
         let characterAttr = ("character", characterName)
@@ -429,6 +431,13 @@ gatedTag :: String -> [(String, String)] -> Console ()
 gatedTag name attrs = do
     gatedOpenTag name attrs
     gatedCloseTag name
+
+
+showDamageSource :: DamageSource -> Hearth Console String
+showDamageSource = \case
+    Fatigue -> return "Fatigue"
+    DamagingCharacter handle -> showHandle handle
+    DamagingSpell handle -> showHandle handle
 
 
 showHandle :: Handle a -> Hearth Console String
@@ -700,9 +709,9 @@ fireblast :: HeroPower
 fireblast = HeroPower {
     _heroPowerName = Fireblast,
     _heroPowerCost = ManaCost 2,
-    _heroPowerEffect = \_ ->
+    _heroPowerEffect = \you ->
         A $ Character [] $ \target ->
-            Effect $ DealDamage target 1 }
+            Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
 
 
 lifeTap :: HeroPower
@@ -712,7 +721,7 @@ lifeTap = HeroPower {
     _heroPowerEffect = \you -> 
         Effect $ Sequence [
             DrawCards you 1,
-            DealDamage (PlayerCharacter you) 2 ]}
+            DealDamage (PlayerCharacter you) 2 (DamagingCharacter $ PlayerCharacter you) ]}
 
 
 getWindowSize :: IO (Window Int)

@@ -240,7 +240,7 @@ showWhenever :: (GenHandle a) => Event a -> ShowCard String
 showWhenever event = do
     str <- case event of
         SpellIsCast cont -> showSpellIsCast cont
-        TakesDamage cont -> showTakesDamage cont
+        DamageIsDealt cont -> showDamageIsDealt cont
     return $ "Whenever " ++ str
 
 
@@ -251,11 +251,13 @@ showSpellIsCast cont = do
     liftM ("a spell is cast: " ++) $ showElect $ cont thisHandle spellHandle
 
 
-showTakesDamage :: (GenHandle a) => (Handle a -> Handle Character -> Elect AtRandom) -> ShowCard String
-showTakesDamage cont = do
+showDamageIsDealt :: (GenHandle a) => (Handle a -> Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> ShowCard String
+showDamageIsDealt cont = do
     thisHandle <- genHandle this
-    characterHandle <- genHandle "DAMAGED_CHARACTER"
-    liftM ("a character takes damage: " ++) $ showElect $ cont thisHandle characterHandle
+    victim <- genHandle "DAMAGED_CHARACTER"
+    let damage = 666
+        source = Fatigue
+    liftM ("a character takes damage: " ++) $ showElect $ cont thisHandle victim damage source
 
 
 showKeywordAbility :: KeywordAbility -> ShowCard String
@@ -295,7 +297,7 @@ showEffect = \case
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
     DrawCards handle n -> showDrawCards handle n
-    DealDamage handle damage -> showDealDamage handle damage
+    DealDamage victim damage source -> showDealDamage victim damage source
     Enchant handle enchantments -> showEnchant handle enchantments
     GrantAbilities handle abilities -> showGrantAbilities handle abilities
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
@@ -354,9 +356,9 @@ showDestroyMinion minion = do
     return $ "Destroy " ++ minionStr
 
 
-showForEach :: [Handle a] -> (Handle a -> Effect) -> ShowCard String
+showForEach :: HandleList a -> (Handle a -> Effect) -> ShowCard String
 showForEach handles cont = case handles of
-    [handle] -> do
+    HandleList [handle] -> do
         str <- readHandle handle
         effectStr <- showEffect $ cont handle
         return $ "ForEach " ++ str ++ ": " ++ effectStr
@@ -419,25 +421,25 @@ instance IsSelection AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showMinions :: (IsSelection s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> ShowCard String
+showMinions :: (IsSelection s) => [Restriction Minion] -> (HandleList Minion -> Elect s) -> ShowCard String
 showMinions restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
-    showElect $ cont [handle]
+    showElect $ cont $ HandleList [handle]
 
 
-showPlayers :: (IsSelection s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> ShowCard String
+showPlayers :: (IsSelection s) => [Restriction Player] -> (HandleList Player -> Elect s) -> ShowCard String
 showPlayers restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     handle <- genHandle $ "PLAYER[" ++ restrictionsStr ++ "]"
-    showElect $ cont [handle]
+    showElect $ cont $ HandleList [handle]
 
 
-showCharacters :: (IsSelection s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> ShowCard String
+showCharacters :: (IsSelection s) => [Restriction Character] -> (HandleList Character -> Elect s) -> ShowCard String
 showCharacters restrictions cont = do
     restrictionsStr <- showRestrictions restrictions
     handle <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
-    showElect $ cont [handle]
+    showElect $ cont $ HandleList [handle]
 
 
 showMinion :: forall s. (IsSelection s) => [Restriction Minion] -> (Handle Minion -> Elect s) -> ShowCard String
@@ -522,10 +524,18 @@ showDrawCards player amount = do
     return $ unwords [playerStr, drawStr, show amount, cardStr]
 
 
-showDealDamage :: Handle Character -> Damage -> ShowCard String
-showDealDamage character (Damage amount) = do
+showDamageSource :: DamageSource -> ShowCard String
+showDamageSource = \case
+    Fatigue -> return "Fatigue"
+    DamagingCharacter handle -> readHandle handle
+    DamagingSpell handle -> readHandle handle
+
+
+showDealDamage :: Handle Character -> Damage -> DamageSource -> ShowCard String
+showDealDamage character (Damage amount) source = do
     characterStr <- readHandle character
-    return $ unwords ["Deal", show amount, "damage to", characterStr]
+    sourceStr <- showDamageSource source
+    return $ unwords ["Deal", show amount, "damage to", characterStr, "by", sourceStr]
 
 
 showEnchant :: Handle Minion -> AnyEnchantment -> ShowCard String

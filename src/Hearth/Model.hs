@@ -120,6 +120,9 @@ type PlayerHandle = Handle Player
 type CharacterHandle = Handle Character
 
 
+newtype HandleList a = HandleList [Handle a]
+
+
 data CrystalState :: * where
     CrystalFull :: CrystalState
     CrystalEmpty :: CrystalState
@@ -174,19 +177,25 @@ data A :: Selection -> * where
 
 
 data All :: Selection -> * where
-    Minions :: [Restriction Minion] -> ([Handle Minion] -> Elect s) -> All s
-    Players :: [Restriction Player] -> ([Handle Player] -> Elect s) -> All s
-    Characters :: [Restriction Character] -> ([Handle Character] -> Elect s) -> All s
+    Minions :: [Restriction Minion] -> (HandleList Minion -> Elect s) -> All s
+    Players :: [Restriction Player] -> (HandleList Player -> Elect s) -> All s
+    Characters :: [Restriction Character] -> (HandleList Character -> Elect s) -> All s
+
+
+data DamageSource :: * where
+    Fatigue :: DamageSource
+    DamagingCharacter :: Handle Character -> DamageSource
+    DamagingSpell :: Handle Spell -> DamageSource
 
 
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
     DoNothing :: Handle a -> Effect
     When :: Handle a -> [Restriction a] -> Effect -> Effect
-    ForEach :: [Handle a] -> ((Handle a) -> Effect) -> Effect
+    ForEach :: HandleList a -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     DrawCards :: Handle Player -> Int -> Effect
-    DealDamage :: Handle Character -> Damage -> Effect
+    DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
     Enchant :: Handle Minion -> AnyEnchantment -> Effect
     GrantAbilities :: Handle Minion -> [Ability] -> Effect
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
@@ -201,7 +210,7 @@ data Effect :: * where
 
 data Event :: * -> * where
     SpellIsCast :: (Handle a -> Handle Spell -> Elect AtRandom) -> Event a
-    TakesDamage :: (Handle a -> Handle Character -> Elect AtRandom) -> Event a
+    DamageIsDealt :: (Handle a -> Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> Event a
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)

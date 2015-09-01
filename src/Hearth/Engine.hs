@@ -326,7 +326,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck [] -> do
         getPlayer handle.playerExcessDrawCount += 1
         excess <- view $ getPlayer handle.playerExcessDrawCount
-        receiveDamage (PlayerCharacter handle) $ Damage excess
+        dealDamage (PlayerCharacter handle) (Damage excess) Fatigue
         return Nothing
     Deck (c:cs) -> do
         let c' = deckToHand c
@@ -708,7 +708,7 @@ enactEffect = logCall 'enactEffect . \case
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
     DrawCards handle n -> drawCards handle n >> return success
-    DealDamage handle damage -> receiveDamage handle damage >> return success
+    DealDamage victim damage source -> dealDamage victim damage source >> return success
     Enchant handle enchantment -> enchant handle enchantment >> return success
     GrantAbilities handle abilities -> grantAbilities handle abilities >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
@@ -782,8 +782,8 @@ destroyMinion handle = logCall 'destroyMinion $ do
     promptGameEvent $ MinionDestroyed handle
 
 
-enactForEach :: (HearthMonad m) => [a] -> (a -> Effect) -> Hearth m (SimplePickResult AtRandom)
-enactForEach handles cont = logCall 'enactForEach $ do
+enactForEach :: (HearthMonad m) => HandleList a -> (Handle a -> Effect) -> Hearth m (SimplePickResult AtRandom)
+enactForEach (HandleList handles) cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
@@ -1036,8 +1036,8 @@ dynamicRemainingHealth h = do
     return $ health - Health (unDamage damage)
 
 
-receiveDamage :: (HearthMonad m) => Handle Character -> Damage -> Hearth m ()
-receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
+dealDamage :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
+dealDamage charHandle damage source = logCall 'dealDamage $ case damage <= 0 of
     True -> return ()
     False -> case charHandle of
         PlayerCharacter handle -> do
@@ -1050,7 +1050,7 @@ receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
             zoom (getPlayer handle.playerHero) $ do
                 boardHeroDamage += healthDamage
                 boardHeroArmor .= armor'
-            promptGameEvent $ TookDamage charHandle damage
+            promptGameEvent $ DealtDamage charHandle damage source
         MinionCharacter handle -> do
             bm <- view $ getMinion handle
             case loseDivineShield bm of
@@ -1060,7 +1060,7 @@ receiveDamage charHandle damage = logCall 'receiveDamage $ case damage <= 0 of
                 Nothing -> do
                     let bm' = bm & boardMinionDamage +~ damage
                     getMinion handle .= bm'
-                    promptGameEvent $ TookDamage charHandle damage
+                    promptGameEvent $ DealtDamage charHandle damage source
 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()
@@ -1185,24 +1185,24 @@ enactCharacter restrictions cont = logCall 'enactCharacter $ do
     restrict restrictions candidates >>= pickFrom >>= enactElect' cont
 
 
-enactMinions :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> ([Handle Minion] -> Elect s) -> Hearth m (SimplePickResult s)
+enactMinions :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> (HandleList Minion -> Elect s) -> Hearth m (SimplePickResult s)
 enactMinions restrictions cont = logCall 'enactMinions $ do
     candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    restrict restrictions candidates >>= enactElect . cont
+    restrict restrictions candidates >>= enactElect . cont . HandleList
 
 
-enactPlayers :: (HearthMonad m, PickFrom s) => [Restriction Player] -> ([Handle Player] -> Elect s) -> Hearth m (SimplePickResult s)
+enactPlayers :: (HearthMonad m, PickFrom s) => [Restriction Player] -> (HandleList Player -> Elect s) -> Hearth m (SimplePickResult s)
 enactPlayers restrictions cont = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
-    restrict restrictions candidates >>= enactElect . cont
+    restrict restrictions candidates >>= enactElect . cont . HandleList
 
 
-enactCharacters :: (HearthMonad m, PickFrom s) => [Restriction Character] -> ([Handle Character] -> Elect s) -> Hearth m (SimplePickResult s)
+enactCharacters :: (HearthMonad m, PickFrom s) => [Restriction Character] -> (HandleList Character -> Elect s) -> Hearth m (SimplePickResult s)
 enactCharacters restrictions cont = logCall 'enactCharacters $ do
     playerCandidates <- getPlayerHandles
     minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     let candidates = map PlayerCharacter playerCandidates ++ map MinionCharacter minionCandidates
-    restrict restrictions candidates >>= enactElect . cont
+    restrict restrictions candidates >>= enactElect . cont . HandleList
 
 
 restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle a]
@@ -1460,9 +1460,9 @@ enactAttack attacker defender = logCall 'enactAttack $ do
         Failure msg -> return $ Failure msg
         Success -> do
             promptGameEvent $ EnactAttack attackerHandle defenderHandle
-            let x `harms` y = do
-                    dmg <- liftM (Damage . unAttack) $ dynamicAttack x
-                    receiveDamage (characterHandle y) dmg
+            let source `harms` victim = do
+                    dmg <- liftM (Damage . unAttack) $ dynamicAttack source
+                    dealDamage (characterHandle victim) dmg (DamagingCharacter source)
             scopedPhase AttackResolutionPhase $ do
                 attacker `harms` defender
                 defender `harms` attacker
@@ -1509,8 +1509,8 @@ handleGameEvent = \case
     PlayedSpell _ spell -> processEvent $ \listener -> \case
         SpellIsCast cont -> run $ cont listener spell
         _ -> return ()
-    TookDamage victim _ -> processEvent $ \listener -> \case
-        TakesDamage cont -> run $ cont listener victim
+    DealtDamage victim damage source -> processEvent $ \listener -> \case
+        DamageIsDealt cont -> run $ cont listener victim damage source
         _ -> return ()
     _ -> return ()
     where
