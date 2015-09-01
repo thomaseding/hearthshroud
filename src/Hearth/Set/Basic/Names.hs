@@ -100,6 +100,7 @@ data BasicCardName
     | Voidwalker
     | VoodooDoctor
     | WarGolem
+    | WaterElemental
     | Whirlwind
     | WildGrowth
     | WolfRider

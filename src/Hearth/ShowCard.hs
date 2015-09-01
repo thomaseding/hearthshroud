@@ -292,10 +292,11 @@ showBattlecry cont = do
 showEffect :: Effect -> ShowCard String
 showEffect = \case
     Elect elect -> showElect elect
-    DoNothing handle -> showDoNothing handle
-    When handle restrictions effect -> showWhen handle restrictions effect
+    DoNothing -> return "DoNothing"
+    Unreferenced handle -> showUnreferenced handle
     ForEach handles cont -> showForEach handles cont
     Sequence effects -> showSequence effects
+    If cond true false -> showIf cond true false
     DrawCards handle n -> showDrawCards handle n
     DealDamage victim damage source -> showDealDamage victim damage source
     Enchant handle enchantments -> showEnchant handle enchantments
@@ -309,26 +310,38 @@ showEffect = \case
     Freeze handle -> showFreeze handle
 
 
+showIf :: Condition -> Effect -> Effect -> ShowCard String
+showIf cond true false = do
+    condStr <- showCondition cond
+    trueStr <- showEffect true
+    falseStr <- showEffect false
+    return $ "If " ++ condStr ++ " then " ++ trueStr ++ " else " ++ falseStr
+
+
+showCondition :: Condition -> ShowCard String
+showCondition = \case
+    Satisfies handle restrictions -> showSatisfies handle restrictions
+
+
 showFreeze :: Handle Character -> ShowCard String
 showFreeze handle = do
     str <- readHandle handle
     return $ "Freeze " ++ str
 
 
-showWhen :: Handle a -> [Restriction a] -> Effect -> ShowCard String
-showWhen handle restrictions effect = case restrictions of
-    [] -> showEffect effect
+showSatisfies :: Handle a -> [Restriction a] -> ShowCard String
+showSatisfies handle restrictions = case restrictions of
+    [] -> return "True"
     _ -> do
         handleStr <- readHandle handle
         restrictionsStr <- showRestrictions restrictions
-        effectStr <- showEffect effect
-        return $ "When " ++ handleStr ++ "[" ++ restrictionsStr ++ "]: " ++ effectStr
+        return $ handleStr ++ " satisfies " ++ "[" ++ restrictionsStr ++ "]"
 
 
-showDoNothing :: Handle a -> ShowCard String
-showDoNothing handle = do
+showUnreferenced :: Handle a -> ShowCard String
+showUnreferenced handle = do
     str <- readHandle handle
-    return $ "DoNothing " ++ str
+    return $ "Unreferenced " ++ str
 
 
 showTransform :: Handle Minion -> Minion -> ShowCard String
@@ -476,10 +489,9 @@ showRestriction = \case
         (is you -> True) -> "FRIENDLY"
         (is opponent -> True) -> "ENEMY"
         str -> "OWNED_BY[" ++ str ++ "]"
-    Is handle -> readHandle handle >>= return . \case
-        str -> "IS " ++ str
-    Not handle -> readHandle handle >>= return . \case
-        str -> "NOT " ++ str
+    Is handle -> readHandle handle >>= \str -> return ("IS " ++ str)
+    Not handle -> readHandle handle >>= \str -> return ("NOT " ++ str)
+    IsDamageSource source -> showDamageSource source >>= \str -> return ("IS " ++ str)
     AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
     Damaged -> return "DAMAGED"
     Undamaged -> return "UNDAMAGED"

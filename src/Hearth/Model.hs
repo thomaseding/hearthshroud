@@ -144,6 +144,7 @@ data Restriction :: * -> * where
     OwnedBy :: Handle Player -> Restriction a
     Is :: Handle a -> Restriction a
     Not :: Handle a -> Restriction a
+    IsDamageSource :: DamageSource -> Restriction Character
     AttackCond :: Comparison -> Attack -> Restriction Minion
     Damaged :: Restriction Character
     Undamaged :: Restriction Character
@@ -190,10 +191,11 @@ data DamageSource :: * where
 
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
-    DoNothing :: Handle a -> Effect
-    When :: Handle a -> [Restriction a] -> Effect -> Effect
+    DoNothing :: Effect
+    Unreferenced :: Handle a -> Effect
     ForEach :: HandleList a -> ((Handle a) -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
+    If :: Condition -> Effect -> Effect -> Effect
     DrawCards :: Handle Player -> Int -> Effect
     DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
     Enchant :: Handle Minion -> AnyEnchantment -> Effect
@@ -211,6 +213,10 @@ data Effect :: * where
 data Event :: * -> * where
     SpellIsCast :: (Handle a -> Handle Spell -> Elect AtRandom) -> Event a
     DamageIsDealt :: (Handle a -> Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> Event a
+
+
+data Condition :: * where
+    Satisfies :: Handle a -> [Restriction a] -> Condition
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)

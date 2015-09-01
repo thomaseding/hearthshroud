@@ -703,10 +703,11 @@ whenM bool action = bool >>= flip when action
 enactEffect :: (HearthMonad m) => Effect -> Hearth m (SimplePickResult AtRandom)
 enactEffect = logCall 'enactEffect . \case
     Elect elect -> enactEffectElect elect
-    DoNothing _ -> return success
-    When handle restrictions effect -> enactWhen handle restrictions effect >> return success
+    DoNothing -> return success
+    Unreferenced _ -> return success
     ForEach handles cont -> enactForEach handles cont
     Sequence effects -> sequenceEffects effects
+    If cond true false -> enactIf cond true false
     DrawCards handle n -> drawCards handle n >> return success
     DealDamage victim damage source -> dealDamage victim damage source >> return success
     Enchant handle enchantment -> enchant handle enchantment >> return success
@@ -720,6 +721,17 @@ enactEffect = logCall 'enactEffect . \case
     Freeze handle -> freeze handle >> return success
     where
         success = purePick ()
+
+
+enactIf :: (HearthMonad m) => Condition -> Effect -> Effect -> Hearth m (SimplePickResult AtRandom)
+enactIf cond true false = enactCondition cond >>= enactEffect . \case
+    True -> true
+    False -> false
+
+
+enactCondition :: (HearthMonad m) => Condition -> Hearth m Bool
+enactCondition = \case
+    Satisfies handle restrictions -> satisfies handle restrictions
 
 
 freeze :: (HearthMonad m) => Handle Character -> Hearth m ()
@@ -739,7 +751,7 @@ freeze character = logCall 'freeze $ do
 
 enactWhen :: (HearthMonad m) => Handle a -> [Restriction a] -> Effect -> Hearth m ()
 enactWhen handle restrictions effect = do
-    whenM (isPermitted restrictions handle) $ do
+    whenM (satisfies handle restrictions) $ do
         _ <- enactEffect effect
         return ()
 
@@ -969,11 +981,11 @@ enactEachMinion :: (HearthMonad m) => [Restriction Minion] -> (Handle Minion -> 
 enactEachMinion restrictions cont = logCall 'enactEachMinion $ do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     forM_ minions $ \minion -> do
-        whenM (isPermitted restrictions minion) $ enactAura $ cont minion
+        whenM (satisfies minion restrictions) $ enactAura $ cont minion
 
 
 enactWhile :: (HearthMonad m) => Handle a -> [Restriction a] -> Aura -> Hearth m ()
-enactWhile handle restrictions = logCall 'enactWhile $ whenM (isPermitted restrictions handle) . enactAura
+enactWhile handle restrictions = logCall 'enactWhile $ whenM (satisfies handle restrictions) . enactAura
 
 
 enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous -> Hearth m ()
@@ -1206,7 +1218,7 @@ enactCharacters restrictions cont = logCall 'enactCharacters $ do
 
 
 restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle a]
-restrict rs hs = flip filterM hs $ \h -> isPermitted rs h
+restrict rs hs = flip filterM hs $ \h -> h `satisfies` rs
 
 
 fromComparison :: (Ord a) => Comparison -> (a -> a -> Bool)
@@ -1218,30 +1230,33 @@ fromComparison = \case
     Greater -> (>)
 
 
-class IsPermitted r a | r -> a where
-    isPermitted :: (HearthMonad m) => r -> Handle a -> Hearth m Bool
+class CanSatisfy a r | r -> a where
+    satisfies :: (HearthMonad m) => Handle a -> r -> Hearth m Bool
 
 
-instance IsPermitted (Restriction a) a where
-    isPermitted restriction candidate = case restriction of
-        WithMinion r -> isPermitted r $ MinionCharacter candidate
-        WithPlayer r -> isPermitted r $ PlayerCharacter candidate
+instance CanSatisfy a (Restriction a) where
+    satisfies candidate = \case
+        WithMinion r -> MinionCharacter candidate `satisfies` r
+        WithPlayer r -> PlayerCharacter candidate `satisfies` r
         OwnedBy owner -> liftM (owner ==) $ ownerOf candidate
         Is object -> return $ candidate == object
         Not object -> return $ candidate /= object
+        IsDamageSource source -> case source of
+            DamagingCharacter character -> return $ candidate == character
+            _ -> return False
         AttackCond cmp attackCond -> do
             actualAttack <- dynamicAttack candidate
             return $ fromComparison cmp actualAttack attackCond
         Damaged -> liftM (> 0) $ getDamage candidate
-        Undamaged -> liftM not $ isPermitted Damaged candidate
+        Undamaged -> liftM not $ candidate `satisfies` Damaged
         IsMinion -> return $ case candidate of
             MinionCharacter {} -> True
             _ -> False
         AdjacentTo handle -> areAdjacent handle candidate
 
 
-instance IsPermitted [Restriction a] a where
-    isPermitted rs h = allM (flip isPermitted h) rs
+instance CanSatisfy a [Restriction a] where
+    satisfies h rs = allM (satisfies h) rs
 
 
 class Pickable (s :: Selection) a where

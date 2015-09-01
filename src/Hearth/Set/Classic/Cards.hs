@@ -156,7 +156,7 @@ armorsmith :: Minion
 armorsmith = mkMinion Rare Warrior Armorsmith 2 1 4 [
     Whenever $ DamageIsDealt $ \this victim _ _ ->
         OwnerOf this $ \you ->
-            Effect $ When victim [OwnedBy you, IsMinion] $ GainArmor you 1 ]
+            Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
 
 
 battleRage :: Spell
@@ -186,7 +186,7 @@ brawl = mkSpell Epic Warrior Brawl 5 $ \_ ->
         A $ Minion [Not survivor] $ \someNonSurvivor ->
             All $ Minions [Not survivor] $ \victims ->
                 Effect $ Sequence [
-                    DoNothing someNonSurvivor, -- This is because Brawl requires at least 2 minions to play.
+                    Unreferenced someNonSurvivor, -- This is because Brawl requires at least 2 minions to play.
                     ForEach victims $ \victim ->
                         DestroyMinion victim ]
 
@@ -267,7 +267,7 @@ gadgetzanAuctioneer :: Minion
 gadgetzanAuctioneer = mkMinion Rare Neutral GadgetzanAuctioneer 6 4 4 [
     Whenever $ SpellIsCast $ \this spell ->
         OwnerOf this $ \you ->
-            Effect $ When spell [OwnedBy you] $ DrawCards you 1 ]
+            Effect $ when (spell `Satisfies` [OwnedBy you]) $ DrawCards you 1 ]
 
 
 grommashHellscream :: Minion

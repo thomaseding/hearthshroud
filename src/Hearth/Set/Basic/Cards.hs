@@ -104,6 +104,7 @@ cards = let x = toCard in [
     x theCoin,
     x voidwalker,
     x voodooDoctor,
+    x waterElemental,
     x warGolem,
     x whirlwind,
     x wildGrowth,
@@ -678,6 +679,12 @@ voodooDoctor = mkMinion Neutral VoodooDoctor 1 2 1 [
     KeywordAbility $ Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 2 ]
+
+
+waterElemental :: Minion
+waterElemental = mkMinion Mage WaterElemental 4 3 6 [
+    Whenever $ DamageIsDealt $ \this victim _ source ->
+        Effect $ when (MinionCharacter this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
 
 warGolem :: Minion

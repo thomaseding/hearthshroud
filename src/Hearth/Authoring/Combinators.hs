@@ -1,4 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 
 module Hearth.Authoring.Combinators where
@@ -110,6 +112,14 @@ instance AsDamageSource Spell where
 
 damages :: (AsDamageSource a, AsCharacter b) => Handle a -> Handle b -> Damage -> Effect
 damages source victim amount = DealDamage (asCharacter victim) amount (asDamageSource source)
+
+
+when :: Condition -> Effect -> Effect
+when cond effect = If cond effect DoNothing
+
+
+
+
 
 
 
