@@ -194,7 +194,7 @@ showAbilities = liftM unlines . mapM showAbility
 showAbility :: Ability -> ShowCard String
 showAbility = \case
     KeywordAbility ability -> showKeywordAbility ability
-    Whenever event -> showWhenever event
+    Whenever cont -> showWhenever cont
     Aura aura -> showAuraAbility aura
 
 
@@ -236,28 +236,27 @@ showWhile handle restrictions aura = case restrictions of
         return $ "While " ++ handleStr ++ "[" ++ restrictionsStr ++ "]: " ++ auraStr
 
 
-showWhenever :: (GenHandle a) => Event a -> ShowCard String
-showWhenever event = do
-    str <- case event of
-        SpellIsCast cont -> showSpellIsCast cont
-        DamageIsDealt cont -> showDamageIsDealt cont
+showWhenever :: (Handle Minion -> EventListener) -> ShowCard String
+showWhenever cont = do
+    thisHandle <- genHandle this
+    str <- case cont thisHandle of
+        SpellIsCast listener -> showSpellIsCast listener
+        DamageIsDealt listener -> showDamageIsDealt listener
     return $ "Whenever " ++ str
 
 
-showSpellIsCast :: (GenHandle a) => (Handle a -> Handle Spell -> Elect AtRandom) -> ShowCard String
-showSpellIsCast cont = do
-    thisHandle <- genHandle this
-    spellHandle <- genHandle "CAST_SPELL"
-    liftM ("a spell is cast: " ++) $ showElect $ cont thisHandle spellHandle
+showSpellIsCast :: (Handle Spell -> Elect AtRandom) -> ShowCard String
+showSpellIsCast listener = do
+    spell <- genHandle "CAST_SPELL"
+    liftM ("a spell is cast: " ++) $ showElect $ listener spell
 
 
-showDamageIsDealt :: (GenHandle a) => (Handle a -> Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> ShowCard String
-showDamageIsDealt cont = do
-    thisHandle <- genHandle this
+showDamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> ShowCard String
+showDamageIsDealt listener = do
     victim <- genHandle "DAMAGED_CHARACTER"
     let damage = 666
         source = Fatigue
-    liftM ("a character takes damage: " ++) $ showElect $ cont thisHandle victim damage source
+    liftM ("a character takes damage: " ++) $ showElect $ listener victim damage source
 
 
 showKeywordAbility :: KeywordAbility -> ShowCard String

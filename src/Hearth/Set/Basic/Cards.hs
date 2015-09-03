@@ -683,8 +683,9 @@ voodooDoctor = mkMinion Neutral VoodooDoctor 1 2 1 [
 
 waterElemental :: Minion
 waterElemental = mkMinion Mage WaterElemental 4 3 6 [
-    Whenever $ DamageIsDealt $ \this victim _ source ->
-        Effect $ when (MinionCharacter this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
+    Whenever $ \this ->
+        DamageIsDealt $ \victim _ source ->
+            Effect $ when (MinionCharacter this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
 
 warGolem :: Minion

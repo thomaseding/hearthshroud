@@ -1504,28 +1504,27 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
-minionEventHandlers :: (HearthMonad m) => Hearth m [(Handle Minion, Event Minion)]
-minionEventHandlers = do
+minionEventListeners :: (HearthMonad m) => Hearth m [EventListener]
+minionEventListeners = do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     liftM concat $ forM minions $ \minion -> do
         abilities <- dynamicAbilities minion
-        let handlers = flip mapMaybe abilities $ \case
-                Whenever event -> Just event
+        return $ flip mapMaybe abilities $ \case
+                Whenever listener -> Just $ listener minion
                 _ -> Nothing
-        return $ zip (repeat minion) handlers
 
 
-processEvent :: (HearthMonad m) => (Handle Minion -> Event Minion -> Hearth m ()) -> Hearth m ()
-processEvent f = minionEventHandlers >>= mapM_ (uncurry f)
+processEvent :: (HearthMonad m) => (EventListener -> Hearth m ()) -> Hearth m ()
+processEvent f = minionEventListeners >>= mapM_ f
 
 
 handleGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()
 handleGameEvent = \case
-    PlayedSpell _ spell -> processEvent $ \listener -> \case
-        SpellIsCast cont -> run $ cont listener spell
+    PlayedSpell _ spell -> processEvent $ \case
+        SpellIsCast listener -> run $ listener spell
         _ -> return ()
-    DealtDamage victim damage source -> processEvent $ \listener -> \case
-        DamageIsDealt cont -> run $ cont listener victim damage source
+    DealtDamage victim damage source -> processEvent $ \case
+        DamageIsDealt listener -> run $ listener victim damage source
         _ -> return ()
     _ -> return ()
     where

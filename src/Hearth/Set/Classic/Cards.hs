@@ -154,9 +154,10 @@ argentSquire = mkMinion Common Neutral ArgentSquire 1 1 1 [
 
 armorsmith :: Minion
 armorsmith = mkMinion Rare Warrior Armorsmith 2 1 4 [
-    Whenever $ DamageIsDealt $ \this victim _ _ ->
-        OwnerOf this $ \you ->
-            Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
+    Whenever $ \this ->
+        DamageIsDealt $ \victim _ _ ->
+            OwnerOf this $ \you ->
+                Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
 
 
 battleRage :: Spell
@@ -265,9 +266,10 @@ flameImp = mkMinion Common Warlock FlameImp 1 3 2 [
 
 gadgetzanAuctioneer :: Minion
 gadgetzanAuctioneer = mkMinion Rare Neutral GadgetzanAuctioneer 6 4 4 [
-    Whenever $ SpellIsCast $ \this spell ->
-        OwnerOf this $ \you ->
-            Effect $ when (spell `Satisfies` [OwnedBy you]) $ DrawCards you 1 ]
+    Whenever $ \this ->
+        SpellIsCast $ \spell ->
+            OwnerOf this $ \you ->
+                Effect $ when (spell `Satisfies` [OwnedBy you]) $ DrawCards you 1 ]
 
 
 grommashHellscream :: Minion

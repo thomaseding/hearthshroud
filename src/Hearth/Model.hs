@@ -210,9 +210,9 @@ data Effect :: * where
     deriving (Typeable)
 
 
-data Event :: * -> * where
-    SpellIsCast :: (Handle a -> Handle Spell -> Elect AtRandom) -> Event a
-    DamageIsDealt :: (Handle a -> Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> Event a
+data EventListener :: * where
+    SpellIsCast :: (Handle Spell -> Elect AtRandom) -> EventListener
+    DamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> EventListener
 
 
 data Condition :: * where
@@ -230,7 +230,7 @@ data Aura :: * where
 
 data Ability :: * where
     KeywordAbility :: KeywordAbility -> Ability
-    Whenever :: Event Minion -> Ability
+    Whenever :: (Handle Minion -> EventListener) -> Ability
     Aura :: (Handle Minion -> Aura) -> Ability
     deriving (Typeable)
 
