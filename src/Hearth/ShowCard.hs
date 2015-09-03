@@ -193,9 +193,14 @@ showAbilities = liftM unlines . mapM showAbility
 
 showAbility :: Ability -> ShowCard String
 showAbility = \case
-    KeywordAbility ability -> showKeywordAbility ability
     Whenever cont -> showWhenever cont
     Aura aura -> showAuraAbility aura
+    Battlecry cont -> showBattlecry cont
+    Deathrattle cont -> showDeathrattle cont
+    Charge -> return "Charge"
+    DivineShield -> return "Divine Shield"
+    Enrage abilities enchantments -> showEnrage abilities enchantments
+    Taunt -> return "Taunt"
 
 
 showAuraAbility :: (Handle Minion -> Aura) -> ShowCard String
@@ -260,16 +265,6 @@ showDamageIsDealt listener = do
     let damage = 666
         source = Fatigue
     liftM ("a character takes damage: " ++) $ showElect $ listener victim damage source
-
-
-showKeywordAbility :: KeywordAbility -> ShowCard String
-showKeywordAbility = \case
-    Battlecry cont -> showBattlecry cont
-    Deathrattle cont -> showDeathrattle cont
-    Charge -> return "Charge"
-    DivineShield -> return "Divine Shield"
-    Enrage abilities enchantments -> showEnrage abilities enchantments
-    Taunt -> return "Taunt"
 
 
 showEnrage :: [Ability] -> [Enchantment Continuous] -> ShowCard String
@@ -493,8 +488,8 @@ showRestrictions' = \case
 
 showRestriction :: Restriction a -> ShowCard String
 showRestriction = \case
-    WithMinion r -> showRestriction r
-    WithPlayer r -> showRestriction r
+    RestrictMinion r -> showRestriction r
+    RestrictPlayer r -> showRestriction r
     OwnedBy handle -> readHandle handle >>= return . \case
         (is you -> True) -> "FRIENDLY"
         (is opponent -> True) -> "ENEMY"

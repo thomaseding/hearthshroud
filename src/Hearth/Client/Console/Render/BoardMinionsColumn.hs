@@ -72,7 +72,7 @@ hasDivineShield :: BoardMinion -> Bool
 hasDivineShield minion = let
     abilities = minion^.boardMinionAbilities
     in flip any abilities $ \case
-        KeywordAbility DivineShield -> True
+        DivineShield -> True
         _ -> False
 
 
@@ -80,7 +80,7 @@ hasTaunt :: BoardMinion -> Bool
 hasTaunt minion = let
     abilities = minion^.boardMinionAbilities
     in flip any abilities $ \case
-        KeywordAbility Taunt -> True
+        Taunt -> True
         _ -> False
 
 

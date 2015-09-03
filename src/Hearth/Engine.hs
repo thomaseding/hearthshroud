@@ -664,7 +664,7 @@ enactAnyDeathrattles :: (HearthMonad m) => Handle Minion -> Hearth m ()
 enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
     abilities <- dynamicAbilities bmHandle
     forM_ abilities $ \case
-        KeywordAbility (Deathrattle elect) -> enactDeathrattle bmHandle elect
+        Deathrattle elect -> enactDeathrattle bmHandle elect
         _ -> return ()
 
 
@@ -673,7 +673,7 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
     st <- get
     abilities <- dynamicAbilities bmHandle
     result <- liftM condensePickResults $ forM abilities $ \case
-        KeywordAbility (Battlecry effect) -> enactBattlecry bmHandle effect
+        Battlecry effect -> enactBattlecry bmHandle effect
         _ -> return $ purePick ()
     case result of
         NotAvailable -> do
@@ -844,7 +844,7 @@ isEnraged bmHandle = do
             return $ any isEnrage abilities
     where
         isEnrage = \case
-            KeywordAbility (Enrage {}) -> True
+            Enrage {} -> True
             _ -> False
 
 
@@ -852,7 +852,7 @@ dynamicAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
 dynamicAbilities bmHandle = do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
-        KeywordAbility (Enrage abilities _) -> case isDamaged bm of
+        Enrage abilities _ -> case isDamaged bm of
             True -> ability : abilities  -- TODO: Need to check correct interleaving.
             False -> [ability]
         _ -> [ability]
@@ -865,7 +865,7 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
         enrageEnchantments = case isDamaged bm of
             False -> []
             True -> bm^.boardMinionAbilities >>= \case
-                KeywordAbility (Enrage _ es) -> es
+                Enrage _ es -> es
                 _ -> []
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
@@ -1247,8 +1247,8 @@ class CanSatisfy a r | r -> a where
 
 instance CanSatisfy a (Restriction a) where
     satisfies candidate = \case
-        WithMinion r -> MinionCharacter candidate `satisfies` r
-        WithPlayer r -> PlayerCharacter candidate `satisfies` r
+        RestrictMinion r -> MinionCharacter candidate `satisfies` r
+        RestrictPlayer r -> PlayerCharacter candidate `satisfies` r
         OwnedBy owner -> liftM (owner ==) $ ownerOf candidate
         Is object -> return $ candidate == object
         Not object -> return $ candidate /= object
@@ -1413,13 +1413,13 @@ dynamicHasAbility predicate bmHandle = logCall 'dynamicHasAbility $ do
 
 dynamicHasTaunt :: (HearthMonad m) => Handle Minion -> Hearth m Bool
 dynamicHasTaunt = logCall 'dynamicHasTaunt $ dynamicHasAbility $ \case
-    KeywordAbility Taunt -> True
+    Taunt -> True
     _ -> False
 
 
 dynamicHasCharge :: (HearthMonad m) => Handle Minion -> Hearth m Bool
 dynamicHasCharge = logCall 'dynamicHasCharge $ dynamicHasAbility $ \case
-    KeywordAbility Charge -> True
+    Charge -> True
     _ -> False
 
 
@@ -1511,7 +1511,7 @@ loseDivineShield :: BoardMinion -> Maybe BoardMinion
 loseDivineShield bm = let
     abilities = bm^.boardMinionAbilities
     abilities' = flip filter abilities $ \case
-        KeywordAbility DivineShield -> False
+        DivineShield -> False
         _ -> True
     in case on (==) length abilities abilities' of
         True -> Nothing

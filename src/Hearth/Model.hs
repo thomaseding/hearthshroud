@@ -139,8 +139,8 @@ data Selection = Targeted | AtRandom
 
 
 data Restriction :: * -> * where
-    WithMinion :: Restriction Character -> Restriction Minion
-    WithPlayer :: Restriction Character -> Restriction Player
+    RestrictMinion :: Restriction Character -> Restriction Minion
+    RestrictPlayer :: Restriction Character -> Restriction Player
     OwnedBy :: Handle Player -> Restriction a
     Is :: Handle a -> Restriction a
     Not :: Handle a -> Restriction a
@@ -231,19 +231,14 @@ data Aura :: * where
 
 
 data Ability :: * where
-    KeywordAbility :: KeywordAbility -> Ability
     Whenever :: (Handle Minion -> EventListener) -> Ability
     Aura :: (Handle Minion -> Aura) -> Ability
-    deriving (Typeable)
-
-
-data KeywordAbility :: * where
-    Battlecry :: (Handle Minion -> Elect Targeted) -> KeywordAbility
-    Deathrattle :: (Handle Minion -> Elect AtRandom) -> KeywordAbility
-    Charge :: KeywordAbility
-    DivineShield :: KeywordAbility
-    Enrage :: [Ability] -> [Enchantment Continuous] -> KeywordAbility
-    Taunt :: KeywordAbility
+    Battlecry :: (Handle Minion -> Elect Targeted) -> Ability
+    Deathrattle :: (Handle Minion -> Elect AtRandom) -> Ability
+    Charge :: Ability
+    DivineShield :: Ability
+    Enrage :: [Ability] -> [Enchantment Continuous] -> Ability
+    Taunt :: Ability
     deriving (Typeable)
 
 

@@ -94,8 +94,8 @@ mkSpell = mkSpell' ClassicCardName
 
 abomination :: Minion
 abomination = mkMinion Rare Neutral Abomination 5 4 4 [
-    KeywordAbility Taunt,
-    KeywordAbility $ Deathrattle $ \this ->
+    Taunt,
+    Deathrattle $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
             Effect $ ForEach victims $ \victim ->
                 (this `damages` victim) 2 ]
@@ -103,20 +103,20 @@ abomination = mkMinion Rare Neutral Abomination 5 4 4 [
 
 abusiveSergeant :: Minion
 abusiveSergeant = mkMinion Common Neutral AbusiveSergeant 1 2 1 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Enchant target $ Limited $ Until EndOfTurn $ StatsDelta 2 0 ]
 
 
 amaniBerserker :: Minion
 amaniBerserker = mkMinion Common Neutral AmaniBerserker 2 2 3 [
-    KeywordAbility $ Enrage [] [
+    Enrage [] [
         StatsDelta 3 0 ]]
 
 
 aldorPeacekeeper :: Minion
 aldorPeacekeeper = mkMinion Rare Paladin AldorPeacekeeper 3 3 3 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 A $ Minion [OwnedBy opponent] $ \target ->
@@ -125,8 +125,8 @@ aldorPeacekeeper = mkMinion Rare Paladin AldorPeacekeeper 3 3 3 [
 
 arcaneGolem :: Minion
 arcaneGolem = mkMinion Rare Neutral ArcaneGolem 3 4 2 [
-    KeywordAbility Charge,
-    KeywordAbility $ Battlecry $ \this ->
+    Charge,
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 Effect $ GainManaCrystals opponent 1 CrystalFull ]
@@ -134,22 +134,22 @@ arcaneGolem = mkMinion Rare Neutral ArcaneGolem 3 4 2 [
 
 argentCommander :: Minion
 argentCommander = mkMinion Rare Neutral ArgentCommander 6 4 2 [
-    KeywordAbility Charge,
-    KeywordAbility DivineShield ]
+    Charge,
+    DivineShield ]
 
 
 argentProtector :: Minion
 argentProtector = mkMinion Common Paladin ArgentProtector 2 2 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
                 Effect $ GrantAbilities target [
-                    KeywordAbility DivineShield ]]
+                    DivineShield ]]
 
 
 argentSquire :: Minion
 argentSquire = mkMinion Common Neutral ArgentSquire 1 1 1 [
-    KeywordAbility DivineShield ]
+    DivineShield ]
 
 
 armorsmith :: Minion
@@ -170,8 +170,8 @@ battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
 
 bigGameHunter :: Minion
 bigGameHunter = mkMinion Epic Neutral BigGameHunter 3 4 2 [
-    KeywordAbility $ Battlecry $ \this ->
-        A $ Minion [Not this, WithMinion (WithAttack GreaterEqual 7)] $ \target ->
+    Battlecry $ \this ->
+        A $ Minion [Not this, RestrictMinion (WithAttack GreaterEqual 7)] $ \target ->
             Effect $ DestroyMinion target ]
 
 
@@ -201,7 +201,7 @@ circleOfHealing = mkSpell Common Priest CircleOfHealing 0 $ \_ ->
 
 coldlightOracle :: Minion
 coldlightOracle = mkMinion Rare Neutral ColdlightOracle 3 2 2[
-    KeywordAbility $ Battlecry $ \_ ->
+    Battlecry $ \_ ->
         All $ Players [] $ \players ->
             Effect $ ForEach players $ \player ->
                 DrawCards player 2 ]
@@ -209,14 +209,14 @@ coldlightOracle = mkMinion Rare Neutral ColdlightOracle 3 2 2[
 
 crazedAlchemist :: Minion
 crazedAlchemist = mkMinion Rare Neutral CrazedAlchemist 2 2 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Enchant target $ Continuous SwapStats ]
 
 
 cruelTaskmaster :: Minion
 cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster 2 2 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
                 (this `damages` target) 1,
@@ -232,7 +232,7 @@ direWolfAlpha = mkMinion Common Neutral DireWolfAlpha 2 2 2 [
 
 earthenRingFarseer :: Minion
 earthenRingFarseer = mkMinion Common Neutral EarthenRingFarseer 3 3 3 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 3 ]
 
@@ -254,12 +254,12 @@ equality = mkSpell Rare Paladin Equality 2 $ \_ ->
 
 fenCreeper :: Minion
 fenCreeper = mkMinion Common Neutral FenCreeper 5 3 6 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 flameImp :: Minion
 flameImp = mkMinion Common Warlock FlameImp 1 3 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (this `damages` you) 3 ]
 
@@ -274,8 +274,8 @@ gadgetzanAuctioneer = mkMinion Rare Neutral GadgetzanAuctioneer 6 4 4 [
 
 grommashHellscream :: Minion
 grommashHellscream = mkMinion Legendary Warrior GrommashHellscream 8 4 9 [
-    KeywordAbility Charge,
-    KeywordAbility $ Enrage [] [
+    Charge,
+    Enrage [] [
         StatsDelta 6 0 ]]
 
 
@@ -290,7 +290,7 @@ holyFire = mkSpell Rare Priest HolyFire 6 $ \this ->
 
 injuredBlademaster :: Minion
 injuredBlademaster = mkMinion Rare Neutral InjuredBlademaster 3 4 7 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         Effect $ (this `damages` this) 4 ]
 
 
@@ -304,7 +304,7 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
 
 ironbeakOwl :: Minion
 ironbeakOwl = mkMinion Common Neutral IronbeakOwl 2 2 1 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Silence target ]
 
@@ -320,7 +320,7 @@ layOnHands = mkSpell Epic Paladin LayOnHands 8 $ \this ->
 
 leperGnome :: Minion
 leperGnome = mkMinion Common Neutral LeperGnome 1 2 1 [
-    KeywordAbility $ Deathrattle $ \this ->
+    Deathrattle $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 Effect $ (this `damages` opponent) 2 ]
@@ -328,7 +328,7 @@ leperGnome = mkMinion Common Neutral LeperGnome 1 2 1 [
 
 lootHoarder :: Minion
 lootHoarder = mkMinion Common Neutral LootHoarder 2 2 1 [
-    KeywordAbility $ Deathrattle $ \this ->
+    Deathrattle $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
@@ -342,7 +342,7 @@ markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
             Effect $ Sequence [
                 Enchant target $ Continuous $ StatsDelta 0 4,
                 GrantAbilities target [
-                    KeywordAbility Taunt ]]]
+                    Taunt ]]]
 
 
 massDispel :: Spell
@@ -358,7 +358,7 @@ massDispel = mkSpell Rare Priest MassDispel 4 $ \this ->
 
 mogu'shanWarden :: Minion
 mogu'shanWarden = mkMinion Common Neutral Mogu'shanWarden 4 1 7 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 naturalize :: Spell
@@ -381,14 +381,14 @@ nourish = mkSpell Rare Druid Nourish 5 $ \this ->
 
 pitLord :: Minion
 pitLord = mkMinion Epic Warlock PitLord 4 5 6 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (this `damages` you) 5 ]
 
 
 priestessOfElune :: Minion
 priestessOfElune = mkMinion Common Neutral PriestessOfElune 6 5 4 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 4 ]
 
@@ -401,18 +401,18 @@ pyroblast = mkSpell Epic Mage Pyroblast 10 $ \this ->
 
 rampage :: Spell
 rampage = mkSpell Common Warrior Rampage 2 $ \_ ->
-    A $ Minion [WithMinion Damaged] $ \target ->
+    A $ Minion [RestrictMinion Damaged] $ \target ->
         Effect $ Enchant target $ Continuous $ StatsDelta 3 3
 
 
 scarletCrusader :: Minion
 scarletCrusader = mkMinion Common Neutral ScarletCrusader 3 3 1 [
-    KeywordAbility DivineShield ]
+    DivineShield ]
 
 
 shieldbearer :: Minion
 shieldbearer = mkMinion Common Neutral Shieldbearer 1 0 4 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 silence :: Spell
@@ -423,7 +423,7 @@ silence = mkSpell Common Priest Classic.Silence 0 $ \_ ->
 
 silvermoonGuardian :: Minion
 silvermoonGuardian = mkMinion Common Neutral SilvermoonGuardian 4 3 3 [
-    KeywordAbility DivineShield ]
+    DivineShield ]
 
 
 siphonSoul :: Spell
@@ -437,17 +437,17 @@ siphonSoul = mkSpell Rare Warlock SiphonSoul 6 $ \this ->
 
 spellbreaker :: Minion
 spellbreaker = mkMinion Common Neutral Spellbreaker 4 4 3 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
             Effect $ Silence target ]
 
 
 stampedingKodo :: Minion
 stampedingKodo = mkMinion Rare Neutral StampedingKodo 5 3 5 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-                Effect $ Elect $ A $ Minion [OwnedBy opponent, WithMinion (WithAttack LessEqual 2)] $ \victim ->
+                Effect $ Elect $ A $ Minion [OwnedBy opponent, RestrictMinion (WithAttack LessEqual 2)] $ \victim ->
                     Effect $ DestroyMinion victim ]
 
 
@@ -465,20 +465,20 @@ starfall = mkSpell Rare Druid Starfall 5 $ \this ->
 
 sunwalker :: Minion
 sunwalker = mkMinion Rare Neutral Sunwalker 6 4 5 [
-    KeywordAbility Taunt,
-    KeywordAbility DivineShield ]
+    Taunt,
+    DivineShield ]
 
 
 taurenWarrior :: Minion
 taurenWarrior = mkMinion Common Neutral TaurenWarrior 3 2 3 [
-    KeywordAbility Taunt,
-    KeywordAbility $ Enrage [] [
+    Taunt,
+    Enrage [] [
         StatsDelta 3 0 ]]
 
 
 templeEnforcer :: Minion
 templeEnforcer = mkMinion Common Priest TempleEnforcer 6 6 6 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
                 Effect $ Enchant target $ Continuous $ StatsDelta 0 3 ]

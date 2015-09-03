@@ -155,7 +155,7 @@ assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
 
 backstab :: Spell
 backstab = mkSpell Rogue Backstab 0 $ \this ->
-    A $ Minion [WithMinion Undamaged] $ \target ->
+    A $ Minion [RestrictMinion Undamaged] $ \target ->
         Effect $ (this `damages` target) 2
 
 
@@ -173,7 +173,7 @@ blessingOfMight = mkSpell Paladin BlessingOfMight 4 $ \_ ->
 
 bluegillWarrior :: Minion
 bluegillWarrior = mkMinion Neutral BluegillWarrior 2 2 1 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 bloodfenRaptor :: Minion
@@ -182,7 +182,7 @@ bloodfenRaptor = mkMinion Neutral BloodfenRaptor 2 3 2 []
 
 bootyBayBodyguard :: Minion
 bootyBayBodyguard = mkMinion Neutral BootyBayBodyguard 5 5 4 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 boulderfistOgre :: Minion
@@ -196,7 +196,7 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
             Effect $ Sequence [
                 Enchant target $ Continuous $ StatsDelta 2 0,
                 GrantAbilities target [
-                    KeywordAbility Charge ]]
+                    Charge ]]
 
 
 chillwindYeti :: Minion
@@ -228,7 +228,7 @@ coreHound = mkMinion Neutral CoreHound 7 9 5 []
 
 darkscaleHealer :: Minion
 darkscaleHealer = mkMinion Neutral DarkscaleHealer 5 4 5 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             All $ Characters [OwnedBy you] $ \friendlies ->
                 Effect $ ForEach friendlies $ \friendly ->
@@ -260,7 +260,7 @@ drainLife = mkSpell Warlock DrainLife 3 $ \this ->
 
 dreadInfernal :: Minion
 dreadInfernal = mkMinion Warlock DreadInfernal 6 6 6 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
             Effect $ ForEach victims $ \victim ->
                 (this `damages` victim) 1 ]
@@ -268,14 +268,14 @@ dreadInfernal = mkMinion Warlock DreadInfernal 6 6 6 [
 
 elvenArcher :: Minion
 elvenArcher = mkMinion Neutral ElvenArcher 1 1 1 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
 execute :: Spell
 execute = mkSpell Warrior Execute 1 $ \_ ->
-    A $ Minion [WithMinion Damaged] $ \target ->
+    A $ Minion [RestrictMinion Damaged] $ \target ->
         Effect $ DestroyMinion target
 
 
@@ -298,7 +298,7 @@ fireball = mkSpell Mage Fireball 4 $ \this ->
 
 fireElemental :: Minion
 fireElemental = mkMinion Shaman FireElemental 6 6 5 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 3 ]
 
@@ -321,7 +321,7 @@ flametongueTotem = mkMinion Shaman FlametongueTotem 2 0 3 [
 
 frog :: Minion
 frog = uncollectible $ mkMinion Neutral Frog 0 0 1 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 frostbolt :: Spell
@@ -343,24 +343,24 @@ frostNova = mkSpell Mage FrostNova 3 $ \this ->
 
 frostwolfGrunt :: Minion
 frostwolfGrunt = mkMinion Neutral FrostwolfGrunt 2 2 2 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 gnomishInventor :: Minion
 gnomishInventor = mkMinion Neutral GnomishInventor 4 2 4 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
 goldshireFootman :: Minion
 goldshireFootman = mkMinion Neutral GoldshireFootman 1 1 2 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 guardianOfKings :: Minion
 guardianOfKings = mkMinion Paladin GuardianOfKings 7 5 6 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 6 ]
 
@@ -378,7 +378,7 @@ handOfProtection :: Spell
 handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ GrantAbilities target [
-            KeywordAbility DivineShield ]
+            DivineShield ]
 
 
 healingTouch :: Spell
@@ -439,7 +439,7 @@ hunter'sMark = mkSpell Hunter Hunter'sMark 0 $ \_ ->
 
 kor'kronElite :: Minion
 kor'kronElite = mkMinion Warrior Kor'kronElite 4 4 3 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 innervate :: Spell
@@ -450,19 +450,19 @@ innervate = mkSpell Druid Innervate 0 $ \this ->
 
 ironbarkProtector :: Minion
 ironbarkProtector = mkMinion Druid IronbarkProtector 8 8 8 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 ironforgeRifleman :: Minion
 ironforgeRifleman = mkMinion Neutral IronforgeRifleman 3 2 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
 lordOfTheArena :: Minion
 lordOfTheArena = mkMinion Neutral LordOfTheArena 6 6 5 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 markOfTheWild :: Spell
@@ -470,7 +470,7 @@ markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
             GrantAbilities target [
-                KeywordAbility Taunt ],
+                Taunt ],
             Enchant target $ Continuous $ StatsDelta 2 2 ]
 
 
@@ -515,7 +515,7 @@ murlocRaider = mkMinion Neutral MurlocRaider 1 2 1 []
 
 nightblade :: Minion
 nightblade = mkMinion Neutral Nightblade 5 4 4 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 Effect $ (this `damages` opponent) 3 ]
@@ -523,7 +523,7 @@ nightblade = mkMinion Neutral Nightblade 5 4 4 [
 
 noviceEngineer :: Minion
 noviceEngineer = mkMinion Neutral NoviceEngineer 2 1 1 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
@@ -557,7 +557,7 @@ raidLeader = mkMinion Neutral RaidLeader 3 2 2 [
 
 recklessRocketeer :: Minion
 recklessRocketeer = mkMinion Neutral RecklessRocketeer 6 5 2 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 riverCrocolisk :: Minion
@@ -566,7 +566,7 @@ riverCrocolisk = mkMinion Neutral RiverCrocolisk 2 2 3 []
 
 sen'jinShieldmasta :: Minion
 sen'jinShieldmasta = mkMinion Neutral Sen'jinShieldmasta 4 3 5 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 shadowBolt :: Spell
@@ -577,19 +577,19 @@ shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
 
 shadowWordDeath :: Spell
 shadowWordDeath = mkSpell Priest ShadowWordDeath 5 $ \_ ->
-    A $ Minion [WithMinion (WithAttack GreaterEqual 5)] $ \target ->
+    A $ Minion [RestrictMinion (WithAttack GreaterEqual 5)] $ \target ->
         Effect $ DestroyMinion target
 
 
 shadowWordPain :: Spell
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
-    A $ Minion [WithMinion (WithAttack LessEqual 3)] $ \target ->
+    A $ Minion [RestrictMinion (WithAttack LessEqual 3)] $ \target ->
         Effect $ DestroyMinion target
 
 
 shatteredSunCleric :: Minion
 shatteredSunCleric = mkMinion Neutral ShatteredSunCleric 3 3 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
                 Effect $ Enchant target $ Continuous $ StatsDelta 1 1 ]
@@ -610,7 +610,7 @@ shiv = mkSpell Rogue Shiv 2 $ \this ->
 
 silverbackPatriarch :: Minion
 silverbackPatriarch = mkMinion Neutral SilverbackPatriarch 3 1 4 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 sinisterStrike :: Spell
@@ -637,19 +637,19 @@ starfire = mkSpell Druid Starfire 6 $ \this ->
 
 stonetuskBoar :: Minion
 stonetuskBoar = mkMinion Neutral StonetuskBoar 1 1 1 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 stormpikeCommando :: Minion
 stormpikeCommando = mkMinion Neutral StormpikeCommando 5 4 2 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 2 ]
 
 
 stormwindKnight :: Minion
 stormwindKnight = mkMinion Neutral StormwindKnight 4 2 5 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 stormwindChampion :: Minion
@@ -680,12 +680,12 @@ theCoin = uncollectible $ mkSpell Neutral TheCoin 0 $ \this ->
 
 voidwalker :: Minion
 voidwalker = mkMinion Warlock Voidwalker 1 1 3 [
-    KeywordAbility Taunt ]
+    Taunt ]
 
 
 voodooDoctor :: Minion
 voodooDoctor = mkMinion Neutral VoodooDoctor 1 2 1 [
-    KeywordAbility $ Battlecry $ \this ->
+    Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
@@ -717,7 +717,7 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
 
 wolfRider :: Minion
 wolfRider = mkMinion Neutral WolfRider 3 3 1 [
-    KeywordAbility Charge ]
+    Charge ]
 
 
 
