@@ -70,6 +70,7 @@ data BasicCardName
     | MarkOfTheWild
     | MindBlast
     | Moonfire
+    | MortalCoil
     | MultiShot
     | MurlocRaider
     | Nightblade

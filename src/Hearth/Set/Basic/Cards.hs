@@ -75,6 +75,7 @@ cards = let x = toCard in [
     x markOfTheWild,
     x mindBlast,
     x moonfire,
+    x mortalCoil,
     x multiShot,
     x murlocRaider,
     x nightblade,
@@ -490,6 +491,14 @@ moonfire = mkSpell Druid Moonfire 0 $ \this ->
         Effect $ (this `damages` target) 1
 
 
+mortalCoil :: Spell
+mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Minion [] $ \target ->
+            Effect $ Observing ((this `damages` target) 1) $ DamageIsDealt $ \victim _ _ ->
+                Effect $ when (victim `Satisfies` [WithHealth LessEqual 0]) $ DrawCards you 1
+
+
 multiShot :: Spell
 multiShot = mkSpell Hunter MultiShot 4 $ \this ->
     OwnerOf this $ \you ->
@@ -568,13 +577,13 @@ shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
 
 shadowWordDeath :: Spell
 shadowWordDeath = mkSpell Priest ShadowWordDeath 5 $ \_ ->
-    A $ Minion [AttackCond GreaterEqual 5] $ \target ->
+    A $ Minion [WithMinion (WithAttack GreaterEqual 5)] $ \target ->
         Effect $ DestroyMinion target
 
 
 shadowWordPain :: Spell
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
-    A $ Minion [AttackCond LessEqual 3] $ \target ->
+    A $ Minion [WithMinion (WithAttack LessEqual 3)] $ \target ->
         Effect $ DestroyMinion target
 
 

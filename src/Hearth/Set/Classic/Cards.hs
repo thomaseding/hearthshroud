@@ -171,7 +171,7 @@ battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
 bigGameHunter :: Minion
 bigGameHunter = mkMinion Epic Neutral BigGameHunter 3 4 2 [
     KeywordAbility $ Battlecry $ \this ->
-        A $ Minion [Not this, AttackCond GreaterEqual 7] $ \target ->
+        A $ Minion [Not this, WithMinion (WithAttack GreaterEqual 7)] $ \target ->
             Effect $ DestroyMinion target ]
 
 
@@ -447,7 +447,7 @@ stampedingKodo = mkMinion Rare Neutral StampedingKodo 5 3 5 [
     KeywordAbility $ Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-                Effect $ Elect $ A $ Minion [OwnedBy opponent, AttackCond LessEqual 2] $ \victim ->
+                Effect $ Elect $ A $ Minion [OwnedBy opponent, WithMinion (WithAttack LessEqual 2)] $ \victim ->
                     Effect $ DestroyMinion victim ]
 
 

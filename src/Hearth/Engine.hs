@@ -100,6 +100,7 @@ mkGameState (p1, p2) = let
         _gameTurn = Turn 1,
         _gameHandleSeed = RawHandle $ length ps,
         _gamePlayerTurnOrder = [],
+        _gameEffectObservers = [],
         _gamePlayers = zipWith mkPlayer (map PlayerHandle [0..]) ps }
 
 
@@ -719,18 +720,28 @@ enactEffect = logCall 'enactEffect . \case
     Silence handle -> silence handle >> return success
     GainArmor handle armor -> gainArmor handle armor >> return success
     Freeze handle -> freeze handle >> return success
+    Observing effect listener -> enactObserving effect listener
     where
         success = purePick ()
 
 
+enactObserving :: (HearthMonad m) => Effect -> EventListener -> Hearth m (SimplePickResult AtRandom)
+enactObserving effect listener = logCall 'enactObserving $ do
+    originalObservers <- view gameEffectObservers
+    gameEffectObservers %= (listener :)
+    result <- enactEffect effect
+    gameEffectObservers .= originalObservers
+    return result
+
+
 enactIf :: (HearthMonad m) => Condition -> Effect -> Effect -> Hearth m (SimplePickResult AtRandom)
-enactIf cond true false = enactCondition cond >>= enactEffect . \case
+enactIf cond true false = logCall 'enactIf $ enactCondition cond >>= enactEffect . \case
     True -> true
     False -> false
 
 
 enactCondition :: (HearthMonad m) => Condition -> Hearth m Bool
-enactCondition = \case
+enactCondition = logCall 'enactCondition $ \case
     Satisfies handle restrictions -> satisfies handle restrictions
 
 
@@ -1244,9 +1255,12 @@ instance CanSatisfy a (Restriction a) where
         IsDamageSource source -> case source of
             DamagingCharacter character -> return $ candidate == character
             _ -> return False
-        AttackCond cmp attackCond -> do
+        WithAttack cmp attackVal -> do
             actualAttack <- dynamicAttack candidate
-            return $ fromComparison cmp actualAttack attackCond
+            return $ fromComparison cmp actualAttack attackVal
+        WithHealth cmp healthVal -> do
+            actualHealth <- dynamicRemainingHealth candidate
+            return $ fromComparison cmp actualHealth healthVal
         Damaged -> liftM (> 0) $ getDamage candidate
         Undamaged -> liftM not $ candidate `satisfies` Damaged
         IsMinion -> return $ case candidate of
@@ -1504,18 +1518,20 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
-minionEventListeners :: (HearthMonad m) => Hearth m [EventListener]
-minionEventListeners = do
+dynamicEventListeners :: (HearthMonad m) => Hearth m [EventListener]
+dynamicEventListeners = do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    liftM concat $ forM minions $ \minion -> do
+    minionListeners <- liftM concat $ forM minions $ \minion -> do
         abilities <- dynamicAbilities minion
         return $ flip mapMaybe abilities $ \case
                 Whenever listener -> Just $ listener minion
                 _ -> Nothing
+    effectObservers <- view gameEffectObservers
+    return $ effectObservers ++ minionListeners
 
 
 processEvent :: (HearthMonad m) => (EventListener -> Hearth m ()) -> Hearth m ()
-processEvent f = minionEventListeners >>= mapM_ f
+processEvent f = dynamicEventListeners >>= mapM_ f
 
 
 handleGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()

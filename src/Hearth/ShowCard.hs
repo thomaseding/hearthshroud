@@ -238,11 +238,14 @@ showWhile handle restrictions aura = case restrictions of
 
 showWhenever :: (Handle Minion -> EventListener) -> ShowCard String
 showWhenever cont = do
-    thisHandle <- genHandle this
-    str <- case cont thisHandle of
-        SpellIsCast listener -> showSpellIsCast listener
-        DamageIsDealt listener -> showDamageIsDealt listener
+    str <- genHandle this >>= showEventListener . cont
     return $ "Whenever " ++ str
+
+
+showEventListener :: EventListener -> ShowCard String
+showEventListener = \case
+    SpellIsCast listener -> showSpellIsCast listener
+    DamageIsDealt listener -> showDamageIsDealt listener
 
 
 showSpellIsCast :: (Handle Spell -> Elect AtRandom) -> ShowCard String
@@ -307,6 +310,14 @@ showEffect = \case
     Silence handle -> showSilence handle
     GainArmor handle amount -> showGainArmor handle amount
     Freeze handle -> showFreeze handle
+    Observing effect listener -> showObserving effect listener
+
+
+showObserving :: Effect -> EventListener -> ShowCard String
+showObserving effect listener = do
+    effectStr <- showEffect effect
+    listenerStr <- showEventListener listener
+    return $ "Observing (" ++ effectStr ++ ") by (" ++ listenerStr ++ ")"
 
 
 showIf :: Condition -> Effect -> Effect -> ShowCard String
@@ -491,7 +502,8 @@ showRestriction = \case
     Is handle -> readHandle handle >>= \str -> return ("IS " ++ str)
     Not handle -> readHandle handle >>= \str -> return ("NOT " ++ str)
     IsDamageSource source -> showDamageSource source >>= \str -> return ("IS " ++ str)
-    AttackCond ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
+    WithAttack ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
+    WithHealth ord (Health value) -> return $ "WITH_HEALTH_" ++ show ord ++ "_" ++ show value
     Damaged -> return "DAMAGED"
     Undamaged -> return "UNDAMAGED"
     IsMinion -> return "IS_MINION"

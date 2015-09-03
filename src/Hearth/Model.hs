@@ -145,7 +145,8 @@ data Restriction :: * -> * where
     Is :: Handle a -> Restriction a
     Not :: Handle a -> Restriction a
     IsDamageSource :: DamageSource -> Restriction Character
-    AttackCond :: Comparison -> Attack -> Restriction Minion
+    WithAttack :: Comparison -> Attack -> Restriction Character
+    WithHealth :: Comparison -> Health -> Restriction Character
     Damaged :: Restriction Character
     Undamaged :: Restriction Character
     IsMinion :: Restriction Character
@@ -207,6 +208,7 @@ data Effect :: * where
     Silence :: Handle Minion -> Effect
     GainArmor :: Handle Player -> Armor -> Effect
     Freeze :: Handle Character -> Effect
+    Observing :: Effect -> EventListener -> Effect
     deriving (Typeable)
 
 
@@ -441,6 +443,7 @@ data GameState = GameState {
     _gameTurn :: Turn,
     _gameHandleSeed :: RawHandle,
     _gamePlayerTurnOrder :: [Handle Player],
+    _gameEffectObservers :: [EventListener],
     _gamePlayers :: [Player]
 } deriving (Typeable)
 
