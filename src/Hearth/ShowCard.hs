@@ -30,6 +30,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Proxy
 import Hearth.CardName
+import Hearth.Cards
 import Hearth.Model
 
 
@@ -164,7 +165,7 @@ showCard card = let
 
 
 showName :: HandCard -> String
-showName card = case handCardName card of
+showName card = case cardName card of
     BasicCardName name -> show name
     ClassicCardName name -> show name
 

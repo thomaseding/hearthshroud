@@ -19,7 +19,7 @@ import qualified Hearth.Set.Basic.Names as Basic
 --------------------------------------------------------------------------------
 
 
-cards :: [DeckCard]
+cards :: [Card]
 cards = let x = toCard in [
     x arcaneExplosion,
     x arcaneIntellect,

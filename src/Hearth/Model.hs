@@ -435,6 +435,12 @@ data DeckCard :: * where
     deriving (Typeable)
 
 
+data Card :: * where
+    MinionCard :: Minion -> Card
+    SpellCard :: Spell -> Card
+    deriving (Typeable)
+
+
 newtype Hand = Hand {
     _handCards :: [HandCard]
 } deriving (Monoid, Generic, Typeable)
@@ -496,17 +502,6 @@ makeLenses ''Player
 makeLenses ''GameState
 makeLenses ''GameSnapshot
 
-
-deckCardName :: DeckCard -> CardName
-deckCardName = \case
-    DeckCardMinion minion -> minion^.minionMeta.cardMetaName
-    DeckCardSpell spell -> spell^.spellMeta.cardMetaName
-
-
-handCardName :: HandCard -> CardName
-handCardName = \case
-    HandCardMinion minion -> minion^.minionMeta.cardMetaName
-    HandCardSpell spell -> spell^.spellMeta.cardMetaName
 
 
 

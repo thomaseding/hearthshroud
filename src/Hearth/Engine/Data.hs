@@ -96,27 +96,56 @@ data PlayerData = PlayerData Hero Deck
 --------------------------------------------------------------------------------
 
 
-class HandToDeck h d | h -> d where
-    handToDeck :: h -> d
+class ToCard a where
+    toCard :: a -> Card
 
 
-instance HandToDeck HandCard DeckCard where
-    handToDeck = \case
-        HandCardMinion minion -> DeckCardMinion minion
-        HandCardSpell spell -> DeckCardSpell spell
+instance ToCard HandCard where
+    toCard = \case
+        HandCardMinion minion -> MinionCard minion
+        HandCardSpell spell -> SpellCard spell
+
+
+instance ToCard DeckCard where
+    toCard = \case
+        DeckCardMinion minion -> MinionCard minion
+        DeckCardSpell spell -> SpellCard spell
 
 
 --------------------------------------------------------------------------------
 
 
-class DeckToHand d h | d -> h where
-    deckToHand :: d -> h
+class ToHandCard a where
+    toHandCard :: a -> HandCard
 
 
-instance DeckToHand DeckCard HandCard where
-    deckToHand = \case
-        DeckCardMinion minion -> HandCardMinion minion
-        DeckCardSpell spell -> HandCardSpell spell
+instance ToHandCard Card where
+    toHandCard = \case
+        MinionCard minion -> HandCardMinion minion
+        SpellCard spell -> HandCardSpell spell
+
+
+instance ToHandCard DeckCard where
+    toHandCard = toHandCard . toCard
+
+
+--------------------------------------------------------------------------------
+
+
+class ToDeckCard a where
+    toDeckCard :: a -> DeckCard
+
+
+instance ToDeckCard Card where
+    toDeckCard = \case
+        MinionCard minion -> DeckCardMinion minion
+        SpellCard spell -> DeckCardSpell spell
+
+
+instance ToDeckCard HandCard where
+    toDeckCard = toDeckCard . toCard
+
+
 
 
 

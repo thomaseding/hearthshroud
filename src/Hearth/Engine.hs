@@ -40,7 +40,7 @@ import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
 import Hearth.Action
 import Hearth.CardName
-import Hearth.Cards (cardByName)
+import Hearth.Cards (cardByName, cardName)
 import Hearth.DebugEvent
 import Hearth.Engine.Data
 import Hearth.GameEvent
@@ -282,13 +282,13 @@ initHand handle = logCall 'initHand $ do
             False -> 4
     drawnCards <- drawCards handle numCards
     keptCards <- guardedPrompt (PromptMulligan handle drawnCards) $ \keptCards -> let
-        in case on isSubsetOf (map handCardName) keptCards drawnCards of
+        in case on isSubsetOf (map cardName) keptCards drawnCards of
             True -> return True
             False -> do
                 prompt $ PromptError InvalidMulligan
                 return False
-    let tossedCards = foldr (deleteBy $ on (==) handCardName) keptCards drawnCards
-        tossedCards' = map handToDeck tossedCards
+    let tossedCards = foldr (deleteBy $ on (==) cardName) keptCards drawnCards
+        tossedCards' = map toDeckCard tossedCards
     drawCards handle (length tossedCards) >>= \case
         [] -> return ()
         _ -> do
@@ -297,7 +297,7 @@ initHand handle = logCall 'initHand $ do
     case isFirst of
         True -> return ()
         False -> let
-            theCoin = deckToHand $ cardByName $ BasicCardName TheCoin
+            theCoin = toHandCard $ cardByName $ BasicCardName TheCoin
             in getPlayer handle.playerHand.handCards %= (theCoin :)
 
 
@@ -317,7 +317,7 @@ putInHand handle card = logCall 'putInHand $ zoom (getPlayer handle.playerHand.h
 removeFromHand :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m Bool
 removeFromHand handle card = logCall 'removeFromHand $ zoom (getPlayer handle.playerHand.handCards) $ do
     hand <- view id
-    id %= deleteBy (on (==) handCardName) card
+    id %= deleteBy (on (==) cardName) card
     hand' <- view id
     return $ length hand /= length hand'
 
@@ -330,7 +330,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
         dealDamage (PlayerCharacter handle) (Damage excess) Fatigue
         return Nothing
     Deck (c:cs) -> do
-        let c' = deckToHand c
+        let c' = toHandCard c
             deck = Deck cs
             promptDraw eCard = do
                 promptGameEvent $ CardDrawn handle eCard deck
@@ -357,7 +357,7 @@ shuffleDeck :: (HearthMonad m) => Handle Player -> Hearth m ()
 shuffleDeck handle = logCall 'shuffleDeck $ do
     Deck deck <- view $ getPlayer handle.playerDeck
     deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ \deck' -> let
-        f = sort . map deckCardName
+        f = sort . map cardName
         in case on (==) f deck deck' of
             True -> return True
             False -> do

@@ -17,15 +17,15 @@ import Hearth.CardName
 
 
 class ToCard a where
-    toCard :: a -> DeckCard
+    toCard :: a -> Card
 
 
 instance ToCard Minion where
-    toCard = DeckCardMinion
+    toCard = MinionCard
 
 
 instance ToCard Spell where
-    toCard = DeckCardSpell
+    toCard = SpellCard
 
 
 class Uncollectible a where
@@ -36,10 +36,10 @@ instance Uncollectible CardMeta where
     uncollectible meta = meta { _cardMetaCollectibility = Uncollectible }
 
 
-instance Uncollectible DeckCard where
+instance Uncollectible Card where
     uncollectible = \case
-        DeckCardMinion x -> DeckCardMinion $ uncollectible x
-        DeckCardSpell x -> DeckCardSpell $ uncollectible x
+        MinionCard x -> MinionCard $ uncollectible x
+        SpellCard x -> SpellCard $ uncollectible x
 
 
 instance Uncollectible Minion where

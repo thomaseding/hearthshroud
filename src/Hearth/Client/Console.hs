@@ -471,11 +471,11 @@ showHeroName = show
 
 
 handCardName' :: HandCard -> String
-handCardName' = showCardName . handCardName
+handCardName' = showCardName . cardName
 
 
 deckCardName' :: DeckCard -> String
-deckCardName' = showCardName . deckCardName
+deckCardName' = showCardName . cardName
 
 
 promptError :: HearthError -> Console ()
@@ -663,7 +663,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
         newDeck clazz = view classRestriction >>= \case
             False -> liftIO $ do
                 cards <- shuffleM $ filter isCollectible cardUniverse
-                return $ Deck $ take 30 cards
+                return $ Deck $ map toDeckCard $ take 30 cards
             True -> liftIO $ do
                 let classCount = 15
                     neutralCount = 30 - min classCount (length classCards)
@@ -671,10 +671,10 @@ runTestGame = flip evalStateT st $ unConsole $ do
                     neutralCards = filter isCollectible $ cardsByClass Neutral
                 classCards' <- shuffleM classCards
                 neutralCards' <- shuffleM neutralCards
-                return $ Deck $ take classCount classCards' ++ take neutralCount neutralCards'
+                return $ Deck $ map toDeckCard $ take classCount classCards' ++ take neutralCount neutralCards'
 
 
-cardsByClass :: Class -> [DeckCard]
+cardsByClass :: Class -> [Card]
 cardsByClass clazz = flip filter cardUniverse $ \card ->
     cardMeta card^.cardMetaClass == clazz
 
@@ -683,10 +683,10 @@ class GetCardMeta a where
     cardMeta :: a -> CardMeta
 
 
-instance GetCardMeta DeckCard where
+instance GetCardMeta Card where
     cardMeta = \case
-        DeckCardMinion x -> cardMeta x
-        DeckCardSpell x -> cardMeta x
+        MinionCard x -> cardMeta x
+        SpellCard x -> cardMeta x
 
 
 instance GetCardMeta Minion where

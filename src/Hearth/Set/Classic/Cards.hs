@@ -19,7 +19,7 @@ import qualified Hearth.Set.Classic.Names as Classic
 --------------------------------------------------------------------------------
 
 
-cards :: [DeckCard]
+cards :: [Card]
 cards = let x = toCard in [
     x abomination,
     x abusiveSergeant,
