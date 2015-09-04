@@ -491,12 +491,19 @@ moonfire = mkSpell Druid Moonfire 0 $ \this ->
         Effect $ (this `damages` target) 1
 
 
+-- TODO:
+-- MortalCoil hitting a KnifeJuggler juggled to death minion (triggered from say your VioletTeacher)
+-- Need to match this behavior - https://www.youtube.com/watch?v=MYGSoWbaIAM
+-- Comprehensive explanation - https://www.youtube.com/watch?v=H3d_qlm4Xws
 mortalCoil :: Spell
 mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
     OwnerOf this $ \you ->
-        A $ Minion [] $ \target ->
-            Effect $ Observing ((this `damages` target) 1) $ DamageIsDealt $ \victim _ _ ->
-                Effect $ when (victim `Satisfies` [WithHealth LessEqual 0]) $ DrawCards you 1
+        A $ Minion [] $ \target -> let
+            effect = (this `damages` target) 1
+            in Effect $ Observing effect $ DamageIsDealt $ \victim _ source -> let
+                condition = this `Satisfies` [IsDamageSource source]
+                    `And` victim `Satisfies` [WithHealth LessEqual 0]
+                in Effect $ when condition $ DrawCards you 1
 
 
 multiShot :: Spell

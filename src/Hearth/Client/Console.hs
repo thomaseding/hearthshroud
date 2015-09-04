@@ -57,7 +57,7 @@ import Hearth.Engine hiding (scopedPhase)
 import Hearth.GameEvent
 import Hearth.HeroName
 import Hearth.HeroPowerName
-import Hearth.Model
+import Hearth.Model hiding (And, Or)
 import Hearth.Prompt
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)

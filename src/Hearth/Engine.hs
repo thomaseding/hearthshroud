@@ -742,7 +742,21 @@ enactIf cond true false = logCall 'enactIf $ enactCondition cond >>= enactEffect
 
 enactCondition :: (HearthMonad m) => Condition -> Hearth m Bool
 enactCondition = logCall 'enactCondition $ \case
+    Or x y -> enactOr x y
+    And x y -> enactAnd x y
     Satisfies handle restrictions -> satisfies handle restrictions
+
+
+enactOr :: (HearthMonad m) => Condition -> Condition -> Hearth m Bool
+enactOr x y = enactCondition x >>= \case
+    True -> return True
+    False -> enactCondition y
+
+
+enactAnd :: (HearthMonad m) => Condition -> Condition -> Hearth m Bool
+enactAnd x y = enactCondition x >>= \case
+    False -> return False
+    True -> enactCondition y
 
 
 freeze :: (HearthMonad m) => Handle Character -> Hearth m ()
@@ -1253,8 +1267,13 @@ instance CanSatisfy a (Restriction a) where
         Is object -> return $ candidate == object
         Not object -> return $ candidate /= object
         IsDamageSource source -> case source of
-            DamagingCharacter character -> return $ candidate == character
-            _ -> return False
+            Fatigue -> return False
+            DamagingCharacter character -> return $ case castHandle candidate of
+                Just candidate' -> candidate' == character
+                Nothing -> False
+            DamagingSpell spell -> return $ case castHandle candidate of
+                Just candidate' -> candidate' == spell
+                Nothing ->  False
         WithAttack cmp attackVal -> do
             actualAttack <- dynamicAttack candidate
             return $ fromComparison cmp actualAttack attackVal

@@ -312,7 +312,7 @@ showObserving :: Effect -> EventListener -> ShowCard String
 showObserving effect listener = do
     effectStr <- showEffect effect
     listenerStr <- showEventListener listener
-    return $ "Observing (" ++ effectStr ++ ") by (" ++ listenerStr ++ ")"
+    return $ "Observing (" ++ effectStr ++ ") with (" ++ listenerStr ++ ")"
 
 
 showIf :: Condition -> Effect -> Effect -> ShowCard String
@@ -325,7 +325,24 @@ showIf cond true false = do
 
 showCondition :: Condition -> ShowCard String
 showCondition = \case
+    Or x y -> showOr x y
+    And x y -> showAnd x y
     Satisfies handle restrictions -> showSatisfies handle restrictions
+
+
+showBinaryCondition :: String -> Condition -> Condition -> ShowCard String
+showBinaryCondition opStr x y = do
+    xStr <- showCondition x
+    yStr <- showCondition y
+    return $ "(" ++ xStr ++ " " ++ opStr ++ " " ++ yStr ++ ")"
+
+
+showOr :: Condition -> Condition -> ShowCard String
+showOr = showBinaryCondition "or"
+
+
+showAnd :: Condition -> Condition -> ShowCard String
+showAnd = showBinaryCondition "and"
 
 
 showFreeze :: Handle Character -> ShowCard String
@@ -543,10 +560,7 @@ showDrawCards player amount = do
 
 
 showDamageSource :: DamageSource -> ShowCard String
-showDamageSource = \case
-    Fatigue -> return "Fatigue"
-    DamagingCharacter handle -> readHandle handle
-    DamagingSpell handle -> readHandle handle
+showDamageSource = const $ return "DamageSource"
 
 
 showDealDamage :: Handle Character -> Damage -> DamageSource -> ShowCard String

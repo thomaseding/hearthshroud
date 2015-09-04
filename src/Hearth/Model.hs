@@ -102,6 +102,25 @@ applyRawHandle f = \case
     PlayerCharacter h -> applyRawHandle f h
 
 
+class CastHandle a where
+    castHandle :: Handle b -> Maybe (Handle a)
+
+
+instance CastHandle Spell where
+    castHandle = \case
+        h @ SpellHandle {} -> Just h
+        _ -> Nothing
+
+
+instance CastHandle Character where
+    castHandle = \case
+        SpellHandle {} -> Nothing
+        h @ MinionHandle {} -> Just $ MinionCharacter h
+        h @ PlayerHandle {} -> Just $ PlayerCharacter h
+        h @ MinionCharacter {} -> Just h
+        h @ PlayerCharacter {} -> Just h
+
+
 instance Show (Handle a) where
     show = applyRawHandle show
 
@@ -138,13 +157,23 @@ data Cost :: * where
 data Selection = Targeted | AtRandom
 
 
+infixr 2 `Or`
+infixr 3 `And`
+infixr 5 `Satisfies`
+
+data Condition :: * where
+    Or :: Condition -> Condition -> Condition
+    And :: Condition -> Condition -> Condition
+    Satisfies :: Handle a -> [Restriction a] -> Condition
+
+
 data Restriction :: * -> * where
     RestrictMinion :: Restriction Character -> Restriction Minion
     RestrictPlayer :: Restriction Character -> Restriction Player
     OwnedBy :: Handle Player -> Restriction a
     Is :: Handle a -> Restriction a
     Not :: Handle a -> Restriction a
-    IsDamageSource :: DamageSource -> Restriction Character
+    IsDamageSource :: DamageSource -> Restriction a
     WithAttack :: Comparison -> Attack -> Restriction Character
     WithHealth :: Comparison -> Health -> Restriction Character
     Damaged :: Restriction Character
@@ -215,10 +244,6 @@ data Effect :: * where
 data EventListener :: * where
     SpellIsCast :: (Handle Spell -> Elect AtRandom) -> EventListener
     DamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> EventListener
-
-
-data Condition :: * where
-    Satisfies :: Handle a -> [Restriction a] -> Condition
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)
