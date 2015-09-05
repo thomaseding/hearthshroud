@@ -48,7 +48,7 @@ For those unfamiliar with `cabal`, search Google for "haskell cabal how to use" 
 
 ####Contact Me
  * Probably the best way to ask me a question or tell me a comment is to just create an issue directly for the project (even if it is not a real issue).
- * I am sometimes on `#hearthsim` Freenode IRC.
+ * I am sometimes on `#hearthsim` IRC.
 
 --------------------
 
