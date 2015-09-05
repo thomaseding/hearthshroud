@@ -272,7 +272,7 @@ showEachMinion restrictions cont = do
     return $ "Each minion: " ++ auraStr
 
 
-showHas :: Handle Minion -> Enchantment a -> ShowCard String
+showHas :: Handle Minion -> Enchantment t a -> ShowCard String
 showHas minion enchantment = do
     minionStr <- readHandle minion
     enchantmentStr <- showEnchantment enchantment
@@ -317,7 +317,7 @@ showDamageIsDealt listener = do
     liftM (prelude ++) $ showElect $ listener victim damage source
 
 
-showEnrage :: [Ability] -> [Enchantment Continuous] -> ShowCard String
+showEnrage :: [Ability] -> [Enchantment Continuous Minion] -> ShowCard String
 showEnrage abilities enchantments = do
     asStr <- mapM showAbility abilities
     esStr <- mapM showEnchantment enchantments
@@ -623,7 +623,7 @@ showDealDamage character damage source = do
     return $ unwords ["Deal", damageStr, "damage to", characterStr, "by", sourceStr]
 
 
-showEnchant :: Handle Minion -> AnyEnchantment -> ShowCard String
+showEnchant :: Handle Minion -> AnyEnchantment a -> ShowCard String
 showEnchant minion enchantment = do
     minionStr <- readHandle minion
     enchantmentStr <- case enchantment of
@@ -655,8 +655,11 @@ showGainManaCrystals player amount crystalState = do
     return $ unwords [playerStr, gainStr, crystalStr]
 
 
-showEnchantment :: Enchantment a -> ShowCard String
+showEnchantment :: Enchantment t a -> ShowCard String
 showEnchantment = \case
+    MinionEnchantment e -> showEnchantment e
+    PlayerEnchantment e -> showEnchantment e
+    Until timePoint enchantment -> showUntil timePoint enchantment
     StatsDelta (Attack x) (Health y) -> return $ showWithSign x ++ "/" ++ showWithSign y
     StatsScale (Attack x) (Health y) -> return $ "Scale stats by " ++ show x ++ "/" ++ show y
     ChangeStat e -> case e of
@@ -664,10 +667,9 @@ showEnchantment = \case
         Right (Health y) -> return $ "Health changed to " ++ show y
     SwapStats -> return "Swapped attack and health"
     Frozen -> return "Frozen"
-    Until timePoint enchantment -> showUntil timePoint enchantment
 
 
-showUntil :: TimePoint -> Enchantment Continuous -> ShowCard String
+showUntil :: TimePoint -> Enchantment Continuous a -> ShowCard String
 showUntil timePoint enchantment = do
     timePointStr <- showTimePoint timePoint
     enchantmentStr <- showEnchantment enchantment

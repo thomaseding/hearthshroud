@@ -228,7 +228,7 @@ data Effect :: * where
     If :: Condition -> Effect -> Effect -> Effect
     DrawCards :: Handle Player -> Int -> Effect
     DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
-    Enchant :: Handle Minion -> AnyEnchantment -> Effect
+    Enchant :: Handle Minion -> AnyEnchantment Minion -> Effect
     GrantAbilities :: Handle Minion -> [Ability] -> Effect
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
@@ -252,7 +252,7 @@ data Aura :: * where
     AuraOpponentOf :: Handle Player -> (Handle Player -> Aura) -> Aura
     While :: Handle a -> [Restriction a] -> Aura -> Aura
     EachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> Aura
-    Has :: Handle Minion -> Enchantment Continuous -> Aura
+    Has :: Handle Minion -> Enchantment Continuous Minion -> Aura
 
 
 data Ability :: * where
@@ -262,7 +262,7 @@ data Ability :: * where
     Deathrattle :: (Handle Minion -> Elect AtRandom) -> Ability
     Charge :: Ability
     DivineShield :: Ability
-    Enrage :: [Ability] -> [Enchantment Continuous] -> Ability
+    Enrage :: [Ability] -> [Enchantment Continuous Minion] -> Ability
     Taunt :: Ability
     deriving (Typeable)
 
@@ -296,22 +296,24 @@ data TimePoint :: * where
     deriving (Show, Typeable, Eq, Ord)
 
 
-data Enchantment :: * -> * where
-    Until :: TimePoint -> Enchantment Continuous -> Enchantment Limited
-    StatsDelta :: Attack -> Health -> Enchantment Continuous
-    StatsScale :: Attack -> Health -> Enchantment Continuous
-    ChangeStat :: Either Attack Health -> Enchantment Continuous
-    SwapStats :: Enchantment Continuous
-    Frozen :: Enchantment Continuous
+data Enchantment :: * -> * -> * where
+    MinionEnchantment :: Enchantment t Character -> Enchantment t Minion
+    PlayerEnchantment :: Enchantment t Character -> Enchantment t Player
+    Until :: TimePoint -> Enchantment Continuous a -> Enchantment Limited a
+    StatsDelta :: Attack -> Health -> Enchantment Continuous Minion
+    StatsScale :: Attack -> Health -> Enchantment Continuous Minion
+    ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
+    SwapStats :: Enchantment Continuous Minion
+    Frozen :: Enchantment Continuous Character
     deriving (Typeable)
 
 
-deriving instance Eq (Enchantment a)
+deriving instance Eq (Enchantment t a)
 
 
-data AnyEnchantment :: * where
-    Continuous :: Enchantment Continuous -> AnyEnchantment
-    Limited :: Enchantment Limited -> AnyEnchantment
+data AnyEnchantment :: * -> * where
+    Continuous :: Enchantment Continuous a -> AnyEnchantment a
+    Limited :: Enchantment Limited a -> AnyEnchantment a
     deriving (Typeable)
 
 
@@ -379,7 +381,7 @@ data Minion = Minion' {
 
 data BoardMinion = BoardMinion {
     _boardMinionDamage :: Damage,
-    _boardMinionEnchantments :: [AnyEnchantment],
+    _boardMinionEnchantments :: [AnyEnchantment Minion],
     _boardMinionAbilities :: [Ability],
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,

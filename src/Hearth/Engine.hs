@@ -431,20 +431,24 @@ clearUntil :: (HearthMonad m) => TimePoint -> Hearth m ()
 clearUntil candidate = do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     forM_ minions $ \minion -> do
-        getMinion minion.boardMinionEnchantments %= mapMaybe predicate
+        getMinion minion.boardMinionEnchantments %= mapMaybe generalPredicate
     where
-        predicate = \case
+        generalPredicate = \case
             Continuous e -> Just $ Continuous e
-            Limited e -> fmap Limited $ case e of
-                Until timePoint e' -> case timePoint of
-                    Delay n timePoint' -> case timePoint' == candidate of
-                        True -> Just $ case n of
-                            1 -> Until timePoint' e'
-                            _ -> Until (Delay (n - 1) timePoint') e'
-                        False -> Just e
-                    _ -> case timePoint == candidate of
-                        True -> Nothing
-                        False -> Just e
+            Limited e -> fmap Limited $ limitedPredicate e
+        limitedPredicate :: Enchantment Limited a -> Maybe (Enchantment Limited a)
+        limitedPredicate = \case
+            MinionEnchantment e -> fmap MinionEnchantment $ limitedPredicate e
+            PlayerEnchantment e -> fmap PlayerEnchantment $ limitedPredicate e
+            eUntil @ (Until timePoint e) -> case timePoint of
+                Delay n timePoint' -> case timePoint' == candidate of
+                    True -> Just $ case n of
+                        1 -> Until timePoint' e
+                        _ -> Until (Delay (n - 1) timePoint') e
+                    False -> Just eUntil
+                _ -> case timePoint == candidate of
+                    True -> Nothing
+                    False -> Just eUntil
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
@@ -771,7 +775,7 @@ freeze character = logCall 'freeze $ do
     case character of
         PlayerCharacter {} -> $todo 'freeze "need to implement player enchantments"
         MinionCharacter minion -> do
-            getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint Frozen])
+            getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint $ MinionEnchantment Frozen])
 
 
 enactWhen :: (HearthMonad m) => Handle a -> [Restriction a] -> Effect -> Hearth m ()
@@ -839,7 +843,7 @@ grantAbilities handle abilities = logCall 'grantAbilities $ do
     getMinion handle.boardMinionAbilities %= (abilities ++)
 
 
-enchant :: (HearthMonad m) => Handle Minion -> AnyEnchantment -> Hearth m ()
+enchant :: (HearthMonad m) => Handle Minion -> AnyEnchantment Minion -> Hearth m ()
 enchant handle enchantment = logCall 'enchant $ do
     getMinion handle.boardMinionEnchantments %= (++ [enchantment])
 
@@ -872,7 +876,7 @@ dynamicAbilities bmHandle = do
         _ -> [ability]
 
 
-dynamicEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment]
+dynamicEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment Minion]
 dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
@@ -884,25 +888,27 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
-underAnyEnchantment :: forall b. (forall a. Enchantment a -> b) -> AnyEnchantment -> b
+underAnyEnchantment :: forall a b. (forall t. Enchantment t a -> b) -> AnyEnchantment a -> b
 underAnyEnchantment f = \case
     Continuous e -> f e
     Limited e -> f e
 
 
-hasEnchantment :: (HearthMonad m) => Enchantment Continuous -> Handle Minion -> Hearth m Bool
+hasEnchantment :: (HearthMonad m) => Enchantment Continuous Minion -> Handle Minion -> Hearth m Bool
 hasEnchantment candidate minion = logCall 'hasEnchantment $ do
     enchantments <- dynamicEnchantments minion
     return $ any (underAnyEnchantment predicate) enchantments
     where
-        predicate :: Enchantment a -> Bool
+        predicate :: Enchantment t a -> Bool
         predicate = \case
+            MinionEnchantment e -> predicate e
+            PlayerEnchantment _ -> False
             Until _ e -> predicate e
             e @ StatsDelta{} -> e == candidate
             e @ StatsScale{} -> e == candidate
             e @ ChangeStat{} -> e == candidate
             e @ SwapStats{} -> e == candidate
-            e @ Frozen{} -> e == candidate
+            e @ Frozen{} -> MinionEnchantment e == candidate
 
 
 class IsCharacterHandle a where
@@ -972,26 +978,29 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                 forM_ auras $ enactAura . ($ minion)
         applyEnchantments = do
             enchantments <- dynamicEnchantments handle
-            forM_ enchantments $ underAnyEnchantment applyEnchantment
-        applyEnchantment :: (HearthMonad m) => Enchantment a -> Hearth m ()
-        applyEnchantment = \case
-                StatsDelta a h -> do
-                    getMinion handle.boardMinion.minionAttack += a
-                    getMinion handle.boardMinion.minionHealth += h
-                StatsScale a h -> do
-                    getMinion handle.boardMinion.minionAttack *= a
-                    getMinion handle.boardMinion.minionHealth *= h
-                ChangeStat e -> case e of
-                    Left a -> getMinion handle.boardMinion.minionAttack .= a
-                    Right h -> getMinion handle.boardMinion.minionHealth .= h
-                SwapStats -> do
-                    Attack attack <- view $ getMinion handle.boardMinion.minionAttack
-                    Health health <- view $ getMinion handle.boardMinion.minionHealth
-                    getMinion handle.boardMinion.minionAttack .= Attack health
-                    getMinion handle.boardMinion.minionHealth .= Health attack
-                Frozen -> return ()
-                Until _ enchantment -> applyEnchantment enchantment
-
+            forM_ enchantments $ underAnyEnchantment applyMinionEnchantment
+        applyMinionEnchantment :: (HearthMonad m) => Enchantment t Minion -> Hearth m ()
+        applyMinionEnchantment = \case
+            MinionEnchantment e -> applyCharacterEnchantment e
+            StatsDelta a h -> do
+                getMinion handle.boardMinion.minionAttack += a
+                getMinion handle.boardMinion.minionHealth += h
+            StatsScale a h -> do
+                getMinion handle.boardMinion.minionAttack *= a
+                getMinion handle.boardMinion.minionHealth *= h
+            ChangeStat e -> case e of
+                Left a -> getMinion handle.boardMinion.minionAttack .= a
+                Right h -> getMinion handle.boardMinion.minionHealth .= h
+            SwapStats -> do
+                Attack attack <- view $ getMinion handle.boardMinion.minionAttack
+                Health health <- view $ getMinion handle.boardMinion.minionHealth
+                getMinion handle.boardMinion.minionAttack .= Attack health
+                getMinion handle.boardMinion.minionHealth .= Health attack
+            Until _ enchantment -> applyMinionEnchantment enchantment
+        applyCharacterEnchantment :: (HearthMonad m) => Enchantment t Character -> Hearth m ()
+        applyCharacterEnchantment = \case
+            Until _ enchantment -> applyCharacterEnchantment enchantment
+            Frozen -> return ()
 
 enactAura :: (HearthMonad m) => Aura -> Hearth m ()
 enactAura = logCall 'enactAura $ \case
@@ -1013,7 +1022,7 @@ enactWhile :: (HearthMonad m) => Handle a -> [Restriction a] -> Aura -> Hearth m
 enactWhile handle restrictions = logCall 'enactWhile $ whenM (satisfies handle restrictions) . enactAura
 
 
-enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous -> Hearth m ()
+enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous Minion -> Hearth m ()
 enactHas handle enchantment = logCall 'enactHas $ do
     getMinion handle.boardMinionEnchantments %= (++ [Continuous enchantment])
 
@@ -1036,7 +1045,7 @@ instance CharacterTraits MinionHandle where
         case bm^.boardMinionNewlySummoned of
             False -> return False
             True -> liftM not $ dynamicHasCharge bmHandle
-    isFrozen handle = logCall 'isFrozen $ hasEnchantment Frozen handle
+    isFrozen handle = logCall 'isFrozen $ hasEnchantment (MinionEnchantment Frozen) handle
 
 
 instance CharacterTraits CharacterHandle where
