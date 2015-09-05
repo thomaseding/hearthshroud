@@ -39,7 +39,8 @@ import Hearth.Model
 
 data ShowState = ShowState {
     handleToString :: Map RawHandle String,
-    handleSeed :: Int
+    handleSeed :: Int,
+    damageSeed :: Int
 } deriving (Show, Eq, Ord)
 
 
@@ -51,7 +52,8 @@ newtype ShowCard a = ShowCard {
 runShowCard :: ShowCard a -> a
 runShowCard m = evalState (unShowCard m) $ ShowState {
     handleToString = Map.empty,
-    handleSeed = 0 }
+    handleSeed = 0,
+    damageSeed = -1 }
 
 
 --------------------------------------------------------------------------------
@@ -106,6 +108,42 @@ rawReadHandle handle = do
 
 readHandle :: Handle a -> ShowCard String
 readHandle = applyRawHandle rawReadHandle
+
+
+--------------------------------------------------------------------------------
+
+
+genDamageSource :: String -> ShowCard DamageSource
+genDamageSource = liftM DamagingSpell . genHandle
+
+
+readDamageSource :: DamageSource -> ShowCard String
+readDamageSource = \case
+    Fatigue -> return "Fatigue"
+    DamagingSpell handle -> readHandle handle
+    DamagingCharacter handle -> readHandle handle
+
+
+--------------------------------------------------------------------------------
+
+
+
+genAlgebraicDamage :: ShowCard Damage
+genAlgebraicDamage = do
+    n <- gets damageSeed
+    modify $ \st -> st { damageSeed = n - 1 }
+    return $ Damage n
+
+
+readDamage :: Damage -> ShowCard String
+readDamage = return . \case
+    Damage n -> case n < 0 of
+        False -> show n
+        True -> let
+            idx = negate $ n + 1
+            in symbols !! idx
+    where
+        symbols = words "X Y Z W" ++ map (\n -> "N" ++ show n) [1 :: Int ..]
 
 
 --------------------------------------------------------------------------------
@@ -263,9 +301,11 @@ showSpellIsCast listener = do
 showDamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> ShowCard String
 showDamageIsDealt listener = do
     victim <- genHandle "DAMAGED_CHARACTER"
-    let damage = 666
-        source = Fatigue
-    liftM ("a character takes damage: " ++) $ showElect $ listener victim damage source
+    source <- genDamageSource "DAMAGE_SOURCE"
+    damage <- genAlgebraicDamage
+    damageStr <- readDamage damage
+    let prelude = "a character takes " ++ damageStr ++ " damage: "
+    liftM (prelude ++) $ showElect $ listener victim damage source
 
 
 showEnrage :: [Ability] -> [Enchantment Continuous] -> ShowCard String
@@ -514,7 +554,7 @@ showRestriction = \case
         str -> "OWNED_BY[" ++ str ++ "]"
     Is handle -> readHandle handle >>= \str -> return ("IS " ++ str)
     Not handle -> readHandle handle >>= \str -> return ("NOT " ++ str)
-    IsDamageSource source -> showDamageSource source >>= \str -> return ("IS " ++ str)
+    IsDamageSource source -> readDamageSource source >>= \str -> return ("IS " ++ str)
     WithAttack ord (Attack value) -> return $ "WITH_ATTACK_" ++ show ord ++ "_" ++ show value
     WithHealth ord (Health value) -> return $ "WITH_HEALTH_" ++ show ord ++ "_" ++ show value
     Damaged -> return "DAMAGED"
@@ -560,15 +600,12 @@ showDrawCards player amount = do
     return $ unwords [playerStr, drawStr, show amount, cardStr]
 
 
-showDamageSource :: DamageSource -> ShowCard String
-showDamageSource = const $ return "DamageSource"
-
-
 showDealDamage :: Handle Character -> Damage -> DamageSource -> ShowCard String
-showDealDamage character (Damage amount) source = do
+showDealDamage character damage source = do
     characterStr <- readHandle character
-    sourceStr <- showDamageSource source
-    return $ unwords ["Deal", show amount, "damage to", characterStr, "by", sourceStr]
+    damageStr <- readDamage damage
+    sourceStr <- readDamageSource source
+    return $ unwords ["Deal", damageStr, "damage to", characterStr, "by", sourceStr]
 
 
 showEnchant :: Handle Minion -> AnyEnchantment -> ShowCard String

@@ -701,7 +701,7 @@ waterElemental :: Minion
 waterElemental = mkMinion Mage WaterElemental 4 3 6 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ source ->
-            Effect $ when (MinionCharacter this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
+            Effect $ when (this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
 
 warGolem :: Minion
