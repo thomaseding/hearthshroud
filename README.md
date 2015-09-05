@@ -17,4 +17,4 @@ Goals
 * Model cards (and abilities, effects, etc.) as a pure data AST.
 * Model enforces game constraints at the type level.
 * Engine interprets the cards. (As opposed to the cards directly manipulating the environment.)
-* AI interprets the same cards as well.
+* AI directly interprets the same cards as well.
