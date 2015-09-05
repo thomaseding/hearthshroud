@@ -38,6 +38,20 @@ Hearth.Client.Console.main :: IO ()
 
 --------------------
 
+###Installation
+
+####Steps
+ * Clone repository
+ * Use `cabal` tool to build/install
+
+For those unfamiliar with `cabal`, search Google for "haskell cabal how to use" (or whatever).
+
+####Contact Me
+ * Probably the best way to ask me a question or tell me a comment is to just create an issue directly for the project (even if it is not a real issue).
+ * I am sometimes on `#hearthsim` Freenode IRC.
+
+--------------------
+
 ###Related Hearthstone Projects
 
  * http://hearthsim.info/
