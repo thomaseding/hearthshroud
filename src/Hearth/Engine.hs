@@ -112,6 +112,7 @@ mkPlayer handle (PlayerData hero deck) = Player' {
     _playerHand = Hand [],
     _playerMinions = [],
     _playerSpells = [],
+    _playerEnchantments = [],
     _playerTotalManaCrystals = 0,
     _playerEmptyManaCrystals = 0,
     _playerTemporaryManaCrystals = 0,
@@ -429,10 +430,12 @@ scopedPhase phase action = logCall 'scopedPhase $ do
 
 clearUntil :: (HearthMonad m) => TimePoint -> Hearth m ()
 clearUntil candidate = do
+    players <- viewListOf $ gamePlayers.traversed.playerHandle
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    forM_ minions $ \minion -> do
-        getMinion minion.boardMinionEnchantments %= mapMaybe generalPredicate
+    forM_ players $ \player -> getPlayer player.playerEnchantments %= mapMaybe generalPredicate
+    forM_ minions $ \minion -> getMinion minion.boardMinionEnchantments %= mapMaybe generalPredicate
     where
+        generalPredicate :: AnyEnchantment a -> Maybe (AnyEnchantment a)
         generalPredicate = \case
             Continuous e -> Just $ Continuous e
             Limited e -> fmap Limited $ limitedPredicate e
@@ -773,7 +776,8 @@ freeze character = logCall 'freeze $ do
             True -> return EndOfTurn
             False -> return $ Delay 1 EndOfTurn
     case character of
-        PlayerCharacter {} -> $todo 'freeze "need to implement player enchantments"
+        PlayerCharacter player -> do
+            getPlayer player.playerEnchantments %= (++ [Limited $ Until timePoint $ PlayerEnchantment Frozen])
         MinionCharacter minion -> do
             getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint $ MinionEnchantment Frozen])
 

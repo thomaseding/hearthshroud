@@ -460,6 +460,7 @@ data Player = Player' {
     _playerHand :: Hand,
     _playerMinions :: [BoardMinion],
     _playerSpells :: [CastSpell],
+    _playerEnchantments :: [AnyEnchantment Player],
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
     _playerTemporaryManaCrystals :: Int,
