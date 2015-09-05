@@ -36,9 +36,12 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
+type AlgebraicSymbol = Int
+
+
 data ShowState = ShowState {
     handleSeed :: Int,
-    damageSeed :: Int
+    algebraicSymbolSeed :: Int
 } deriving ()
 
 
@@ -50,7 +53,7 @@ newtype ShowCard a = ShowCard {
 runShowCard :: ShowCard a -> a
 runShowCard m = evalState (unShowCard m) $ ShowState {
     handleSeed = 0,
-    damageSeed = -1 }
+    algebraicSymbolSeed = 0 }
 
 
 --------------------------------------------------------------------------------
@@ -115,6 +118,40 @@ readHandle = applyRawHandle rawReadHandle
 --------------------------------------------------------------------------------
 
 
+genAlgebraicSymbol :: ShowCard AlgebraicSymbol
+genAlgebraicSymbol = do
+    n <- gets algebraicSymbolSeed
+    modify $ \st -> st { algebraicSymbolSeed = n + 1 }
+    return n
+
+
+readAlgebraicSymbol :: AlgebraicSymbol -> ShowCard String
+readAlgebraicSymbol = return . \case
+    n -> case n < 0 of
+        False -> show n
+        True -> let
+            idx = negate $ n + 1
+            in symbols !! idx
+    where
+        symbols = words "X Y Z W" ++ map (\n -> "N" ++ show n) [1 :: Int ..]
+
+
+--------------------------------------------------------------------------------
+
+
+genAlgebraicDamage :: ShowCard Damage
+genAlgebraicDamage = liftM (Damage . subtract 1 . negate) genAlgebraicSymbol
+
+
+readDamage :: Damage -> ShowCard String
+readDamage (Damage n) = case n < 0 of
+    False -> return $ show n
+    True -> readAlgebraicSymbol $ negate $ n + 1
+
+
+--------------------------------------------------------------------------------
+
+
 genDamageSource :: String -> ShowCard DamageSource
 genDamageSource = liftM DamagingSpell . genHandle
 
@@ -128,27 +165,6 @@ readDamageSource = \case
 
 --------------------------------------------------------------------------------
 
-
-
-genAlgebraicDamage :: ShowCard Damage
-genAlgebraicDamage = do
-    n <- gets damageSeed
-    modify $ \st -> st { damageSeed = n - 1 }
-    return $ Damage n
-
-
-readDamage :: Damage -> ShowCard String
-readDamage = return . \case
-    Damage n -> case n < 0 of
-        False -> show n
-        True -> let
-            idx = negate $ n + 1
-            in symbols !! idx
-    where
-        symbols = words "X Y Z W" ++ map (\n -> "N" ++ show n) [1 :: Int ..]
-
-
---------------------------------------------------------------------------------
 
 
 itemize :: [String] -> String
@@ -440,7 +456,7 @@ showForEach (HandleList userData handles) cont = case cast userData of
         [] -> showEffect DoNothing
         proxy : _ -> do
             handlesStr <- liftM itemize $ mapM readHandle handles
-            representative <- proxiedGenHandle proxy =<< readDamage =<< genAlgebraicDamage   -- refactor the source of the algebraic symbol because this is gimicky
+            representative <- proxiedGenHandle proxy =<< readAlgebraicSymbol =<< genAlgebraicSymbol
             representativeStr <- readHandle representative
             effectStr <- showEffect $ cont representative
             return $ "ForEach [" ++ handlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
