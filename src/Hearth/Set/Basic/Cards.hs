@@ -209,7 +209,7 @@ cleave = mkSpell Warrior Cleave 2 $ \this ->
         OpponentOf you $ \opponent ->
             Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
                 A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
-                    Effect $ ForEach (HandleList [victim1, victim2]) $ \victim ->
+                    Effect $ ForEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 2
 
 
@@ -512,7 +512,7 @@ multiShot = mkSpell Hunter MultiShot 4 $ \this ->
         OpponentOf you $ \opponent ->
             Effect $ Elect $ A $ Minion [OwnedBy opponent] $ \victim1 ->
                 A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
-                    Effect $ ForEach (HandleList [victim1, victim2]) $ \victim ->
+                    Effect $ ForEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 3
 
 

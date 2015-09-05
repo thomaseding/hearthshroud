@@ -1264,7 +1264,7 @@ printPlayer window pHandle = do
         (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
         (deckLoc, handLoc, minionsLoc) = case pHandle of
-                PlayerHandle n -> case n of
+                PlayerHandle (RawHandle _ n) -> case n of
                     0 -> (0, wx, wx + wy)
                     1 -> (width - wx, width - wx - wy, width - wx - wy - wz)
                     _ -> $logicError 'printPlayer "xxx"

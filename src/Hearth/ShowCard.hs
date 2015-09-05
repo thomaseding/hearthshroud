@@ -41,7 +41,7 @@ data ShowState = ShowState {
     handleToString :: Map RawHandle String,
     handleSeed :: Int,
     damageSeed :: Int
-} deriving (Show, Eq, Ord)
+} deriving ()
 
 
 newtype ShowCard a = ShowCard {
@@ -62,7 +62,7 @@ runShowCard m = evalState (unShowCard m) $ ShowState {
 rawGenHandle :: String -> ShowCard RawHandle
 rawGenHandle str = do
     n <- gets handleSeed
-    let handle = RawHandle n
+    let handle = RawHandle () n
     modify $ \st -> st {
         handleToString = Map.insert handle str $ handleToString st,
         handleSeed = n + 1 }
@@ -442,18 +442,18 @@ showDestroyMinion minion = do
 
 
 showForEach :: HandleList a -> (Handle a -> Effect) -> ShowCard String
-showForEach handles cont = case handles of
-    HandleList [representative] -> do
+showForEach (HandleList _ handles) cont = case handles of
+    [representative] -> do
         str <- readHandle representative
         effectStr <- showEffect $ cont representative
         return $ "ForEach " ++ str ++ ": " ++ effectStr
-    HandleList (fixedHandles @ (proxy : _)) -> do
+    fixedHandles @ (proxy : _) -> do
         fixedHandlesStr <- liftM itemize $ mapM readHandle fixedHandles
         representative <- proxiedGenHandle proxy =<< readDamage =<< genAlgebraicDamage   -- refactor the source of the algebraic symbol because this is gimicky
         representativeStr <- readHandle representative
         effectStr <- showEffect $ cont representative
         return $ "ForEach [" ++ fixedHandlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
-    HandleList [] -> showEffect DoNothing
+    [] -> showEffect DoNothing
 
 
 showElect :: (IsSelection s) => Elect s -> ShowCard String
@@ -516,21 +516,21 @@ showMinions :: (IsSelection s) => [Requirement Minion] -> (HandleList Minion -> 
 showMinions requirements cont = do
     requirementsStr <- showRequirements requirements
     handle <- genHandle $ "MINION[" ++ requirementsStr ++ "]"
-    showElect $ cont $ HandleList [handle]
+    showElect $ cont $ handleList [handle]
 
 
 showPlayers :: (IsSelection s) => [Requirement Player] -> (HandleList Player -> Elect s) -> ShowCard String
 showPlayers requirements cont = do
     requirementsStr <- showRequirements requirements
     handle <- genHandle $ "PLAYER[" ++ requirementsStr ++ "]"
-    showElect $ cont $ HandleList [handle]
+    showElect $ cont $ handleList [handle]
 
 
 showCharacters :: (IsSelection s) => [Requirement Character] -> (HandleList Character -> Elect s) -> ShowCard String
 showCharacters requirements cont = do
     requirementsStr <- showRequirements requirements
     handle <- genHandle $ "CHARACTER[" ++ requirementsStr ++ "]"
-    showElect $ cont $ HandleList [handle]
+    showElect $ cont $ handleList [handle]
 
 
 showMinion :: forall s. (IsSelection s) => [Requirement Minion] -> (Handle Minion -> Elect s) -> ShowCard String

@@ -68,8 +68,21 @@ newtype Damage = Damage { unDamage :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
-newtype RawHandle = RawHandle Int
-    deriving (Show, Eq, Ord, Enum, Num, Real, Integral, Data, Typeable)
+data RawHandle :: * where
+    RawHandle :: (Typeable userData) => userData -> Int -> RawHandle
+    deriving (Typeable)
+
+
+instance Show RawHandle where
+    show (RawHandle _ x) = show x
+
+
+instance Eq RawHandle where
+    (RawHandle _ x) == (RawHandle _ y) = x == y
+
+
+instance Ord RawHandle where
+    (RawHandle _ x) <= (RawHandle _ y) = x <= y
 
 
 data Character
@@ -139,7 +152,37 @@ type PlayerHandle = Handle Player
 type CharacterHandle = Handle Character
 
 
-newtype HandleList a = HandleList [Handle a]
+data HandleList :: * -> * where
+    HandleList :: (Typeable userData) => userData -> [Handle a] -> HandleList a
+
+
+handleList :: [Handle a] -> HandleList a
+handleList = HandleList ()
+
+
+class HasUserData a where
+    getUserData :: (Typeable u) => a -> Maybe u
+    setUserData :: (Typeable u) => a -> u -> a
+
+
+instance HasUserData RawHandle where
+    getUserData (RawHandle u _) = cast u
+    setUserData (RawHandle _ n) u = RawHandle u n
+
+
+instance HasUserData (Handle a) where
+    getUserData = applyRawHandle getUserData
+    setUserData = \case
+        SpellHandle h -> SpellHandle . setUserData h
+        MinionHandle h -> MinionHandle . setUserData h
+        PlayerHandle h -> PlayerHandle . setUserData h
+        MinionCharacter h -> MinionCharacter . setUserData h
+        PlayerCharacter h -> PlayerCharacter . setUserData h
+
+
+instance HasUserData (HandleList a) where
+    getUserData (HandleList u _) = cast u
+    setUserData (HandleList _ hs) u = HandleList u hs
 
 
 data CrystalState :: * where
@@ -470,7 +513,7 @@ data Player = Player' {
 
 data GameState = GameState {
     _gameTurn :: Turn,
-    _gameHandleSeed :: RawHandle,
+    _gameHandleSeed :: Int,
     _gamePlayerTurnOrder :: [Handle Player],
     _gameEffectObservers :: [EventListener],
     _gamePlayers :: [Player]

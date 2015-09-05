@@ -87,21 +87,15 @@ runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
 runHearth = evalStateT (unHearth runHearth') . mkGameState
 
 
-newHandle :: (HearthMonad m) => Hearth m RawHandle
-newHandle = do
-    gameHandleSeed += 1
-    view gameHandleSeed
-
-
 mkGameState :: Pair PlayerData -> GameState
 mkGameState (p1, p2) = let
     ps = [p1, p2]
     in GameState {
         _gameTurn = Turn 1,
-        _gameHandleSeed = RawHandle $ length ps,
+        _gameHandleSeed = length ps,
         _gamePlayerTurnOrder = [],
         _gameEffectObservers = [],
-        _gamePlayers = zipWith mkPlayer (map PlayerHandle [0..]) ps }
+        _gamePlayers = zipWith mkPlayer (map (PlayerHandle . RawHandle ()) [0..]) ps }
 
 
 mkPlayer :: Handle Player -> PlayerData -> Player
@@ -228,7 +222,7 @@ getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
 
 genRawHandle :: (HearthMonad m) => Hearth m RawHandle
 genRawHandle = do
-    handle <- view $ gameHandleSeed
+    handle <- liftM (RawHandle ()) $ view gameHandleSeed
     gameHandleSeed += 1
     return handle
 
@@ -828,7 +822,7 @@ destroyMinion handle = logCall 'destroyMinion $ do
 
 
 enactForEach :: (HearthMonad m) => HandleList a -> (Handle a -> Effect) -> Hearth m (SimplePickResult AtRandom)
-enactForEach (HandleList handles) cont = logCall 'enactForEach $ do
+enactForEach (HandleList _ handles) cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
@@ -1263,13 +1257,13 @@ enactCharacter requirements cont = logCall 'enactCharacter $ do
 enactMinions :: (HearthMonad m, PickFrom s) => [Requirement Minion] -> (HandleList Minion -> Elect s) -> Hearth m (SimplePickResult s)
 enactMinions requirements cont = logCall 'enactMinions $ do
     candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    restrict requirements candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . handleList
 
 
 enactPlayers :: (HearthMonad m, PickFrom s) => [Requirement Player] -> (HandleList Player -> Elect s) -> Hearth m (SimplePickResult s)
 enactPlayers requirements cont = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
-    restrict requirements candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . handleList
 
 
 enactCharacters :: (HearthMonad m, PickFrom s) => [Requirement Character] -> (HandleList Character -> Elect s) -> Hearth m (SimplePickResult s)
@@ -1277,7 +1271,7 @@ enactCharacters requirements cont = logCall 'enactCharacters $ do
     playerCandidates <- getPlayerHandles
     minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     let candidates = map PlayerCharacter playerCandidates ++ map MinionCharacter minionCandidates
-    restrict requirements candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . handleList
 
 
 restrict :: (HearthMonad m) => [Requirement a] -> [Handle a] -> Hearth m [Handle a]
