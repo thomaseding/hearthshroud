@@ -26,8 +26,6 @@ import Control.Error.TH
 import Control.Monad.State
 import Data.List (intercalate)
 import Data.List.Utils (replace)
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Proxy
 import Hearth.CardName
 import Hearth.Cards
@@ -38,7 +36,6 @@ import Hearth.Model
 
 
 data ShowState = ShowState {
-    handleToString :: Map RawHandle String,
     handleSeed :: Int,
     damageSeed :: Int
 } deriving ()
@@ -51,7 +48,6 @@ newtype ShowCard a = ShowCard {
 
 runShowCard :: ShowCard a -> a
 runShowCard m = evalState (unShowCard m) $ ShowState {
-    handleToString = Map.empty,
     handleSeed = 0,
     damageSeed = -1 }
 
@@ -62,10 +58,8 @@ runShowCard m = evalState (unShowCard m) $ ShowState {
 rawGenHandle :: String -> ShowCard RawHandle
 rawGenHandle str = do
     n <- gets handleSeed
-    let handle = RawHandle () n
-    modify $ \st -> st {
-        handleToString = Map.insert handle str $ handleToString st,
-        handleSeed = n + 1 }
+    let handle = RawHandle str n
+    modify $ \st -> st { handleSeed = n + 1 }
     return handle
 
 
@@ -108,11 +102,9 @@ proxiedGenHandle = \case
 
 
 rawReadHandle :: RawHandle -> ShowCard String
-rawReadHandle handle = do
-    mStr <- gets $ Map.lookup handle . handleToString
-    case mStr of
-        Nothing -> $logicError 'rawReadHandle "Trying to read from a non-generated handle?"
-        Just str -> return str
+rawReadHandle h = case getUserData h of
+    Just str -> return str
+    Nothing -> $logicError 'rawReadHandle "xxx"
 
 
 readHandle :: Handle a -> ShowCard String
