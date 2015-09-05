@@ -27,6 +27,7 @@ import Control.Monad.State
 import Data.List (intercalate)
 import Data.List.Utils (replace)
 import Data.Proxy
+import Data.Typeable (cast)
 import Hearth.CardName
 import Hearth.Cards
 import Hearth.Model
@@ -434,18 +435,22 @@ showDestroyMinion minion = do
 
 
 showForEach :: HandleList a -> (Handle a -> Effect) -> ShowCard String
-showForEach (HandleList _ handles) cont = case handles of
-    [representative] -> do
-        str <- readHandle representative
-        effectStr <- showEffect $ cont representative
-        return $ "ForEach " ++ str ++ ": " ++ effectStr
-    fixedHandles @ (proxy : _) -> do
-        fixedHandlesStr <- liftM itemize $ mapM readHandle fixedHandles
-        representative <- proxiedGenHandle proxy =<< readDamage =<< genAlgebraicDamage   -- refactor the source of the algebraic symbol because this is gimicky
-        representativeStr <- readHandle representative
-        effectStr <- showEffect $ cont representative
-        return $ "ForEach [" ++ fixedHandlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
-    [] -> showEffect DoNothing
+showForEach (HandleList userData handles) cont = case cast userData of
+    Just () -> case handles of
+        [] -> showEffect DoNothing
+        proxy : _ -> do
+            handlesStr <- liftM itemize $ mapM readHandle handles
+            representative <- proxiedGenHandle proxy =<< readDamage =<< genAlgebraicDamage   -- refactor the source of the algebraic symbol because this is gimicky
+            representativeStr <- readHandle representative
+            effectStr <- showEffect $ cont representative
+            return $ "ForEach [" ++ handlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
+    Nothing -> case cast userData of
+        Just str -> case handles of
+            [representative] -> do
+                effectStr <- showEffect $ cont representative
+                return $ "ForEach " ++ str ++ ": " ++ effectStr
+            _ -> $logicError 'showForEach "xxx"
+        Nothing -> $logicError 'showForEach "xxx"
 
 
 showElect :: (IsSelection s) => Elect s -> ShowCard String
@@ -507,22 +512,25 @@ instance IsSelection AtRandom where
 showMinions :: (IsSelection s) => [Requirement Minion] -> (HandleList Minion -> Elect s) -> ShowCard String
 showMinions requirements cont = do
     requirementsStr <- showRequirements requirements
-    handle <- genHandle $ "MINION[" ++ requirementsStr ++ "]"
-    showElect $ cont $ handleList [handle]
+    let handleStr = "MINION[" ++ requirementsStr ++ "]"
+    handle <- genHandle handleStr
+    showElect $ cont $ HandleList handleStr [handle]
 
 
 showPlayers :: (IsSelection s) => [Requirement Player] -> (HandleList Player -> Elect s) -> ShowCard String
 showPlayers requirements cont = do
     requirementsStr <- showRequirements requirements
-    handle <- genHandle $ "PLAYER[" ++ requirementsStr ++ "]"
-    showElect $ cont $ handleList [handle]
+    let handleStr = "PLAYER[" ++ requirementsStr ++ "]"
+    handle <- genHandle handleStr
+    showElect $ cont $ HandleList handleStr [handle]
 
 
 showCharacters :: (IsSelection s) => [Requirement Character] -> (HandleList Character -> Elect s) -> ShowCard String
 showCharacters requirements cont = do
     requirementsStr <- showRequirements requirements
-    handle <- genHandle $ "CHARACTER[" ++ requirementsStr ++ "]"
-    showElect $ cont $ handleList [handle]
+    let handleStr = "CHARACTER[" ++ requirementsStr ++ "]"
+    handle <- genHandle handleStr
+    showElect $ cont $ HandleList handleStr [handle]
 
 
 showMinion :: forall s. (IsSelection s) => [Requirement Minion] -> (Handle Minion -> Elect s) -> ShowCard String
