@@ -871,7 +871,7 @@ isEnraged bmHandle = do
 
 
 dynamicAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
-dynamicAbilities bmHandle = do
+dynamicAbilities bmHandle = observeDynamicState bmHandle $ do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
         Enrage abilities _ -> case isDamaged bm of
@@ -880,8 +880,8 @@ dynamicAbilities bmHandle = do
         _ -> [ability]
 
 
-dynamicEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment Minion]
-dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
+staticMinionEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment Minion]
+staticMinionEnchantments bmHandle = logCall 'staticMinionEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
         enrageEnchantments = case isDamaged bm of
@@ -892,27 +892,49 @@ dynamicEnchantments bmHandle = logCall 'dynamicEnchantments $ do
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
+staticPlayerEnchantments :: (HearthMonad m) => Handle Player -> Hearth m [AnyEnchantment Player]
+staticPlayerEnchantments player = logCall 'staticPlayerEnchantments $ do
+    view $ getPlayer player.playerEnchantments
+
+
 underAnyEnchantment :: forall a b. (forall t. Enchantment t a -> b) -> AnyEnchantment a -> b
 underAnyEnchantment f = \case
     Continuous e -> f e
     Limited e -> f e
 
 
-hasEnchantment :: (HearthMonad m) => Enchantment Continuous Minion -> Handle Minion -> Hearth m Bool
-hasEnchantment candidate minion = logCall 'hasEnchantment $ do
-    enchantments <- dynamicEnchantments minion
+dynamicHasMinionEnchantment :: (HearthMonad m) => Enchantment Continuous Minion -> Handle Minion -> Hearth m Bool
+dynamicHasMinionEnchantment candidate minion = logCall 'dynamicHasMinionEnchantment $ observeDynamicState minion $ do
+    enchantments <- staticMinionEnchantments minion
     return $ any (underAnyEnchantment predicate) enchantments
     where
         predicate :: Enchantment t a -> Bool
         predicate = \case
             MinionEnchantment e -> predicate e
-            PlayerEnchantment _ -> False
+            PlayerEnchantment{} -> False
             Until _ e -> predicate e
             e @ StatsDelta{} -> e == candidate
             e @ StatsScale{} -> e == candidate
             e @ ChangeStat{} -> e == candidate
             e @ SwapStats{} -> e == candidate
             e @ Frozen{} -> MinionEnchantment e == candidate
+
+
+dynamicHasPlayerEnchantment :: (HearthMonad m) => Enchantment Continuous Player -> Handle Player -> Hearth m Bool
+dynamicHasPlayerEnchantment candidate entity = logCall 'dynamicHasMinionEnchantment $ do
+    enchantments <- staticPlayerEnchantments entity
+    return $ any (underAnyEnchantment predicate) enchantments
+    where
+        predicate :: Enchantment t a -> Bool
+        predicate = \case
+            MinionEnchantment{} -> False
+            PlayerEnchantment e -> predicate e
+            Until _ e -> predicate e
+            StatsDelta{} -> False
+            StatsScale{} -> False
+            ChangeStat{} -> False
+            SwapStats{} -> False
+            e @ Frozen{} -> PlayerEnchantment e == candidate
 
 
 class IsCharacterHandle a where
@@ -959,8 +981,10 @@ instance CharacterTraits PlayerHandle where
         view $ getPlayer pHandle.playerHero.boardHeroAttackCount
     bumpAttackCount pHandle = logCall 'bumpAttackCount $ do
         getPlayer pHandle.playerHero.boardHeroAttackCount += 1
-    hasSummoningSickness _ = return False
-    isFrozen _ = logCall 'isFrozen $ return False
+    hasSummoningSickness _ = logCall 'hasSummoningSickness $ do
+        return False
+    isFrozen pHandle = logCall 'isFrozen $ do
+        dynamicHasPlayerEnchantment (PlayerEnchantment Frozen) pHandle
 
 
 auraAbilitiesOf :: [Ability] -> [Handle Minion -> Aura]
@@ -981,7 +1005,7 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
                 auras <- liftM auraAbilitiesOf $ dynamicAbilities minion
                 forM_ auras $ enactAura . ($ minion)
         applyEnchantments = do
-            enchantments <- dynamicEnchantments handle
+            enchantments <- staticMinionEnchantments handle
             forM_ enchantments $ underAnyEnchantment applyMinionEnchantment
         applyMinionEnchantment :: (HearthMonad m) => Enchantment t Minion -> Hearth m ()
         applyMinionEnchantment = \case
@@ -1049,7 +1073,8 @@ instance CharacterTraits MinionHandle where
         case bm^.boardMinionNewlySummoned of
             False -> return False
             True -> liftM not $ dynamicHasCharge bmHandle
-    isFrozen handle = logCall 'isFrozen $ hasEnchantment (MinionEnchantment Frozen) handle
+    isFrozen handle = logCall 'isFrozen $ do
+        dynamicHasMinionEnchantment (MinionEnchantment Frozen) handle
 
 
 instance CharacterTraits CharacterHandle where
@@ -1556,8 +1581,8 @@ dynamicEventListeners = do
     minionListeners <- liftM concat $ forM minions $ \minion -> do
         abilities <- dynamicAbilities minion
         return $ flip mapMaybe abilities $ \case
-                Whenever listener -> Just $ listener minion
-                _ -> Nothing
+            Whenever listener -> Just $ listener minion
+            _ -> Nothing
     effectObservers <- view gameEffectObservers
     return $ effectObservers ++ minionListeners
 
