@@ -751,7 +751,7 @@ enactCondition :: (HearthMonad m) => Condition -> Hearth m Bool
 enactCondition = logCall 'enactCondition $ \case
     Or x y -> enactOr x y
     And x y -> enactAnd x y
-    Satisfies handle restrictions -> satisfies handle restrictions
+    Satisfies handle requirements -> satisfies handle requirements
 
 
 enactOr :: (HearthMonad m) => Condition -> Condition -> Hearth m Bool
@@ -782,9 +782,9 @@ freeze character = logCall 'freeze $ do
             getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint $ MinionEnchantment Frozen])
 
 
-enactWhen :: (HearthMonad m) => Handle a -> [Restriction a] -> Effect -> Hearth m ()
-enactWhen handle restrictions effect = do
-    whenM (satisfies handle restrictions) $ do
+enactWhen :: (HearthMonad m) => Handle a -> [Requirement a] -> Effect -> Hearth m ()
+enactWhen handle requirements effect = do
+    whenM (satisfies handle requirements) $ do
         _ <- enactEffect effect
         return ()
 
@@ -1034,20 +1034,20 @@ enactAura :: (HearthMonad m) => Aura -> Hearth m ()
 enactAura = logCall 'enactAura $ \case
     AuraOwnerOf handle cont -> ownerOf handle >>= enactAura . cont
     AuraOpponentOf handle cont -> opponentOf handle >>= enactAura . cont
-    While handle restrictions aura -> enactWhile handle restrictions aura
-    EachMinion restrictions cont -> enactEachMinion restrictions cont
+    While handle requirements aura -> enactWhile handle requirements aura
+    EachMinion requirements cont -> enactEachMinion requirements cont
     Has handle enchantment -> enactHas handle enchantment
 
 
-enactEachMinion :: (HearthMonad m) => [Restriction Minion] -> (Handle Minion -> Aura) -> Hearth m ()
-enactEachMinion restrictions cont = logCall 'enactEachMinion $ do
+enactEachMinion :: (HearthMonad m) => [Requirement Minion] -> (Handle Minion -> Aura) -> Hearth m ()
+enactEachMinion requirements cont = logCall 'enactEachMinion $ do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     forM_ minions $ \minion -> do
-        whenM (satisfies minion restrictions) $ enactAura $ cont minion
+        whenM (satisfies minion requirements) $ enactAura $ cont minion
 
 
-enactWhile :: (HearthMonad m) => Handle a -> [Restriction a] -> Aura -> Hearth m ()
-enactWhile handle restrictions = logCall 'enactWhile $ whenM (satisfies handle restrictions) . enactAura
+enactWhile :: (HearthMonad m) => Handle a -> [Requirement a] -> Aura -> Hearth m ()
+enactWhile handle requirements = logCall 'enactWhile $ whenM (satisfies handle requirements) . enactAura
 
 
 enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous Minion -> Hearth m ()
@@ -1222,65 +1222,65 @@ instance EnactElect Targeted where
 
 enactA :: (HearthMonad m, PickFrom s) => A s -> Hearth m (SimplePickResult s)
 enactA = logCall 'enactA $ \case
-    Minion restrictions cont -> enactMinion restrictions cont
-    Player restrictions cont -> enactPlayer restrictions cont
-    Character restrictions cont -> enactCharacter restrictions cont
+    Minion requirements cont -> enactMinion requirements cont
+    Player requirements cont -> enactPlayer requirements cont
+    Character requirements cont -> enactCharacter requirements cont
 
 
 enactAll :: (HearthMonad m, PickFrom s) => All s -> Hearth m (SimplePickResult s)
 enactAll = logCall 'enactAll . \case
-    Minions restrictions cont -> enactMinions restrictions cont
-    Players restrictions cont -> enactPlayers restrictions cont
-    Characters restrictions cont -> enactCharacters restrictions cont
+    Minions requirements cont -> enactMinions requirements cont
+    Players requirements cont -> enactPlayers requirements cont
+    Characters requirements cont -> enactCharacters requirements cont
 
 
-enactMinion :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> (Handle Minion -> Elect s) -> Hearth m (SimplePickResult s)
-enactMinion restrictions cont = logCall 'enactMinion $ do
+enactMinion :: (HearthMonad m, PickFrom s) => [Requirement Minion] -> (Handle Minion -> Elect s) -> Hearth m (SimplePickResult s)
+enactMinion requirements cont = logCall 'enactMinion $ do
     pHandles <- getPlayerHandles
     candidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         return $ map (\bm -> bm^.boardMinionHandle) bms
-    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
+    restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactPlayer :: (HearthMonad m, PickFrom s) => [Restriction Player] -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
-enactPlayer restrictions cont = logCall 'enactPlayer $ do
+enactPlayer :: (HearthMonad m, PickFrom s) => [Requirement Player] -> (Handle Player -> Elect s) -> Hearth m (SimplePickResult s)
+enactPlayer requirements cont = logCall 'enactPlayer $ do
     candidates <- getPlayerHandles
-    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
+    restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactCharacter :: (HearthMonad m, PickFrom s) => [Restriction Character] -> (Handle Character -> Elect s) -> Hearth m (SimplePickResult s)
-enactCharacter restrictions cont = logCall 'enactCharacter $ do
+enactCharacter :: (HearthMonad m, PickFrom s) => [Requirement Character] -> (Handle Character -> Elect s) -> Hearth m (SimplePickResult s)
+enactCharacter requirements cont = logCall 'enactCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
         bms <- view $ getPlayer pHandle.playerMinions
         return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
     let playerCandidates = map PlayerCharacter pHandles
         candidates = playerCandidates ++ minionCandidates
-    restrict restrictions candidates >>= pickFrom >>= enactElect' cont
+    restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactMinions :: (HearthMonad m, PickFrom s) => [Restriction Minion] -> (HandleList Minion -> Elect s) -> Hearth m (SimplePickResult s)
-enactMinions restrictions cont = logCall 'enactMinions $ do
+enactMinions :: (HearthMonad m, PickFrom s) => [Requirement Minion] -> (HandleList Minion -> Elect s) -> Hearth m (SimplePickResult s)
+enactMinions requirements cont = logCall 'enactMinions $ do
     candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    restrict restrictions candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . HandleList
 
 
-enactPlayers :: (HearthMonad m, PickFrom s) => [Restriction Player] -> (HandleList Player -> Elect s) -> Hearth m (SimplePickResult s)
-enactPlayers restrictions cont = logCall 'enactPlayers $ do
+enactPlayers :: (HearthMonad m, PickFrom s) => [Requirement Player] -> (HandleList Player -> Elect s) -> Hearth m (SimplePickResult s)
+enactPlayers requirements cont = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
-    restrict restrictions candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . HandleList
 
 
-enactCharacters :: (HearthMonad m, PickFrom s) => [Restriction Character] -> (HandleList Character -> Elect s) -> Hearth m (SimplePickResult s)
-enactCharacters restrictions cont = logCall 'enactCharacters $ do
+enactCharacters :: (HearthMonad m, PickFrom s) => [Requirement Character] -> (HandleList Character -> Elect s) -> Hearth m (SimplePickResult s)
+enactCharacters requirements cont = logCall 'enactCharacters $ do
     playerCandidates <- getPlayerHandles
     minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     let candidates = map PlayerCharacter playerCandidates ++ map MinionCharacter minionCandidates
-    restrict restrictions candidates >>= enactElect . cont . HandleList
+    restrict requirements candidates >>= enactElect . cont . HandleList
 
 
-restrict :: (HearthMonad m) => [Restriction a] -> [Handle a] -> Hearth m [Handle a]
+restrict :: (HearthMonad m) => [Requirement a] -> [Handle a] -> Hearth m [Handle a]
 restrict rs hs = flip filterM hs $ \h -> h `satisfies` rs
 
 
@@ -1297,10 +1297,10 @@ class CanSatisfy a r | r -> a where
     satisfies :: (HearthMonad m) => Handle a -> r -> Hearth m Bool
 
 
-instance CanSatisfy a (Restriction a) where
+instance CanSatisfy a (Requirement a) where
     satisfies candidate = \case
-        RestrictMinion r -> MinionCharacter candidate `satisfies` r
-        RestrictPlayer r -> PlayerCharacter candidate `satisfies` r
+        RequireMinion r -> MinionCharacter candidate `satisfies` r
+        RequirePlayer r -> PlayerCharacter candidate `satisfies` r
         OwnedBy owner -> liftM (owner ==) $ ownerOf candidate
         Is object -> return $ candidate == object
         Not object -> return $ candidate /= object
@@ -1326,7 +1326,7 @@ instance CanSatisfy a (Restriction a) where
         AdjacentTo handle -> areAdjacent handle candidate
 
 
-instance CanSatisfy a [Restriction a] where
+instance CanSatisfy a [Requirement a] where
     satisfies h rs = allM (satisfies h) rs
 
 

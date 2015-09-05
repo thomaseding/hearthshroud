@@ -259,15 +259,15 @@ showAura :: Aura -> ShowCard String
 showAura = \case
     AuraOwnerOf handle cont -> showOwnerOf showAura handle cont
     AuraOpponentOf handle cont -> showOpponentOf showAura handle cont
-    While handle restrictions cont -> showWhile handle restrictions cont
-    EachMinion restrictions cont -> showEachMinion restrictions cont
+    While handle requirements cont -> showWhile handle requirements cont
+    EachMinion requirements cont -> showEachMinion requirements cont
     Has handle enchantments -> showHas handle enchantments
 
 
-showEachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> ShowCard String
-showEachMinion restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+showEachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> ShowCard String
+showEachMinion requirements cont = do
+    requirementsStr <- showRequirements requirements
+    handle <- genHandle $ "MINION[" ++ requirementsStr ++ "]"
     auraStr <- showAura $ cont handle
     return $ "Each minion: " ++ auraStr
 
@@ -279,14 +279,14 @@ showHas minion enchantment = do
     return $ unwords [minionStr, "has", enchantmentStr]
 
 
-showWhile :: Handle a -> [Restriction a] -> Aura -> ShowCard String
-showWhile handle restrictions aura = case restrictions of
+showWhile :: Handle a -> [Requirement a] -> Aura -> ShowCard String
+showWhile handle requirements aura = case requirements of
     [] -> showAura aura
     _ -> do
         handleStr <- readHandle handle
-        restrictionsStr <- showRestrictions restrictions
+        requirementsStr <- showRequirements requirements
         auraStr <- showAura aura
-        return $ "While " ++ handleStr ++ "[" ++ restrictionsStr ++ "]: " ++ auraStr
+        return $ "While " ++ handleStr ++ "[" ++ requirementsStr ++ "]: " ++ auraStr
 
 
 showWhenever :: (Handle Minion -> EventListener) -> ShowCard String
@@ -377,7 +377,7 @@ showCondition :: Condition -> ShowCard String
 showCondition = \case
     Or x y -> showOr x y
     And x y -> showAnd x y
-    Satisfies handle restrictions -> showSatisfies handle restrictions
+    Satisfies handle requirements -> showSatisfies handle requirements
 
 
 showBinaryCondition :: String -> Condition -> Condition -> ShowCard String
@@ -401,13 +401,13 @@ showFreeze handle = do
     return $ "Freeze " ++ str
 
 
-showSatisfies :: Handle a -> [Restriction a] -> ShowCard String
-showSatisfies handle restrictions = case restrictions of
+showSatisfies :: Handle a -> [Requirement a] -> ShowCard String
+showSatisfies handle requirements = case requirements of
     [] -> return "True"
     _ -> do
         handleStr <- readHandle handle
-        restrictionsStr <- showRestrictions restrictions
-        return $ handleStr ++ " satisfies " ++ "[" ++ restrictionsStr ++ "]"
+        requirementsStr <- showRequirements requirements
+        return $ handleStr ++ " satisfies " ++ "[" ++ requirementsStr ++ "]"
 
 
 showUnreferenced :: Handle a -> ShowCard String
@@ -480,24 +480,24 @@ showChoice choices = do
 
 showA :: (IsSelection s) => A s -> ShowCard String
 showA = \case
-    Minion restrictions cont -> showMinion restrictions cont
-    Player restrictions cont -> showPlayer restrictions cont
-    Character restrictions cont -> showCharacter restrictions cont
+    Minion requirements cont -> showMinion requirements cont
+    Player requirements cont -> showPlayer requirements cont
+    Character requirements cont -> showCharacter requirements cont
 
 
-showPlayer :: forall s. (IsSelection s) => [Restriction Player] -> (Handle Player -> Elect s) -> ShowCard String
-showPlayer restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
+showPlayer :: forall s. (IsSelection s) => [Requirement Player] -> (Handle Player -> Elect s) -> ShowCard String
+showPlayer requirements cont = do
+    requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "PLAYER[" ++ restrictionsStr ++ "]"
+    handle <- genNumberedHandle $ sel ++ "PLAYER[" ++ requirementsStr ++ "]"
     showElect $ cont handle
 
 
 showAll :: (IsSelection s) => All s -> ShowCard String
 showAll = \case
-    Minions restrictions cont -> showMinions restrictions cont
-    Players restrictions cont -> showPlayers restrictions cont
-    Characters restrictions cont -> showCharacters restrictions cont
+    Minions requirements cont -> showMinions requirements cont
+    Players requirements cont -> showPlayers requirements cont
+    Characters requirements cont -> showCharacters requirements cont
 
 
 class IsSelection (s :: Selection) where
@@ -512,57 +512,57 @@ instance IsSelection AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showMinions :: (IsSelection s) => [Restriction Minion] -> (HandleList Minion -> Elect s) -> ShowCard String
-showMinions restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "MINION[" ++ restrictionsStr ++ "]"
+showMinions :: (IsSelection s) => [Requirement Minion] -> (HandleList Minion -> Elect s) -> ShowCard String
+showMinions requirements cont = do
+    requirementsStr <- showRequirements requirements
+    handle <- genHandle $ "MINION[" ++ requirementsStr ++ "]"
     showElect $ cont $ HandleList [handle]
 
 
-showPlayers :: (IsSelection s) => [Restriction Player] -> (HandleList Player -> Elect s) -> ShowCard String
-showPlayers restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "PLAYER[" ++ restrictionsStr ++ "]"
+showPlayers :: (IsSelection s) => [Requirement Player] -> (HandleList Player -> Elect s) -> ShowCard String
+showPlayers requirements cont = do
+    requirementsStr <- showRequirements requirements
+    handle <- genHandle $ "PLAYER[" ++ requirementsStr ++ "]"
     showElect $ cont $ HandleList [handle]
 
 
-showCharacters :: (IsSelection s) => [Restriction Character] -> (HandleList Character -> Elect s) -> ShowCard String
-showCharacters restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
-    handle <- genHandle $ "CHARACTER[" ++ restrictionsStr ++ "]"
+showCharacters :: (IsSelection s) => [Requirement Character] -> (HandleList Character -> Elect s) -> ShowCard String
+showCharacters requirements cont = do
+    requirementsStr <- showRequirements requirements
+    handle <- genHandle $ "CHARACTER[" ++ requirementsStr ++ "]"
     showElect $ cont $ HandleList [handle]
 
 
-showMinion :: forall s. (IsSelection s) => [Restriction Minion] -> (Handle Minion -> Elect s) -> ShowCard String
-showMinion restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
+showMinion :: forall s. (IsSelection s) => [Requirement Minion] -> (Handle Minion -> Elect s) -> ShowCard String
+showMinion requirements cont = do
+    requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "MINION[" ++ restrictionsStr ++ "]"
+    handle <- genNumberedHandle $ sel ++ "MINION[" ++ requirementsStr ++ "]"
     showElect $ cont handle
 
 
-showCharacter :: forall s. (IsSelection s) => [Restriction Character] -> (Handle Character -> Elect s) -> ShowCard String
-showCharacter restrictions cont = do
-    restrictionsStr <- showRestrictions restrictions
+showCharacter :: forall s. (IsSelection s) => [Requirement Character] -> (Handle Character -> Elect s) -> ShowCard String
+showCharacter requirements cont = do
+    requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
-    handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ restrictionsStr ++ "]"
+    handle <- genNumberedHandle $ sel ++ "CHARACTER[" ++ requirementsStr ++ "]"
     showElect $ cont handle
 
 
-showRestrictions :: [Restriction a] -> ShowCard String
-showRestrictions = liftM (intercalate "," . filter (not . null)) . showRestrictions'
+showRequirements :: [Requirement a] -> ShowCard String
+showRequirements = liftM (intercalate "," . filter (not . null)) . showRequirements'
 
 
-showRestrictions' :: [Restriction a] -> ShowCard [String]
-showRestrictions' = \case
+showRequirements' :: [Requirement a] -> ShowCard [String]
+showRequirements' = \case
     [] -> return []
-    r : rs -> showRestriction r >>= \s -> liftM (s :) $ showRestrictions' rs
+    r : rs -> showRequirement r >>= \s -> liftM (s :) $ showRequirements' rs
 
 
-showRestriction :: Restriction a -> ShowCard String
-showRestriction = \case
-    RestrictMinion r -> showRestriction r
-    RestrictPlayer r -> showRestriction r
+showRequirement :: Requirement a -> ShowCard String
+showRequirement = \case
+    RequireMinion r -> showRequirement r
+    RequirePlayer r -> showRequirement r
     OwnedBy handle -> readHandle handle >>= return . \case
         (is you -> True) -> "FRIENDLY"
         (is opponent -> True) -> "ENEMY"

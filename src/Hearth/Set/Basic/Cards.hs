@@ -155,7 +155,7 @@ assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
 
 backstab :: Spell
 backstab = mkSpell Rogue Backstab 0 $ \this ->
-    A $ Minion [RestrictMinion Undamaged] $ \target ->
+    A $ Minion [RequireMinion Undamaged] $ \target ->
         Effect $ (this `damages` target) 2
 
 
@@ -275,7 +275,7 @@ elvenArcher = mkMinion Neutral ElvenArcher 1 1 1 [
 
 execute :: Spell
 execute = mkSpell Warrior Execute 1 $ \_ ->
-    A $ Minion [RestrictMinion Damaged] $ \target ->
+    A $ Minion [RequireMinion Damaged] $ \target ->
         Effect $ DestroyMinion target
 
 
@@ -584,13 +584,13 @@ shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
 
 shadowWordDeath :: Spell
 shadowWordDeath = mkSpell Priest ShadowWordDeath 5 $ \_ ->
-    A $ Minion [RestrictMinion (WithAttack GreaterEqual 5)] $ \target ->
+    A $ Minion [RequireMinion (WithAttack GreaterEqual 5)] $ \target ->
         Effect $ DestroyMinion target
 
 
 shadowWordPain :: Spell
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
-    A $ Minion [RestrictMinion (WithAttack LessEqual 3)] $ \target ->
+    A $ Minion [RequireMinion (WithAttack LessEqual 3)] $ \target ->
         Effect $ DestroyMinion target
 
 

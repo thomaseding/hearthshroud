@@ -171,7 +171,7 @@ battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
 bigGameHunter :: Minion
 bigGameHunter = mkMinion Epic Neutral BigGameHunter 3 4 2 [
     Battlecry $ \this ->
-        A $ Minion [Not this, RestrictMinion (WithAttack GreaterEqual 7)] $ \target ->
+        A $ Minion [Not this, RequireMinion (WithAttack GreaterEqual 7)] $ \target ->
             Effect $ DestroyMinion target ]
 
 
@@ -401,7 +401,7 @@ pyroblast = mkSpell Epic Mage Pyroblast 10 $ \this ->
 
 rampage :: Spell
 rampage = mkSpell Common Warrior Rampage 2 $ \_ ->
-    A $ Minion [RestrictMinion Damaged] $ \target ->
+    A $ Minion [RequireMinion Damaged] $ \target ->
         Effect $ Enchant target $ Continuous $ StatsDelta 3 3
 
 
@@ -447,7 +447,7 @@ stampedingKodo = mkMinion Rare Neutral StampedingKodo 5 3 5 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-                Effect $ Elect $ A $ Minion [OwnedBy opponent, RestrictMinion (WithAttack LessEqual 2)] $ \victim ->
+                Effect $ Elect $ A $ Minion [OwnedBy opponent, RequireMinion (WithAttack LessEqual 2)] $ \victim ->
                     Effect $ DestroyMinion victim ]
 
 

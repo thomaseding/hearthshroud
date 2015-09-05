@@ -164,22 +164,22 @@ infixr 5 `Satisfies`
 data Condition :: * where
     Or :: Condition -> Condition -> Condition
     And :: Condition -> Condition -> Condition
-    Satisfies :: Handle a -> [Restriction a] -> Condition
+    Satisfies :: Handle a -> [Requirement a] -> Condition
 
 
-data Restriction :: * -> * where
-    RestrictMinion :: Restriction Character -> Restriction Minion
-    RestrictPlayer :: Restriction Character -> Restriction Player
-    OwnedBy :: Handle Player -> Restriction a
-    Is :: Handle a -> Restriction a
-    Not :: Handle a -> Restriction a
-    IsDamageSource :: DamageSource -> Restriction a
-    WithAttack :: Comparison -> Attack -> Restriction Character
-    WithHealth :: Comparison -> Health -> Restriction Character
-    Damaged :: Restriction Character
-    Undamaged :: Restriction Character
-    IsMinion :: Restriction Character
-    AdjacentTo :: Handle Minion -> Restriction Minion
+data Requirement :: * -> * where
+    RequireMinion :: Requirement Character -> Requirement Minion
+    RequirePlayer :: Requirement Character -> Requirement Player
+    OwnedBy :: Handle Player -> Requirement a
+    Is :: Handle a -> Requirement a
+    Not :: Handle a -> Requirement a
+    IsDamageSource :: DamageSource -> Requirement a
+    WithAttack :: Comparison -> Attack -> Requirement Character
+    WithHealth :: Comparison -> Health -> Requirement Character
+    Damaged :: Requirement Character
+    Undamaged :: Requirement Character
+    IsMinion :: Requirement Character
+    AdjacentTo :: Handle Minion -> Requirement Minion
 
 
 data Comparison
@@ -202,15 +202,15 @@ data Elect :: Selection -> * where
 
 
 data A :: Selection -> * where
-    Minion :: [Restriction Minion] -> (Handle Minion -> Elect s) -> A s
-    Player :: [Restriction Player] -> (Handle Player -> Elect s) -> A s
-    Character :: [Restriction Character] -> (Handle Character -> Elect s) -> A s
+    Minion :: [Requirement Minion] -> (Handle Minion -> Elect s) -> A s
+    Player :: [Requirement Player] -> (Handle Player -> Elect s) -> A s
+    Character :: [Requirement Character] -> (Handle Character -> Elect s) -> A s
 
 
 data All :: Selection -> * where
-    Minions :: [Restriction Minion] -> (HandleList Minion -> Elect s) -> All s
-    Players :: [Restriction Player] -> (HandleList Player -> Elect s) -> All s
-    Characters :: [Restriction Character] -> (HandleList Character -> Elect s) -> All s
+    Minions :: [Requirement Minion] -> (HandleList Minion -> Elect s) -> All s
+    Players :: [Requirement Player] -> (HandleList Player -> Elect s) -> All s
+    Characters :: [Requirement Character] -> (HandleList Character -> Elect s) -> All s
 
 
 data DamageSource :: * where
@@ -250,8 +250,8 @@ data EventListener :: * where
 data Aura :: * where
     AuraOwnerOf :: Handle a -> (Handle Player -> Aura) -> Aura
     AuraOpponentOf :: Handle Player -> (Handle Player -> Aura) -> Aura
-    While :: Handle a -> [Restriction a] -> Aura -> Aura
-    EachMinion :: [Restriction Minion] -> (Handle Minion -> Aura) -> Aura
+    While :: Handle a -> [Requirement a] -> Aura -> Aura
+    EachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> Aura
     Has :: Handle Minion -> Enchantment Continuous Minion -> Aura
 
 
