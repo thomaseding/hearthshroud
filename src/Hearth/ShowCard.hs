@@ -95,6 +95,15 @@ genNumberedHandle str = do
     genHandle $ str ++ "_" ++ show n
 
 
+proxiedGenHandle :: Handle a -> String -> ShowCard (Handle a)
+proxiedGenHandle = \case
+    SpellHandle {} -> genHandle
+    MinionHandle {} -> genHandle
+    PlayerHandle {} -> genHandle
+    MinionCharacter {} -> genHandle
+    PlayerCharacter {} -> genHandle
+
+
 --------------------------------------------------------------------------------
 
 
@@ -434,11 +443,17 @@ showDestroyMinion minion = do
 
 showForEach :: HandleList a -> (Handle a -> Effect) -> ShowCard String
 showForEach handles cont = case handles of
-    HandleList [handle] -> do
-        str <- readHandle handle
-        effectStr <- showEffect $ cont handle
+    HandleList [representative] -> do
+        str <- readHandle representative
+        effectStr <- showEffect $ cont representative
         return $ "ForEach " ++ str ++ ": " ++ effectStr
-    _ -> $logicError 'showForEach "xxx"
+    HandleList (fixedHandles @ (proxy : _)) -> do
+        fixedHandlesStr <- liftM itemize $ mapM readHandle fixedHandles
+        representative <- proxiedGenHandle proxy =<< readDamage =<< genAlgebraicDamage   -- refactor the source of the algebraic symbol because this is gimicky
+        representativeStr <- readHandle representative
+        effectStr <- showEffect $ cont representative
+        return $ "ForEach [" ++ fixedHandlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
+    HandleList [] -> showEffect DoNothing
 
 
 showElect :: (IsSelection s) => Elect s -> ShowCard String
