@@ -663,7 +663,7 @@ enactSpell spell = logCall 'enactSpell $ scopedPhase SpellPhase $ do
 
 enactAnyDeathrattles :: (HearthMonad m) => Handle Minion -> Hearth m ()
 enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
-    abilities <- dynamicAbilities bmHandle
+    abilities <- dynamicMinionAbilities bmHandle
     forM_ abilities $ \case
         Deathrattle elect -> enactDeathrattle bmHandle elect
         _ -> return ()
@@ -672,7 +672,7 @@ enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
 enactAnyBattleCries :: (HearthMonad m) => Handle Minion -> Hearth m Result
 enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
     st <- get
-    abilities <- dynamicAbilities bmHandle
+    abilities <- dynamicMinionAbilities bmHandle
     result <- liftM condensePickResults $ forM abilities $ \case
         Battlecry effect -> enactBattlecry bmHandle effect
         _ -> return $ purePick ()
@@ -856,7 +856,7 @@ isEnraged bmHandle = do
     case isDamaged bm of
          False -> return False
          True -> do
-            abilities <- dynamicAbilities bmHandle
+            abilities <- dynamicMinionAbilities bmHandle
             return $ any isEnrage abilities
     where
         isEnrage = \case
@@ -864,8 +864,12 @@ isEnraged bmHandle = do
             _ -> False
 
 
-dynamicAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
-dynamicAbilities bmHandle = observeDynamicState bmHandle $ do
+dynamicMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
+dynamicMinionAbilities minion = observeDynamicState minion $ staticMinionAbilities minion
+
+
+staticMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
+staticMinionAbilities bmHandle = do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
         Enrage abilities _ -> case isDamaged bm of
@@ -996,7 +1000,7 @@ observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
         applyAuras = do
             minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
             forM_ minions $ \minion -> do
-                auras <- liftM auraAbilitiesOf $ dynamicAbilities minion
+                auras <- liftM auraAbilitiesOf $ staticMinionAbilities minion
                 forM_ auras $ enactAura . ($ minion)
         applyEnchantments = do
             enchantments <- staticMinionEnchantments handle
@@ -1458,7 +1462,7 @@ removeSpell spell = do
 
 dynamicHasAbility :: (HearthMonad m) => (Ability -> Bool) -> Handle Minion -> Hearth m Bool
 dynamicHasAbility predicate bmHandle = logCall 'dynamicHasAbility $ do
-    abilities <- dynamicAbilities bmHandle
+    abilities <- dynamicMinionAbilities bmHandle
     return $ any predicate abilities
 
 
@@ -1573,7 +1577,7 @@ dynamicEventListeners :: (HearthMonad m) => Hearth m [EventListener]
 dynamicEventListeners = do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     minionListeners <- liftM concat $ forM minions $ \minion -> do
-        abilities <- dynamicAbilities minion
+        abilities <- dynamicMinionAbilities minion
         return $ flip mapMaybe abilities $ \case
             Whenever listener -> Just $ listener minion
             _ -> Nothing
