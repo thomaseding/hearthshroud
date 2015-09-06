@@ -11,6 +11,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -66,6 +67,11 @@ newtype Health = Health { unHealth :: Int }
 
 newtype Damage = Damage { unDamage :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
+
+
+pattern MaxHandSize = 10
+pattern MaxManaCrystals = 10
+pattern MaxBoardMinionsPerPlayer = 7
 
 
 data RawHandle :: * where
@@ -223,6 +229,7 @@ data Requirement :: * -> * where
     Undamaged :: Requirement Character
     IsMinion :: Requirement Character
     AdjacentTo :: Handle Minion -> Requirement Minion
+    HasMaxManaCrystals :: Requirement Player
 
 
 data Comparison
@@ -281,6 +288,7 @@ data Effect :: * where
     GainArmor :: Handle Player -> Armor -> Effect
     Freeze :: Handle Character -> Effect
     Observing :: Effect -> EventListener -> Effect
+    PutInHand :: Handle Player -> Card -> Effect
     deriving (Typeable)
 
 

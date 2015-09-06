@@ -365,6 +365,14 @@ showEffect = \case
     GainArmor handle amount -> showGainArmor handle amount
     Freeze handle -> showFreeze handle
     Observing effect listener -> showObserving effect listener
+    PutInHand player card -> showPutInHand player card
+
+
+showPutInHand :: Handle Player -> Card -> ShowCard String
+showPutInHand player card = do
+    playerStr <- readHandle player
+    let cardStr = showCardName $ cardName card
+    return $ "Put " ++ cardStr ++ " in " ++ playerStr ++ "'s hand"
 
 
 showObserving :: Effect -> EventListener -> ShowCard String
@@ -592,6 +600,7 @@ showRequirement = \case
     Undamaged -> return "UNDAMAGED"
     IsMinion -> return "IS_MINION"
     AdjacentTo handle -> readHandle handle >>= \str -> return ("ADJACENT_TO " ++ str)
+    HasMaxManaCrystals -> return "HAS_MAX_MANA_CRYSTALS"
 
 
 showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle Player -> x) -> ShowCard String

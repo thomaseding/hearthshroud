@@ -8,6 +8,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -303,7 +304,7 @@ drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawC
 putInHand :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m Bool
 putInHand handle card = logCall 'putInHand $ zoom (getPlayer handle.playerHand.handCards) $ do
     to length >>=. \case
-        10 -> return False
+        MaxHandSize -> return False
         _ -> do
             id %= (card :)
             return True
@@ -392,7 +393,7 @@ gainManaCrystal :: (HearthMonad m) => Handle Player -> CrystalState -> Hearth m 
 gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
     totalCount <- view $ getPlayer handle.playerTotalManaCrystals
     case totalCount of
-        10 -> do
+        MaxManaCrystals -> do
             let refillCount = case crystalState of
                     CrystalFull -> 1
                     CrystalEmpty -> 0
@@ -577,7 +578,7 @@ placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
     minionHandle <- genHandle
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
-            7 -> return $ Left "Board is too full."
+            MaxBoardMinionsPerPlayer -> return $ Left "Board is too full."
             len -> case 0 <= pos && pos <= len of
                 False -> return $ Left "Invalid board index."
                 True -> do
@@ -722,8 +723,15 @@ enactEffect = logCall 'enactEffect . \case
     GainArmor handle armor -> gainArmor handle armor >> return success
     Freeze handle -> freeze handle >> return success
     Observing effect listener -> enactObserving effect listener
+    PutInHand player card -> enactPutInHand player card >> return success
     where
         success = purePick ()
+
+
+enactPutInHand :: (HearthMonad m) => Handle Player -> Card -> Hearth m ()
+enactPutInHand player card = do
+    _ <- putInHand player $ toHandCard card
+    return ()
 
 
 enactObserving :: (HearthMonad m) => Effect -> EventListener -> Hearth m (SimplePickResult AtRandom)
@@ -1364,6 +1372,10 @@ instance CanSatisfy a (Requirement a) where
             MinionCharacter {} -> True
             _ -> False
         AdjacentTo handle -> areAdjacent handle candidate
+        HasMaxManaCrystals -> zoom (getPlayer candidate) $ do
+            view playerTotalManaCrystals >>= \case
+                MaxManaCrystals -> liftM (== 0) $ view playerTemporaryManaCrystals
+                _ -> return False
 
 
 instance CanSatisfy a [Requirement a] where

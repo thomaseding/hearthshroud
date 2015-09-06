@@ -46,6 +46,7 @@ cards = let x = toCard in [
     x drainLife,
     x dreadInfernal,
     x elvenArcher,
+    x excessMana,
     x execute,
     x fanOfKnives,
     x fireball,
@@ -298,6 +299,12 @@ elvenArcher = mkMinion Neutral ElvenArcher 1 1 1 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
+
+
+excessMana :: Spell
+excessMana = uncollectible $ mkSpell Druid ExcessMana 0 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ DrawCards you 1
 
 
 execute :: Spell
@@ -778,7 +785,9 @@ whirlwind = mkSpell Warrior Whirlwind 1 $ \this ->
 wildGrowth :: Spell
 wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ GainManaCrystals you 1 CrystalEmpty
+        Effect $ If (you `Satisfies` [HasMaxManaCrystals])
+            (PutInHand you $ SpellCard excessMana)
+            $ GainManaCrystals you 1 CrystalEmpty
 
 
 wolfRider :: Minion

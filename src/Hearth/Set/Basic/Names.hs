@@ -41,6 +41,7 @@ data BasicCardName
     | DrainLife
     | DreadInfernal
     | ElvenArcher
+    | ExcessMana
     | Execute
     | FanOfKnives
     | Fireball
