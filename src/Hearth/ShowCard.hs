@@ -639,7 +639,7 @@ showDealDamage character damage source = do
     return $ unwords ["Deal", damageStr, "damage to", characterStr, "by", sourceStr]
 
 
-showEnchant :: Handle Minion -> AnyEnchantment a -> ShowCard String
+showEnchant :: Handle a -> AnyEnchantment a -> ShowCard String
 showEnchant minion enchantment = do
     minionStr <- readHandle minion
     enchantmentStr <- case enchantment of

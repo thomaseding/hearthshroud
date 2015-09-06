@@ -271,7 +271,7 @@ data Effect :: * where
     If :: Condition -> Effect -> Effect -> Effect
     DrawCards :: Handle Player -> Int -> Effect
     DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
-    Enchant :: Handle Minion -> AnyEnchantment Minion -> Effect
+    Enchant :: Handle a -> AnyEnchantment a -> Effect
     GrantAbilities :: Handle Minion -> [Ability] -> Effect
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
@@ -343,7 +343,7 @@ data Enchantment :: * -> * -> * where
     MinionEnchantment :: Enchantment t Character -> Enchantment t Minion
     PlayerEnchantment :: Enchantment t Character -> Enchantment t Player
     Until :: TimePoint -> Enchantment Continuous a -> Enchantment Limited a
-    StatsDelta :: Attack -> Health -> Enchantment Continuous Minion
+    StatsDelta :: Attack -> Health -> Enchantment Continuous Character
     StatsScale :: Attack -> Health -> Enchantment Continuous Minion
     ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
     SwapStats :: Enchantment Continuous Minion

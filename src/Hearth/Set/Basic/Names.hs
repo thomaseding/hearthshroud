@@ -23,8 +23,9 @@ data BasicCardName
     | Backstab
     | BlessingOfKings
     | BlessingOfMight
-    | BluegillWarrior
     | BloodfenRaptor
+    | Bloodlust
+    | BluegillWarrior
     | BootyBayBodyguard
     | BoulderfistOgre
     | Charge
@@ -81,6 +82,7 @@ data BasicCardName
     | RaidLeader
     | RecklessRocketeer
     | RiverCrocolisk
+    | SavageRoar
     | Sen'jinShieldmasta
     | ShadowBolt
     | ShadowWordDeath

@@ -105,13 +105,13 @@ abusiveSergeant :: Minion
 abusiveSergeant = mkMinion Common Neutral AbusiveSergeant 1 2 1 [
     Battlecry $ \this ->
         A $ Minion [Not this] $ \target ->
-            Effect $ Enchant target $ Limited $ Until EndOfTurn $ StatsDelta 2 0 ]
+            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
 
 
 amaniBerserker :: Minion
 amaniBerserker = mkMinion Common Neutral AmaniBerserker 2 2 3 [
     Enrage [] [
-        StatsDelta 3 0 ]]
+        statsDelta 3 0 ]]
 
 
 aldorPeacekeeper :: Minion
@@ -220,14 +220,14 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster 2 2 2 [
         A $ Minion [Not this] $ \target ->
             Effect $ Sequence [
                 (this `damages` target) 1,
-                Enchant target $ Continuous $ StatsDelta 2 0 ]]
+                Enchant target $ Continuous $ statsDelta 2 0 ]]
 
 
 direWolfAlpha :: Minion
 direWolfAlpha = mkMinion Common Neutral DireWolfAlpha 2 2 2 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
-            Has minion $ StatsDelta 1 0 ]
+            Has minion $ statsDelta 1 0 ]
 
 
 earthenRingFarseer :: Minion
@@ -276,7 +276,7 @@ grommashHellscream :: Minion
 grommashHellscream = mkMinion Legendary Warrior GrommashHellscream 8 4 9 [
     Charge,
     Enrage [] [
-        StatsDelta 6 0 ]]
+        statsDelta 6 0 ]]
 
 
 holyFire :: Spell
@@ -299,7 +299,7 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
             (this `damages` target) 1,
-            Enchant target $ Continuous $ StatsDelta 2 0 ]
+            Enchant target $ Continuous $ statsDelta 2 0 ]
 
 
 ironbeakOwl :: Minion
@@ -337,10 +337,10 @@ markOfNature :: Spell
 markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
     Choice [
         A $ Minion [] $ \target ->
-            Effect $ Enchant target $ Continuous $ StatsDelta 4 0,
+            Effect $ Enchant target $ Continuous $ statsDelta 4 0,
         A $ Minion [] $ \target ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ StatsDelta 0 4,
+                Enchant target $ Continuous $ statsDelta 0 4,
                 GrantAbilities target [
                     Taunt ]]]
 
@@ -402,7 +402,7 @@ pyroblast = mkSpell Epic Mage Pyroblast 10 $ \this ->
 rampage :: Spell
 rampage = mkSpell Common Warrior Rampage 2 $ \_ ->
     A $ Minion [RequireMinion Damaged] $ \target ->
-        Effect $ Enchant target $ Continuous $ StatsDelta 3 3
+        Effect $ Enchant target $ Continuous $ statsDelta 3 3
 
 
 scarletCrusader :: Minion
@@ -473,7 +473,7 @@ taurenWarrior :: Minion
 taurenWarrior = mkMinion Common Neutral TaurenWarrior 3 2 3 [
     Taunt,
     Enrage [] [
-        StatsDelta 3 0 ]]
+        statsDelta 3 0 ]]
 
 
 templeEnforcer :: Minion
@@ -481,7 +481,7 @@ templeEnforcer = mkMinion Common Priest TempleEnforcer 6 6 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ Enchant target $ Continuous $ StatsDelta 0 3 ]
+                Effect $ Enchant target $ Continuous $ statsDelta 0 3 ]
 
 
 twistingNether :: Spell

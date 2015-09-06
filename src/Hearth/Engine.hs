@@ -712,7 +712,7 @@ enactEffect = logCall 'enactEffect . \case
     If cond true false -> enactIf cond true false
     DrawCards handle n -> drawCards handle n >> return success
     DealDamage victim damage source -> dealDamage victim damage source >> return success
-    Enchant handle enchantment -> enchant handle enchantment >> return success
+    Enchant handle enchantment -> enactEnchant handle enchantment >> return success
     GrantAbilities handle abilities -> grantAbilities handle abilities >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
     DestroyMinion handle -> destroyMinion handle >> return success
@@ -841,9 +841,34 @@ grantAbilities handle abilities = logCall 'grantAbilities $ do
     getMinion handle.boardMinionAbilities %= (abilities ++)
 
 
-enchant :: (HearthMonad m) => Handle Minion -> AnyEnchantment Minion -> Hearth m ()
-enchant handle enchantment = logCall 'enchant $ do
+enactEnchant :: (HearthMonad m) => Handle a -> AnyEnchantment a -> Hearth m ()
+enactEnchant = logCall 'enactEnchant $ \case
+    SpellHandle _ -> const $ return ()
+    h @ PlayerHandle{} -> enactEnchantPlayer h
+    h @ MinionHandle{} -> enactEnchantMinion h
+    h @ PlayerCharacter{} -> enactEnchantCharacter h
+    h @ MinionCharacter{} -> enactEnchantCharacter h
+
+
+enactEnchantPlayer :: (HearthMonad m) => Handle Player -> AnyEnchantment Player -> Hearth m ()
+enactEnchantPlayer handle enchantment = logCall 'enactEnchantPlayer $ do
+    getPlayer handle.playerEnchantments %= (++ [enchantment])
+
+
+enactEnchantMinion :: (HearthMonad m) => Handle Minion -> AnyEnchantment Minion -> Hearth m ()
+enactEnchantMinion handle enchantment = logCall 'enactEnchantMinion $ do
     getMinion handle.boardMinionEnchantments %= (++ [enchantment])
+
+
+enactEnchantCharacter :: (HearthMonad m) => Handle Character -> AnyEnchantment Character -> Hearth m ()
+enactEnchantCharacter character enchantment = logCall 'enactEnchantCharacter $ case character of
+    PlayerCharacter player -> enactEnchantPlayer player $ liftE PlayerEnchantment enchantment
+    MinionCharacter player -> enactEnchantMinion player $ liftE MinionEnchantment enchantment
+    where
+        liftE :: forall a. (forall t. Enchantment t Character -> Enchantment t a) -> AnyEnchantment Character -> AnyEnchantment a
+        liftE f = \case
+            Limited e -> Limited $ f e
+            Continuous e -> Continuous $ f e
 
 
 isDamaged :: BoardMinion -> Bool
@@ -865,7 +890,7 @@ isEnraged bmHandle = do
 
 
 dynamicMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
-dynamicMinionAbilities minion = observeDynamicState minion $ staticMinionAbilities minion
+dynamicMinionAbilities minion = observeDynamicState $ staticMinionAbilities minion
 
 
 staticMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
@@ -902,7 +927,7 @@ underAnyEnchantment f = \case
 
 
 dynamicHasMinionEnchantment :: (HearthMonad m) => Enchantment Continuous Minion -> Handle Minion -> Hearth m Bool
-dynamicHasMinionEnchantment candidate minion = logCall 'dynamicHasMinionEnchantment $ observeDynamicState minion $ do
+dynamicHasMinionEnchantment candidate minion = logCall 'dynamicHasMinionEnchantment $ observeDynamicState $ do
     enchantments <- staticMinionEnchantments minion
     return $ any (underAnyEnchantment predicate) enchantments
     where
@@ -911,7 +936,7 @@ dynamicHasMinionEnchantment candidate minion = logCall 'dynamicHasMinionEnchantm
             MinionEnchantment e -> predicate e
             PlayerEnchantment{} -> False
             Until _ e -> predicate e
-            e @ StatsDelta{} -> e == candidate
+            e @ StatsDelta{} -> MinionEnchantment e == candidate
             e @ StatsScale{} -> e == candidate
             e @ ChangeStat{} -> e == candidate
             e @ SwapStats{} -> e == candidate
@@ -969,9 +994,9 @@ class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
 instance CharacterTraits PlayerHandle where
     getDamage pHandle = logCall 'getDamage $ do
         view $ getPlayer pHandle.playerHero.boardHeroDamage
-    dynamicAttack pHandle = logCall 'dynamicAttack $ do
+    dynamicAttack pHandle = logCall 'dynamicAttack $ observeDynamicState $ do
         view $ getPlayer pHandle.playerHero.boardHero.heroAttack
-    dynamicMaxHealth pHandle = logCall 'dynamicMaxHealth $ do
+    dynamicMaxHealth pHandle = logCall 'dynamicMaxHealth $ observeDynamicState $ do
         view $ getPlayer pHandle.playerHero.boardHero.heroHealth
     dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
         return 1
@@ -991,42 +1016,59 @@ auraAbilitiesOf = mapMaybe $ \case
     _ -> Nothing
 
 
-observeDynamicState :: (HearthMonad m) => Handle Minion -> Hearth m a -> Hearth m a
-observeDynamicState handle action = logCall 'observeDynamicState $ local id $ do
-    applyAuras
-    applyEnchantments
+observeDynamicState :: (HearthMonad m) => Hearth m a -> Hearth m a
+observeDynamicState action = logCall 'observeDynamicState $ local id $ do
+    enactMinionAuras
+    applyMinionEnchantments
+    applyPlayerEnchantments
     action
     where
-        applyAuras = do
-            minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+        getAllMinions = viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+        enactMinionAuras = do
+            minions <- getAllMinions
             forM_ minions $ \minion -> do
                 auras <- liftM auraAbilitiesOf $ staticMinionAbilities minion
                 forM_ auras $ enactAura . ($ minion)
-        applyEnchantments = do
-            enchantments <- staticMinionEnchantments handle
-            forM_ enchantments $ underAnyEnchantment applyMinionEnchantment
-        applyMinionEnchantment :: (HearthMonad m) => Enchantment t Minion -> Hearth m ()
-        applyMinionEnchantment = \case
-            MinionEnchantment e -> applyCharacterEnchantment e
-            StatsDelta a h -> do
-                getMinion handle.boardMinion.minionAttack += a
-                getMinion handle.boardMinion.minionHealth += h
+        applyMinionEnchantments = do
+            minions <- getAllMinions
+            forM_ minions $ \minion -> do
+                enchantments <- staticMinionEnchantments minion
+                forM_ enchantments $ underAnyEnchantment $ applyMinionEnchantment minion
+        applyPlayerEnchantments = do
+            players <- viewListOf $ gamePlayers.traversed.playerHandle
+            forM_ players $ \player -> do
+                enchantments <- staticPlayerEnchantments player
+                forM_ enchantments $ underAnyEnchantment $ applyPlayerEnchantment player
+        applyPlayerEnchantment :: (HearthMonad m) => Handle Player -> Enchantment t Player -> Hearth m ()
+        applyPlayerEnchantment player = \case
+            PlayerEnchantment e -> applyCharacterEnchantment (PlayerCharacter player) e
+            Until _ enchantment -> applyPlayerEnchantment player enchantment
+        applyMinionEnchantment :: (HearthMonad m) => Handle Minion -> Enchantment t Minion -> Hearth m ()
+        applyMinionEnchantment minion = \case
+            MinionEnchantment e -> applyCharacterEnchantment (MinionCharacter minion) e
             StatsScale a h -> do
-                getMinion handle.boardMinion.minionAttack *= a
-                getMinion handle.boardMinion.minionHealth *= h
+                getMinion minion.boardMinion.minionAttack *= a
+                getMinion minion.boardMinion.minionHealth *= h
             ChangeStat e -> case e of
-                Left a -> getMinion handle.boardMinion.minionAttack .= a
-                Right h -> getMinion handle.boardMinion.minionHealth .= h
+                Left a -> getMinion minion.boardMinion.minionAttack .= a
+                Right h -> getMinion minion.boardMinion.minionHealth .= h
             SwapStats -> do
-                Attack attack <- view $ getMinion handle.boardMinion.minionAttack
-                Health health <- view $ getMinion handle.boardMinion.minionHealth
-                getMinion handle.boardMinion.minionAttack .= Attack health
-                getMinion handle.boardMinion.minionHealth .= Health attack
-            Until _ enchantment -> applyMinionEnchantment enchantment
-        applyCharacterEnchantment :: (HearthMonad m) => Enchantment t Character -> Hearth m ()
-        applyCharacterEnchantment = \case
-            Until _ enchantment -> applyCharacterEnchantment enchantment
+                Attack attack <- view $ getMinion minion.boardMinion.minionAttack
+                Health health <- view $ getMinion minion.boardMinion.minionHealth
+                getMinion minion.boardMinion.minionAttack .= Attack health
+                getMinion minion.boardMinion.minionHealth .= Health attack
+            Until _ enchantment -> applyMinionEnchantment minion enchantment
+        applyCharacterEnchantment :: (HearthMonad m) => Handle Character -> Enchantment t Character -> Hearth m ()
+        applyCharacterEnchantment character = \case
+            Until _ enchantment -> applyCharacterEnchantment character enchantment
             Frozen -> return ()
+            StatsDelta a h -> case character of
+                PlayerCharacter player -> do
+                    getPlayer player.playerHero.boardHero.heroAttack += a
+                    getPlayer player.playerHero.boardHero.heroHealth += h
+                MinionCharacter minion -> do
+                    getMinion minion.boardMinion.minionAttack += a
+                    getMinion minion.boardMinion.minionHealth += h
 
 enactAura :: (HearthMonad m) => Aura -> Hearth m ()
 enactAura = logCall 'enactAura $ \case
@@ -1056,10 +1098,10 @@ enactHas handle enchantment = logCall 'enactHas $ do
 instance CharacterTraits MinionHandle where
     getDamage bmHandle = logCall 'getDamage $ do
         view $ getMinion bmHandle.boardMinionDamage
-    dynamicAttack bmHandle = logCall 'dynamicAttack $ do
-        observeDynamicState bmHandle $ view $ getMinion bmHandle.boardMinion.minionAttack
-    dynamicMaxHealth bmHandle = logCall 'dynamicMaxHealth $ do
-        observeDynamicState bmHandle $ view $ getMinion bmHandle.boardMinion.minionHealth
+    dynamicAttack bmHandle = logCall 'dynamicAttack $ observeDynamicState $ do
+        view $ getMinion bmHandle.boardMinion.minionAttack
+    dynamicMaxHealth bmHandle = logCall 'dynamicMaxHealth $ observeDynamicState $ do
+        view $ getMinion bmHandle.boardMinion.minionHealth
     dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
         return 1
     getAttackCount bmHandle = logCall 'getAttackCount $ do

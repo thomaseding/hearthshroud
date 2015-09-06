@@ -74,20 +74,24 @@ mkSpell' f rarity clazz name mana effect = Spell' {
     _spellMeta = mkMeta f rarity clazz name }
 
 
-class AsCharacter a where
+class CharacterLike a where
     asCharacter :: Handle a -> Handle Character
+    fromCharacterEnchantment :: Enchantment t Character -> Enchantment t a
 
 
-instance AsCharacter Player where
+instance CharacterLike Player where
     asCharacter = PlayerCharacter
+    fromCharacterEnchantment = PlayerEnchantment
 
 
-instance AsCharacter Minion where
+instance CharacterLike Minion where
     asCharacter = MinionCharacter
+    fromCharacterEnchantment = MinionEnchantment
 
 
-instance AsCharacter Character where
+instance CharacterLike Character where
     asCharacter = id
+    fromCharacterEnchantment = id
 
 
 class AsDamageSource a where
@@ -110,7 +114,7 @@ instance AsDamageSource Spell where
     asDamageSource = DamagingSpell
 
 
-damages :: (AsDamageSource a, AsCharacter b) => Handle a -> Handle b -> Damage -> Effect
+damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect
 damages source victim amount = DealDamage (asCharacter victim) amount (asDamageSource source)
 
 
@@ -118,6 +122,8 @@ when :: Condition -> Effect -> Effect
 when cond effect = If cond effect DoNothing
 
 
+statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment Continuous a
+statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
 
 
 

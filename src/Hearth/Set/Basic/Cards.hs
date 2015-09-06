@@ -28,8 +28,9 @@ cards = let x = toCard in [
     x backstab,
     x blessingOfKings,
     x blessingOfMight,
-    x bluegillWarrior,
     x bloodfenRaptor,
+    x bloodlust,
+    x bluegillWarrior,
     x bootyBayBodyguard,
     x boulderfistOgre,
     x charge,
@@ -86,6 +87,7 @@ cards = let x = toCard in [
     x raidLeader,
     x recklessRocketeer,
     x riverCrocolisk,
+    x savageRoar,
     x sen'jinShieldmasta,
     x shadowBolt,
     x shadowWordDeath,
@@ -162,22 +164,30 @@ backstab = mkSpell Rogue Backstab 0 $ \this ->
 blessingOfKings :: Spell
 blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target $ Continuous $ StatsDelta 4 4
+        Effect $ Enchant target $ Continuous $ statsDelta 4 4
 
 
 blessingOfMight :: Spell
 blessingOfMight = mkSpell Paladin BlessingOfMight 4 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ Enchant target $ Continuous $ StatsDelta 3 0
+        Effect $ Enchant target $ Continuous $ statsDelta 3 0
+
+
+bloodfenRaptor :: Minion
+bloodfenRaptor = mkMinion Neutral BloodfenRaptor 2 3 2 []
+
+
+bloodlust :: Spell
+bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
+    OwnerOf this $ \you ->
+        All $ Minions [OwnedBy you] $ \minions ->
+            Effect $ ForEach minions $ \minion ->
+                Enchant minion $ Limited $ Until EndOfTurn $ statsDelta 3 0
 
 
 bluegillWarrior :: Minion
 bluegillWarrior = mkMinion Neutral BluegillWarrior 2 2 1 [
     Charge ]
-
-
-bloodfenRaptor :: Minion
-bloodfenRaptor = mkMinion Neutral BloodfenRaptor 2 3 2 []
 
 
 bootyBayBodyguard :: Minion
@@ -194,7 +204,7 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion [OwnedBy you] $ \target ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ StatsDelta 2 0,
+                Enchant target $ Continuous $ statsDelta 2 0,
                 GrantAbilities target [
                     Charge ]]
 
@@ -316,7 +326,7 @@ flametongueTotem :: Minion
 flametongueTotem = mkMinion Shaman FlametongueTotem 2 0 3 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
-            Has minion $ StatsDelta 2 0 ]
+            Has minion $ statsDelta 2 0 ]
 
 
 frog :: Minion
@@ -471,7 +481,7 @@ markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
         Effect $ Sequence [
             GrantAbilities target [
                 Taunt ],
-            Enchant target $ Continuous $ StatsDelta 2 2 ]
+            Enchant target $ Continuous $ statsDelta 2 2 ]
 
 
 magmaRager :: Minion
@@ -550,7 +560,7 @@ powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
     A $ Minion [] $ \target ->
         OwnerOf this $ \you ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ StatsDelta 0 2,
+                Enchant target $ Continuous $ statsDelta 0 2,
                 DrawCards you 1 ]
 
 
@@ -559,7 +569,7 @@ raidLeader = mkMinion Neutral RaidLeader 3 2 2 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
-                Has minion $ StatsDelta 1 0 ]
+                Has minion $ statsDelta 1 0 ]
 
 
 recklessRocketeer :: Minion
@@ -569,6 +579,14 @@ recklessRocketeer = mkMinion Neutral RecklessRocketeer 6 5 2 [
 
 riverCrocolisk :: Minion
 riverCrocolisk = mkMinion Neutral RiverCrocolisk 2 2 3 []
+
+
+savageRoar :: Spell
+savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
+    OwnerOf this $ \you ->
+        All $ Characters [OwnedBy you] $ \friendlies ->
+            Effect $ ForEach friendlies $ \friendly ->
+                Enchant friendly $ Limited $ Until EndOfTurn $ statsDelta 2 0
 
 
 sen'jinShieldmasta :: Minion
@@ -599,7 +617,7 @@ shatteredSunCleric = mkMinion Neutral ShatteredSunCleric 3 3 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ Enchant target $ Continuous $ StatsDelta 1 1 ]
+                Effect $ Enchant target $ Continuous $ statsDelta 1 1 ]
 
 
 sheep :: Minion
@@ -664,7 +682,7 @@ stormwindChampion = mkMinion Neutral StormwindChampion 7 6 6 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
-                Has minion $ StatsDelta 1 1 ]
+                Has minion $ statsDelta 1 1 ]
 
 
 swipe :: Spell
