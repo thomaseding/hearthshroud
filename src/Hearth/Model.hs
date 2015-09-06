@@ -302,6 +302,7 @@ data Effect :: * where
 data EventListener :: * where
     SpellIsCast :: (Handle Spell -> Elect AtRandom) -> EventListener
     DamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> EventListener
+    HealthIsRestored :: (Handle Character -> Health -> Elect AtRandom) -> EventListener
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)

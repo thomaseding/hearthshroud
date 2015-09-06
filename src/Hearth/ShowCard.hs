@@ -149,6 +149,16 @@ readDamage (Damage n) = case n < 0 of
     True -> readAlgebraicSymbol $ negate $ n + 1
 
 
+genAlgebraicHealth :: ShowCard Health
+genAlgebraicHealth = liftM (Health . subtract 1 . negate) genAlgebraicSymbol
+
+
+readHealth :: Health -> ShowCard String
+readHealth (Health n) = case n < 0 of
+    False -> return $ show n
+    True -> readAlgebraicSymbol $ negate $ n + 1
+
+
 --------------------------------------------------------------------------------
 
 
@@ -308,6 +318,7 @@ showEventListener :: EventListener -> ShowCard String
 showEventListener = \case
     SpellIsCast listener -> showSpellIsCast listener
     DamageIsDealt listener -> showDamageIsDealt listener
+    HealthIsRestored listener -> showHealthIsRestored listener
 
 
 showSpellIsCast :: (Handle Spell -> Elect AtRandom) -> ShowCard String
@@ -324,6 +335,15 @@ showDamageIsDealt listener = do
     damageStr <- readDamage damage
     let prelude = "a character takes " ++ damageStr ++ " damage: "
     liftM (prelude ++) $ showElect $ listener victim damage source
+
+
+showHealthIsRestored :: (Handle Character -> Health -> Elect AtRandom) -> ShowCard String
+showHealthIsRestored listener = do
+    recipient <- genHandle "RESTORED_CHARACTER"
+    health <- genAlgebraicHealth
+    healthStr <- readHealth health
+    let prelude = "a character restores " ++ healthStr ++ " health: "
+    liftM (prelude ++) $ showElect $ listener recipient health
 
 
 showEnrage :: [Ability] -> [Enchantment Continuous Minion] -> ShowCard String

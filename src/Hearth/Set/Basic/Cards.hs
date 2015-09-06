@@ -44,6 +44,7 @@ cards = let x = toCard in [
     x darkscaleHealer,
     x deadlyShot,
     x divineSpirit,
+    x dragonlingMechanic,
     x drainLife,
     x dreadInfernal,
     x elvenArcher,
@@ -68,6 +69,7 @@ cards = let x = toCard in [
     x handOfProtection,
     x healingTouch,
     x hellfire,
+    x heroicStrike,
     x hex,
     x holyLight,
     x holyNova,
@@ -83,6 +85,7 @@ cards = let x = toCard in [
     x lordOfTheArena,
     x magmaRager,
     x markOfTheWild,
+    x mechanicalDragonling,
     x mindBlast,
     x misha,
     x moonfire,
@@ -92,14 +95,18 @@ cards = let x = toCard in [
     x murlocScout,
     x murlocTidehunter,
     x nightblade,
+    x northshireCleric,
     x noviceEngineer,
     x oasisSnapjaw,
     x polymorph,
     x powerWordShield,
     x raidLeader,
+    x razorfenHunter,
     x recklessRocketeer,
     x riverCrocolisk,
+    x rockbiterWeapon,
     x savageRoar,
+    x searingTotem,
     x sen'jinShieldmasta,
     x shadowBolt,
     x shadowWordDeath,
@@ -111,6 +118,7 @@ cards = let x = toCard in [
     x sinisterStrike,
     x sprint,
     x starfire,
+    x stoneclawTotem,
     x stonetuskBoar,
     x stormpikeCommando,
     x stormwindChampion,
@@ -292,6 +300,13 @@ divineSpirit = mkSpell Priest DivineSpirit 2 $ \_ ->
         Effect $ Enchant target $ Continuous $ StatsScale 1 2
 
 
+dragonlingMechanic :: Minion
+dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ (you `Summon` mechanicalDragonling) $ RightOf this ]
+
+
 drainLife :: Spell
 drainLife = mkSpell Warlock DrainLife 3 $ \this ->
     A $ Character [] $ \target ->
@@ -467,6 +482,12 @@ hellfire = mkSpell Warlock Hellfire 4 $ \this ->
             (this `damages` victim) 3
 
 
+heroicStrike :: Spell
+heroicStrike = mkSpell Warrior HeroicStrike 2 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Enchant you $ Limited $ Until EndOfTurn $ statsDelta 4 0
+
+
 hex :: Spell
 hex = mkSpell Shaman Hex 3 $ \_ ->
     A $ Minion [] $ \target ->
@@ -564,6 +585,10 @@ magmaRager :: Minion
 magmaRager = mkMinion Neutral MagmaRager [] 3 5 1 []
 
 
+mechanicalDragonling :: Minion
+mechanicalDragonling = uncollectible $ mkMinion Neutral MechanicalDragonling [Mech] 1 2 1 []
+
+
 mindBlast :: Spell
 mindBlast = mkSpell Priest MindBlast 2 $ \this ->
     OwnerOf this $ \you ->
@@ -630,6 +655,14 @@ nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
                 Effect $ (this `damages` opponent) 3 ]
 
 
+northshireCleric :: Minion
+northshireCleric = mkMinion Priest NorthshireCleric [] 1 1 3 [
+    Whenever $ \this ->
+        HealthIsRestored $ \_ _ ->
+            OwnerOf this $ \you ->
+                Effect $ DrawCards you 1 ]
+
+
 noviceEngineer :: Minion
 noviceEngineer = mkMinion Neutral NoviceEngineer [] 2 1 1 [
     Battlecry $ \this ->
@@ -664,6 +697,13 @@ raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
                 Has minion $ statsDelta 1 0 ]
 
 
+razorfenHunter :: Minion
+razorfenHunter = mkMinion Neutral RazorfenHunter [] 3 2 3 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ (you `Summon` boar) $ RightOf this ]
+
+
 recklessRocketeer :: Minion
 recklessRocketeer = mkMinion Neutral RecklessRocketeer [] 6 5 2 [
     Charge ]
@@ -673,12 +713,23 @@ riverCrocolisk :: Minion
 riverCrocolisk = mkMinion Neutral RiverCrocolisk [Beast] 2 2 3 []
 
 
+rockbiterWeapon :: Spell
+rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Character [OwnedBy you] $ \target ->
+            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 3 0
+
+
 savageRoar :: Spell
 savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
     OwnerOf this $ \you ->
         All $ Characters [OwnedBy you] $ \friendlies ->
             Effect $ ForEach friendlies $ \friendly ->
                 Enchant friendly $ Limited $ Until EndOfTurn $ statsDelta 2 0
+
+
+searingTotem :: Minion
+searingTotem = uncollectible $ mkMinion Shaman SearingTotem [Totem] 1 1 1 []
 
 
 sen'jinShieldmasta :: Minion
@@ -750,6 +801,11 @@ starfire = mkSpell Druid Starfire 6 $ \this ->
             Effect $ Sequence [
                 (this `damages` target) 5,
                 DrawCards you 1 ]
+
+
+stoneclawTotem :: Minion
+stoneclawTotem = uncollectible $ mkMinion Shaman StoneclawTotem [Totem] 1 0 2 [
+    Taunt ]
 
 
 stonetuskBoar :: Minion

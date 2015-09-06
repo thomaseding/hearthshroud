@@ -40,6 +40,7 @@ data BasicCardName
     | DarkscaleHealer
     | DeadlyShot
     | DivineSpirit
+    | DragonlingMechanic
     | DrainLife
     | DreadInfernal
     | ElvenArcher
@@ -98,6 +99,7 @@ data BasicCardName
     | Polymorph
     | PowerWordShield
     | RaidLeader
+    | RazorfenHunter
     | RecklessRocketeer
     | RiverCrocolisk
     | RockbiterWeapon

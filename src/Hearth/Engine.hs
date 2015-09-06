@@ -839,7 +839,9 @@ restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
     actualAmount <- case charHandle of
         MinionCharacter handle -> zoom (getMinion handle.boardMinionDamage) restoreM
         PlayerCharacter handle -> zoom (getPlayer handle.playerHero.boardHeroDamage) restoreM
-    promptGameEvent $ HealthRestored charHandle (Health actualAmount)
+    case actualAmount of
+        0 -> return ()
+        _ -> promptGameEvent $ HealthRestored charHandle (Health actualAmount)
     where
         restore = max 0 . (subtract $ Damage amount)
         restoreM = do
@@ -1663,6 +1665,9 @@ handleGameEvent = \case
         _ -> return ()
     DealtDamage victim damage source -> processEvent $ \case
         DamageIsDealt listener -> run $ listener victim damage source
+        _ -> return ()
+    HealthRestored recipient health -> processEvent $ \case
+        HealthIsRestored listener -> run $ listener recipient health
         _ -> return ()
     _ -> return ()
     where
