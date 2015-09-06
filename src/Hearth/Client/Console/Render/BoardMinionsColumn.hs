@@ -38,7 +38,7 @@ boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) .
 boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m [SGRString]
 boardMinionColumn (idx, bm) = do
     let bmHandle = bm^.boardMinionHandle
-    dmg <- liftM unDamage $ getDamage bmHandle
+    dynDamage <- liftM unDamage $ dynamicDamage bmHandle
     dynAttack <- liftM unAttack $ dynamicAttack bmHandle
     dynHealth <- liftM unHealth $ dynamicMaxHealth bmHandle
     let minion = _boardMinion bm
@@ -50,14 +50,14 @@ boardMinionColumn (idx, bm) = do
             False -> ("", "")
         name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
         attack = sgrColor (Vivid, Black) ++ sgrShow dynAttack
-        healthColor = case bm^.boardMinionDamage > 0 of
+        healthColor = case dynDamage > 0 of
             True -> (Vivid, Red)
             False -> (Vivid, Black)
         index = let
             pad = if idx < 10 then " " else ""
             in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
         header = index ++ name
-        remainingHealth = sgrColor healthColor ++ sgrShow (dynHealth - dmg)
+        remainingHealth = sgrColor healthColor ++ sgrShow (dynHealth - dynDamage)
         stats = let
             c = sgrColor (Dull, White)
             in attack ++ c ++ "/" ++ remainingHealth

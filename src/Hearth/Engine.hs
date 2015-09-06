@@ -904,22 +904,8 @@ enactEnchantCharacter character enchantment = logCall 'enactEnchantCharacter $ c
             Continuous e -> Continuous $ f e
 
 
-isDamaged :: BoardMinion -> Bool
-isDamaged bm = bm^.boardMinionDamage > 0
-
-
-isEnraged :: (HearthMonad m) => Handle Minion -> Hearth m Bool
-isEnraged bmHandle = do
-    bm <- view $ getMinion bmHandle
-    case isDamaged bm of
-         False -> return False
-         True -> do
-            abilities <- dynamicMinionAbilities bmHandle
-            return $ any isEnrage abilities
-    where
-        isEnrage = \case
-            Enrage {} -> True
-            _ -> False
+staticIsDamaged :: BoardMinion -> Bool
+staticIsDamaged bm = bm^.boardMinionDamage > 0
 
 
 dynamicMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
@@ -930,7 +916,7 @@ staticMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
 staticMinionAbilities bmHandle = do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
-        Enrage abilities _ -> case isDamaged bm of
+        Enrage abilities _ -> case staticIsDamaged bm of
             True -> ability : abilities  -- TODO: Need to check correct interleaving.
             False -> [ability]
         _ -> [ability]
@@ -940,7 +926,7 @@ staticMinionEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnc
 staticMinionEnchantments bmHandle = logCall 'staticMinionEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
-        enrageEnchantments = case isDamaged bm of
+        enrageEnchantments = case staticIsDamaged bm of
             False -> []
             True -> bm^.boardMinionAbilities >>= \case
                 Enrage _ es -> es
@@ -1014,7 +1000,7 @@ instance IsCharacterHandle BoardMinion where
 
 
 class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
-    getDamage :: (HearthMonad m) => h -> Hearth m Damage
+    dynamicDamage :: (HearthMonad m) => h -> Hearth m Damage
     dynamicAttack :: (HearthMonad m) => h -> Hearth m Attack
     dynamicMaxHealth :: (HearthMonad m) => h -> Hearth m Health
     dynamicMaxAttackCount :: (HearthMonad m) => h -> Hearth m Int
@@ -1025,7 +1011,7 @@ class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
 
 
 instance CharacterTraits PlayerHandle where
-    getDamage pHandle = logCall 'getDamage $ do
+    dynamicDamage pHandle = logCall 'dynamicDamage $ do
         view $ getPlayer pHandle.playerHero.boardHeroDamage
     dynamicAttack pHandle = logCall 'dynamicAttack $ observeDynamicState $ do
         view $ getPlayer pHandle.playerHero.boardHero.heroAttack
@@ -1086,9 +1072,11 @@ observeDynamicState action = logCall 'observeDynamicState $ local id $ do
                 Left a -> getMinion minion.boardMinion.minionAttack .= a
                 Right h -> getMinion minion.boardMinion.minionHealth .= h
             SwapStats -> do
+                Damage damage <- view $ getMinion minion.boardMinionDamage
                 Attack attack <- view $ getMinion minion.boardMinion.minionAttack
                 Health health <- view $ getMinion minion.boardMinion.minionHealth
-                getMinion minion.boardMinion.minionAttack .= Attack health
+                getMinion minion.boardMinionDamage .= 0
+                getMinion minion.boardMinion.minionAttack .= Attack (health - damage)
                 getMinion minion.boardMinion.minionHealth .= Health attack
             Until _ enchantment -> applyMinionEnchantment minion enchantment
         applyCharacterEnchantment :: (HearthMonad m) => Handle Character -> Enchantment t Character -> Hearth m ()
@@ -1129,7 +1117,7 @@ enactHas handle enchantment = logCall 'enactHas $ do
 
 
 instance CharacterTraits MinionHandle where
-    getDamage bmHandle = logCall 'getDamage $ do
+    dynamicDamage bmHandle = logCall 'dynamicDamage $ observeDynamicState $ do
         view $ getMinion bmHandle.boardMinionDamage
     dynamicAttack bmHandle = logCall 'dynamicAttack $ observeDynamicState $ do
         view $ getMinion bmHandle.boardMinion.minionAttack
@@ -1151,9 +1139,9 @@ instance CharacterTraits MinionHandle where
 
 
 instance CharacterTraits CharacterHandle where
-    getDamage = logCall 'getDamage $ \case
-        PlayerCharacter h -> getDamage h
-        MinionCharacter h -> getDamage h
+    dynamicDamage = logCall 'dynamicDamage $ \case
+        PlayerCharacter h -> dynamicDamage h
+        MinionCharacter h -> dynamicDamage h
     dynamicAttack = logCall 'dynamicAttack $ \case
         PlayerCharacter h -> dynamicAttack h
         MinionCharacter h -> dynamicAttack h
@@ -1179,7 +1167,7 @@ instance CharacterTraits CharacterHandle where
 
 dynamicRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
 dynamicRemainingHealth h = do
-    damage <- getDamage h
+    damage <- dynamicDamage h
     health <- dynamicMaxHealth h
     return $ health - Health (unDamage damage)
 
@@ -1391,7 +1379,7 @@ instance CanSatisfy a (Requirement a) where
         WithHealth cmp healthVal -> do
             actualHealth <- dynamicRemainingHealth candidate
             return $ fromComparison cmp actualHealth healthVal
-        Damaged -> liftM (> 0) $ getDamage candidate
+        Damaged -> liftM (> 0) $ dynamicDamage candidate
         Undamaged -> liftM not $ candidate `satisfies` Damaged
         IsMinion -> return $ case candidate of
             MinionCharacter {} -> True
