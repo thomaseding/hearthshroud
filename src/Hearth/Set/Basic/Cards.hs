@@ -85,6 +85,8 @@ cards = let x = toCard in [
     x mortalCoil,
     x multiShot,
     x murlocRaider,
+    x murlocScout,
+    x murlocTidehunter,
     x nightblade,
     x noviceEngineer,
     x oasisSnapjaw,
@@ -576,6 +578,17 @@ multiShot = mkSpell Hunter MultiShot 4 $ \this ->
 
 murlocRaider :: Minion
 murlocRaider = mkMinion Neutral MurlocRaider 1 2 1 []
+
+
+murlocScout :: Minion
+murlocScout = uncollectible $ mkMinion Neutral MurlocScout 0 1 1 []
+
+
+murlocTidehunter :: Minion
+murlocTidehunter = mkMinion Neutral MurlocTidehunter 2 2 1 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ (you `Summon` murlocScout) $ RightOf this ]
 
 
 nightblade :: Minion

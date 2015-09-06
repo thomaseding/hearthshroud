@@ -80,6 +80,8 @@ data BasicCardName
     | MortalCoil
     | MultiShot
     | MurlocRaider
+    | MurlocScout
+    | MurlocTidehunter
     | Nightblade
     | NoviceEngineer
     | OasisSnapjaw

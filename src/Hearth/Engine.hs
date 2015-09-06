@@ -573,16 +573,16 @@ toBoardMinion handle minion = BoardMinion {
     _boardMinion = minion }
 
 
-placeOnBoard :: (HearthMonad m) => Handle Player -> BoardPos -> Minion -> Hearth m (Either String MinionHandle)
-placeOnBoard handle (BoardPos pos) minion = logCall 'placeOnBoard $ do
+summon :: (HearthMonad m) => Handle Player -> Minion -> BoardIndex -> Hearth m (Either String MinionHandle)
+summon handle minion (BoardIndex idx) = logCall 'summon $ do
     minionHandle <- genHandle
     zoom (getPlayer handle.playerMinions) $ do
         to length >>=. \case
             MaxBoardMinionsPerPlayer -> return $ Left "Board is too full."
-            len -> case 0 <= pos && pos <= len of
+            len -> case 0 <= idx && idx <= len of
                 False -> return $ Left "Invalid board index."
                 True -> do
-                    id %= insertAt pos (toBoardMinion minionHandle minion)
+                    id %= insertAt idx (toBoardMinion minionHandle minion)
                     return $ Right minionHandle
 
 
@@ -591,10 +591,10 @@ actionAttack attacker defender = logCall 'actionAttack $ do
     enactAttack attacker defender
 
 
-actionPlayMinion :: (HearthMonad m) => HandCard -> BoardPos -> Hearth m Result
-actionPlayMinion card pos = logCall 'actionPlayMinion $ do
+actionPlayMinion :: (HearthMonad m) => HandCard -> BoardIndex -> Hearth m Result
+actionPlayMinion card idx = logCall 'actionPlayMinion $ do
     pHandle <- getActivePlayerHandle
-    playMinion pHandle card pos
+    playMinion pHandle card idx
 
 
 actionPlaySpell :: (HearthMonad m) => HandCard -> Hearth m Result
@@ -603,10 +603,10 @@ actionPlaySpell card = logCall 'actionPlaySpell $ do
     playSpell handle card
 
 
-playMinion :: (HearthMonad m) => Handle Player -> HandCard -> BoardPos -> Hearth m Result
-playMinion pHandle card pos = logCall 'playMinion $ do
+playMinion :: (HearthMonad m) => Handle Player -> HandCard -> BoardIndex -> Hearth m Result
+playMinion pHandle card idx = logCall 'playMinion $ do
     st <- get
-    playMinion' pHandle card pos >>= \case
+    playMinion' pHandle card idx >>= \case
         Left msg -> do
             put st
             return $ Failure msg
@@ -617,11 +617,11 @@ playMinion pHandle card pos = logCall 'playMinion $ do
             return result
 
 
-playMinion' :: (HearthMonad m) => Handle Player -> HandCard -> BoardPos -> Hearth m (Either String MinionHandle)
-playMinion' handle card pos = logCall 'playMinion' $ playCommon handle card >>= \case
+playMinion' :: (HearthMonad m) => Handle Player -> HandCard -> BoardIndex -> Hearth m (Either String MinionHandle)
+playMinion' player card idx = logCall 'playMinion' $ playCommon player card >>= \case
     Failure msg -> return $ Left msg
     Success -> case card of
-        HandCardMinion minion -> placeOnBoard handle pos minion
+        HandCardMinion minion -> summon player minion idx
         _ -> return $ Left "Must pick a minion to play a minion."
 
 
@@ -724,8 +724,33 @@ enactEffect = logCall 'enactEffect . \case
     Freeze handle -> freeze handle >> return success
     Observing effect listener -> enactObserving effect listener
     PutInHand player card -> enactPutInHand player card >> return success
+    Summon player minion loc -> enactSummon player minion loc >> return success
     where
         success = purePick ()
+
+
+getMinionCount :: (HearthMonad m) => Handle Player -> Hearth m Int
+getMinionCount player = logCall 'getMinionCount $ do
+    view $ getPlayer player.playerMinions.to length
+
+
+boardIndexOf :: (HearthMonad m) => Handle Minion -> Hearth m BoardIndex
+boardIndexOf minion = logCall 'boardIndexOf $ do
+    owner <- ownerOf minion
+    minions <- viewListOf $ getPlayer owner.playerMinions.traversed.boardMinionHandle
+    case findIndex (== minion) minions of
+        Just idx -> return $ BoardIndex idx
+        Nothing -> $logicError 'boardIndexOf "xxx"
+
+
+enactSummon :: (HearthMonad m) => Handle Player -> Minion -> BoardLocation -> Hearth m ()
+enactSummon player minion loc = do
+    idx <- case loc of
+        RightOf m -> boardIndexOf m >>= return . \case
+            BoardIndex n -> BoardIndex $ n + 1
+        Rightmost -> liftM BoardIndex $ getMinionCount player
+    _ <- summon player minion idx
+    return ()
 
 
 enactPutInHand :: (HearthMonad m) => Handle Player -> Card -> Hearth m ()

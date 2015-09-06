@@ -1125,7 +1125,7 @@ playCardAction = let
         boardLen <- view $ getPlayer handle.playerMinions.to length
         case 0 < boardIdx && boardIdx <= boardLen + 1 of
             False -> return $ ComplainRetryAction "Invalid board index: Out of bounds."
-            True -> return $ GameAction $ ActionPlayMinion card $ BoardPos $ boardIdx - 1
+            True -> return $ GameAction $ ActionPlayMinion card $ BoardIndex $ boardIdx - 1
     goMinion _ _ = return $ ComplainRetryAction "Invalid board index: Must be positive."
 
     goSpell :: HandCard -> Hearth Console ConsoleAction

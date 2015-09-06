@@ -45,7 +45,7 @@ newtype Turn = Turn Int
     deriving (Show, Eq, Ord, Data, Typeable)
 
 
-newtype BoardPos = BoardPos Int
+newtype BoardIndex = BoardIndex Int
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
@@ -269,6 +269,11 @@ data DamageSource :: * where
     DamagingSpell :: Handle Spell -> DamageSource
 
 
+data BoardLocation :: * where
+    RightOf :: Handle Minion -> BoardLocation
+    Rightmost :: BoardLocation
+
+
 data Effect :: * where
     Elect :: Elect AtRandom -> Effect
     DoNothing :: Effect
@@ -289,6 +294,7 @@ data Effect :: * where
     Freeze :: Handle Character -> Effect
     Observing :: Effect -> EventListener -> Effect
     PutInHand :: Handle Player -> Card -> Effect
+    Summon :: Handle Player -> Minion -> BoardLocation -> Effect
     deriving (Typeable)
 
 

@@ -366,6 +366,23 @@ showEffect = \case
     Freeze handle -> showFreeze handle
     Observing effect listener -> showObserving effect listener
     PutInHand player card -> showPutInHand player card
+    Summon player minion loc -> showSummon player minion loc
+
+
+showSummon :: Handle Player -> Minion -> BoardLocation -> ShowCard String
+showSummon player minion loc = do
+    playerStr <- readHandle player
+    let minionStr = showCardName $ cardName minion
+    locStr <- showBoardLocation loc
+    return $ playerStr ++ " summon " ++ minionStr ++ " " ++ locStr
+
+
+showBoardLocation :: BoardLocation -> ShowCard String
+showBoardLocation = \case
+    RightOf minion -> do
+        minionStr <- readHandle minion
+        return $ "to the right of " ++ minionStr
+    Rightmost -> return "rightmost board position"
 
 
 showPutInHand :: Handle Player -> Card -> ShowCard String

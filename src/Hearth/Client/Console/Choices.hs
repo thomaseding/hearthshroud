@@ -37,12 +37,12 @@ possibleAttacks = do
             Success -> return True
 
 
-playableMinions :: (HearthMonad m) => Hearth m [(HandCard, BoardPos)]
+playableMinions :: (HearthMonad m) => Hearth m [(HandCard, BoardIndex)]
 playableMinions = do
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
-    maxPos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
-    let positions = [BoardPos 0 .. maxPos]
+    maxPos <- view $ getPlayer handle.playerMinions.to (BoardIndex . length)
+    let positions = [BoardIndex 0 .. maxPos]
     liftM concat $ forM positions $ \pos -> do
         liftM (map (, pos)) $ flip filterM (reverse cards) $ \card -> local id $ do
             playMinion handle card pos >>= \case
