@@ -13,7 +13,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -48,6 +47,7 @@ import Data.Ord
 import Data.String
 import Hearth.Action
 import Hearth.Cards
+import Hearth.Client.Console.Choices
 import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
@@ -963,45 +963,6 @@ instance PickRandom (NonEmpty a) a where
     pickRandom (NonEmpty x xs) = pickRandom (x : xs) >>= \case
         Just y -> return y
         Nothing -> $logicError 'pickRandom "Can't pick from (NonEmpty a)?"
-
-
-possibleAttacks :: (HearthMonad m) => Hearth m [(Handle Character, Handle Character)]
-possibleAttacks = local id $ do
-    activeHandle <- getActivePlayerHandle
-    activeMinions' <- view $ getPlayer activeHandle.playerMinions
-    nonActiveHandle <- getNonActivePlayerHandle
-    nonActiveMinions' <- view $ getPlayer nonActiveHandle.playerMinions
-    let activeMinions = map characterHandle activeMinions'
-        nonActiveMinions = map characterHandle nonActiveMinions'
-        pairs = (PlayerCharacter activeHandle, PlayerCharacter nonActiveHandle)
-             : [(a, na) | a <- activeMinions, na <- nonActiveMinions]
-            ++ [(PlayerCharacter activeHandle, na) | na <- nonActiveMinions]
-            ++ [(a, PlayerCharacter nonActiveHandle) | a <- activeMinions]
-    flip filterM pairs $ \(activeChar, nonActiveChar) -> do
-        enactAttack activeChar nonActiveChar >>= \case
-            Failure {} -> return False
-            Success -> return True
-
-
-playableMinions :: (HearthMonad m) => Hearth m [(HandCard, BoardPos)]
-playableMinions = do
-    handle <- getActivePlayerHandle
-    cards <- view $ getPlayer handle.playerHand.handCards
-    maxPos <- view $ getPlayer handle.playerMinions.to (BoardPos . length)
-    let positions = [BoardPos 0 .. maxPos]
-    liftM concat $ forM positions $ \pos -> do
-        liftM (map (, pos)) $ flip filterM (reverse cards) $ \card -> playMinion handle card pos >>= \case
-            Failure {} -> return False
-            Success -> return True
-
-
-playableSpells :: (HearthMonad m) => Hearth m [HandCard]
-playableSpells = do
-    handle <- getActivePlayerHandle
-    cards <- view $ getPlayer handle.playerHand.handCards
-    flip filterM (reverse cards) $ \card -> playSpell handle card >>= \case
-        Failure {} -> return False
-        Success -> return True
 
 
 autoplayAction :: Hearth Console ConsoleAction
