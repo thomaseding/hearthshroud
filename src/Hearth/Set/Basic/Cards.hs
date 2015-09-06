@@ -21,6 +21,7 @@ import qualified Hearth.Set.Basic.Names as Basic
 
 cards :: [Card]
 cards = let x = toCard in [
+    x animalCompanion,
     x arcaneExplosion,
     x arcaneIntellect,
     x arcaneShot,
@@ -71,16 +72,19 @@ cards = let x = toCard in [
     x holyLight,
     x holyNova,
     x holySmite,
+    x huffer,
     x humility,
     x hunter'sMark,
     x ironbarkProtector,
     x innervate,
     x ironforgeRifleman,
     x kor'kronElite,
+    x leokk,
     x lordOfTheArena,
     x magmaRager,
     x markOfTheWild,
     x mindBlast,
+    x misha,
     x moonfire,
     x mortalCoil,
     x multiShot,
@@ -134,6 +138,15 @@ mkSpell = mkSpell' BasicCardName Free
 
 
 --------------------------------------------------------------------------------
+
+
+animalCompanion :: Spell
+animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Elect $ Choice $ map Effect [
+            (you `Summon` huffer) Rightmost,
+            (you `Summon` leokk) Rightmost,
+            (you `Summon` misha) Rightmost ]
 
 
 arcaneExplosion :: Spell
@@ -485,6 +498,11 @@ holySmite = mkSpell Priest HolySmite 1 $ \this ->
         Effect $ (this `damages` target) 2
 
 
+huffer :: Minion
+huffer = uncollectible $ mkMinion Hunter Huffer [Beast] 3 4 2 [
+    Charge ]
+
+
 humility :: Spell
 humility = mkSpell Paladin Humility 1 $ \_ ->
     A $ Minion [] $ \target ->
@@ -520,6 +538,14 @@ ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
             Effect $ (this `damages` target) 1 ]
 
 
+leokk :: Minion
+leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [Not this, OwnedBy you] $ \minion ->
+                Has minion $ statsDelta 1 0 ]
+
+
 lordOfTheArena :: Minion
 lordOfTheArena = mkMinion Neutral LordOfTheArena [] 6 6 5 [
     Taunt ]
@@ -543,6 +569,11 @@ mindBlast = mkSpell Priest MindBlast 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 5
+
+
+misha :: Minion
+misha = uncollectible $ mkMinion Hunter Misha [Beast] 3 4 4 [
+    Taunt ]
 
 
 moonfire :: Spell

@@ -248,7 +248,7 @@ data Elect :: Selection -> * where
     A :: A s -> Elect s
     All :: All s -> Elect s
     Effect :: Effect -> Elect s
-    Choice :: [Elect Targeted] -> Elect Targeted
+    Choice :: [Elect a] -> Elect a
     deriving (Typeable)
 
 
