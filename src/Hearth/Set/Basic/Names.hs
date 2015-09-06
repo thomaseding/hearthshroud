@@ -16,7 +16,8 @@ import Data.Data
 
 
 data BasicCardName
-    = ArcaneExplosion
+    = AnimalCompanion
+    | ArcaneExplosion
     | ArcaneIntellect
     | ArcaneShot
     | Assassinate
@@ -35,6 +36,7 @@ data BasicCardName
     | Cleave
     | Consecration
     | CoreHound
+    | Corruption
     | DarkscaleHealer
     | DeadlyShot
     | DivineSpirit
@@ -60,22 +62,29 @@ data BasicCardName
     | GuardianOfKings
     | HammerOfWrath
     | HandOfProtection
+    | HealingTotem
     | HealingTouch
     | Hellfire
+    | HeroicStrike
     | Hex
     | HolyLight
     | HolyNova
     | HolySmite
+    | Huffer
     | Humility
     | Hunter'sMark
     | Innervate
     | IronbarkProtector
     | IronforgeRifleman
     | Kor'kronElite
+    | Leokk
     | LordOfTheArena
     | MagmaRager
     | MarkOfTheWild
+    | MechanicalDragonling
     | MindBlast
+    | MirrorImage
+    | Misha
     | Moonfire
     | MortalCoil
     | MultiShot
@@ -83,6 +92,7 @@ data BasicCardName
     | MurlocScout
     | MurlocTidehunter
     | Nightblade
+    | NorthshireCleric
     | NoviceEngineer
     | OasisSnapjaw
     | Polymorph
@@ -90,7 +100,9 @@ data BasicCardName
     | RaidLeader
     | RecklessRocketeer
     | RiverCrocolisk
+    | RockbiterWeapon
     | SavageRoar
+    | SearingTotem
     | Sen'jinShieldmasta
     | ShadowBolt
     | ShadowWordDeath
@@ -99,9 +111,11 @@ data BasicCardName
     | Sheep
     | Shiv
     | SilverbackPatriarch
+    | SilverHandRecruit
     | SinisterStrike
     | Sprint
     | Starfire
+    | StoneclawTotem
     | StonetuskBoar
     | StormpikeCommando
     | StormwindChampion

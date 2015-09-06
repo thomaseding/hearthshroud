@@ -28,6 +28,7 @@ import Control.Lens hiding (Each)
 import Data.Data
 import Data.Function
 import Data.Monoid (Monoid)
+import Data.Set (Set)
 import GHC.Generics
 import Hearth.CardName
 import Hearth.HeroName
@@ -374,6 +375,17 @@ data AnyEnchantment :: * -> * where
     deriving (Typeable)
 
 
+data MinionType :: * where
+    Beast :: MinionType
+    Demon :: MinionType
+    Dragon :: MinionType
+    Mech :: MinionType
+    Murloc :: MinionType
+    Pirate :: MinionType
+    Totem :: MinionType
+    deriving (Show, Eq, Ord)
+
+
 data Rarity :: * where
     Free :: Rarity
     Common :: Rarity
@@ -429,6 +441,7 @@ data CastSpell = CastSpell {
 
 data Minion = Minion' {
     _minionCost :: Cost,
+    _minionTypes :: Set MinionType,
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionAbilities :: [Ability],

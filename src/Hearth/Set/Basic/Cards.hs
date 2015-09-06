@@ -125,7 +125,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Class -> BasicCardName -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkMinion :: Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability] -> Minion
 mkMinion = mkMinion' BasicCardName Free
 
 
@@ -182,7 +182,7 @@ blessingOfMight = mkSpell Paladin BlessingOfMight 4 $ \_ ->
 
 
 bloodfenRaptor :: Minion
-bloodfenRaptor = mkMinion Neutral BloodfenRaptor 2 3 2 []
+bloodfenRaptor = mkMinion Neutral BloodfenRaptor [Beast] 2 3 2 []
 
 
 bloodlust :: Spell
@@ -194,21 +194,21 @@ bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
 
 
 bluegillWarrior :: Minion
-bluegillWarrior = mkMinion Neutral BluegillWarrior 2 2 1 [
+bluegillWarrior = mkMinion Neutral BluegillWarrior [Murloc] 2 2 1 [
     Charge ]
 
 
 boar :: Minion
-boar = uncollectible $ mkMinion Neutral Boar 1 1 1 []
+boar = uncollectible $ mkMinion Neutral Boar [Beast] 1 1 1 []
 
 
 bootyBayBodyguard :: Minion
-bootyBayBodyguard = mkMinion Neutral BootyBayBodyguard 5 5 4 [
+bootyBayBodyguard = mkMinion Neutral BootyBayBodyguard [] 5 5 4 [
     Taunt ]
 
 
 boulderfistOgre :: Minion
-boulderfistOgre = mkMinion Neutral BoulderfistOgre 6 6 7 []
+boulderfistOgre = mkMinion Neutral BoulderfistOgre [] 6 6 7 []
 
 
 charge :: Spell
@@ -222,7 +222,7 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
 
 
 chillwindYeti :: Minion
-chillwindYeti = mkMinion Neutral ChillwindYeti 4 4 5 []
+chillwindYeti = mkMinion Neutral ChillwindYeti [] 4 4 5 []
 
 
 claw :: Spell
@@ -253,11 +253,11 @@ consecration = mkSpell Paladin Consecration 4 $ \this ->
 
 
 coreHound :: Minion
-coreHound = mkMinion Neutral CoreHound 7 9 5 []
+coreHound = mkMinion Neutral CoreHound [Beast] 7 9 5 []
 
 
 darkscaleHealer :: Minion
-darkscaleHealer = mkMinion Neutral DarkscaleHealer 5 4 5 [
+darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             All $ Characters [OwnedBy you] $ \friendlies ->
@@ -289,7 +289,7 @@ drainLife = mkSpell Warlock DrainLife 3 $ \this ->
 
 
 dreadInfernal :: Minion
-dreadInfernal = mkMinion Warlock DreadInfernal 6 6 6 [
+dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
     Battlecry $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
             Effect $ ForEach victims $ \victim ->
@@ -297,7 +297,7 @@ dreadInfernal = mkMinion Warlock DreadInfernal 6 6 6 [
 
 
 elvenArcher :: Minion
-elvenArcher = mkMinion Neutral ElvenArcher 1 1 1 [
+elvenArcher = mkMinion Neutral ElvenArcher [] 1 1 1 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
@@ -333,7 +333,7 @@ fireball = mkSpell Mage Fireball 4 $ \this ->
 
 
 fireElemental :: Minion
-fireElemental = mkMinion Shaman FireElemental 6 6 5 [
+fireElemental = mkMinion Shaman FireElemental [] 6 6 5 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 3 ]
@@ -349,14 +349,14 @@ flamestrike = mkSpell Mage Flamestrike 7 $ \this ->
 
 
 flametongueTotem :: Minion
-flametongueTotem = mkMinion Shaman FlametongueTotem 2 0 3 [
+flametongueTotem = mkMinion Shaman FlametongueTotem [Totem] 2 0 3 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
             Has minion $ statsDelta 2 0 ]
 
 
 frog :: Minion
-frog = uncollectible $ mkMinion Neutral Frog 0 0 1 [
+frog = uncollectible $ mkMinion Neutral Frog [Beast] 0 0 1 [
     Taunt ]
 
 
@@ -386,12 +386,12 @@ frostShock = mkSpell Shaman FrostShock 1 $ \this ->
 
 
 frostwolfGrunt :: Minion
-frostwolfGrunt = mkMinion Neutral FrostwolfGrunt 2 2 2 [
+frostwolfGrunt = mkMinion Neutral FrostwolfGrunt [] 2 2 2 [
     Taunt ]
 
 
 frostwolfWarlord :: Minion
-frostwolfWarlord = mkMinion Neutral FrostwolfWarlord 5 4 4 [
+frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             All $ Minions [OwnedBy you, Not this] $ \minions -> do
@@ -400,26 +400,26 @@ frostwolfWarlord = mkMinion Neutral FrostwolfWarlord 5 4 4 [
 
 
 gnomishInventor :: Minion
-gnomishInventor = mkMinion Neutral GnomishInventor 4 2 4 [
+gnomishInventor = mkMinion Neutral GnomishInventor [] 4 2 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
 goldshireFootman :: Minion
-goldshireFootman = mkMinion Neutral GoldshireFootman 1 1 2 [
+goldshireFootman = mkMinion Neutral GoldshireFootman [] 1 1 2 [
     Taunt ]
 
 
 guardianOfKings :: Minion
-guardianOfKings = mkMinion Paladin GuardianOfKings 7 5 6 [
+guardianOfKings = mkMinion Paladin GuardianOfKings [] 7 5 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 6 ]
 
 
 gurubashiBerserker :: Minion
-gurubashiBerserker = mkMinion Neutral GurubashiBerserker 5 2 7 [
+gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ _ ->
             Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ Enchant this $ Continuous $ statsDelta 3 0 ]
@@ -498,7 +498,7 @@ hunter'sMark = mkSpell Hunter Hunter'sMark 0 $ \_ ->
 
 
 kor'kronElite :: Minion
-kor'kronElite = mkMinion Warrior Kor'kronElite 4 4 3 [
+kor'kronElite = mkMinion Warrior Kor'kronElite [] 4 4 3 [
     Charge ]
 
 
@@ -509,19 +509,19 @@ innervate = mkSpell Druid Innervate 0 $ \this ->
 
 
 ironbarkProtector :: Minion
-ironbarkProtector = mkMinion Druid IronbarkProtector 8 8 8 [
+ironbarkProtector = mkMinion Druid IronbarkProtector [] 8 8 8 [
     Taunt ]
 
 
 ironforgeRifleman :: Minion
-ironforgeRifleman = mkMinion Neutral IronforgeRifleman 3 2 2 [
+ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
 lordOfTheArena :: Minion
-lordOfTheArena = mkMinion Neutral LordOfTheArena 6 6 5 [
+lordOfTheArena = mkMinion Neutral LordOfTheArena [] 6 6 5 [
     Taunt ]
 
 
@@ -535,7 +535,7 @@ markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
 
 
 magmaRager :: Minion
-magmaRager = mkMinion Neutral MagmaRager 3 5 1 []
+magmaRager = mkMinion Neutral MagmaRager [] 3 5 1 []
 
 
 mindBlast :: Spell
@@ -577,22 +577,22 @@ multiShot = mkSpell Hunter MultiShot 4 $ \this ->
 
 
 murlocRaider :: Minion
-murlocRaider = mkMinion Neutral MurlocRaider 1 2 1 []
+murlocRaider = mkMinion Neutral MurlocRaider [Murloc] 1 2 1 []
 
 
 murlocScout :: Minion
-murlocScout = uncollectible $ mkMinion Neutral MurlocScout 0 1 1 []
+murlocScout = uncollectible $ mkMinion Neutral MurlocScout [Murloc] 0 1 1 []
 
 
 murlocTidehunter :: Minion
-murlocTidehunter = mkMinion Neutral MurlocTidehunter 2 2 1 [
+murlocTidehunter = mkMinion Neutral MurlocTidehunter [Murloc] 2 2 1 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (you `Summon` murlocScout) $ RightOf this ]
 
 
 nightblade :: Minion
-nightblade = mkMinion Neutral Nightblade 5 4 4 [
+nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
@@ -600,14 +600,14 @@ nightblade = mkMinion Neutral Nightblade 5 4 4 [
 
 
 noviceEngineer :: Minion
-noviceEngineer = mkMinion Neutral NoviceEngineer 2 1 1 [
+noviceEngineer = mkMinion Neutral NoviceEngineer [] 2 1 1 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
 oasisSnapjaw :: Minion
-oasisSnapjaw = mkMinion Neutral OasisSnapjaw 4 2 7 []
+oasisSnapjaw = mkMinion Neutral OasisSnapjaw [Beast] 4 2 7 []
 
 
 polymorph :: Spell
@@ -626,7 +626,7 @@ powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
 
 
 raidLeader :: Minion
-raidLeader = mkMinion Neutral RaidLeader 3 2 2 [
+raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
@@ -634,12 +634,12 @@ raidLeader = mkMinion Neutral RaidLeader 3 2 2 [
 
 
 recklessRocketeer :: Minion
-recklessRocketeer = mkMinion Neutral RecklessRocketeer 6 5 2 [
+recklessRocketeer = mkMinion Neutral RecklessRocketeer [] 6 5 2 [
     Charge ]
 
 
 riverCrocolisk :: Minion
-riverCrocolisk = mkMinion Neutral RiverCrocolisk 2 2 3 []
+riverCrocolisk = mkMinion Neutral RiverCrocolisk [Beast] 2 2 3 []
 
 
 savageRoar :: Spell
@@ -651,7 +651,7 @@ savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
 
 
 sen'jinShieldmasta :: Minion
-sen'jinShieldmasta = mkMinion Neutral Sen'jinShieldmasta 4 3 5 [
+sen'jinShieldmasta = mkMinion Neutral Sen'jinShieldmasta [] 4 3 5 [
     Taunt ]
 
 
@@ -674,7 +674,7 @@ shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
 
 
 shatteredSunCleric :: Minion
-shatteredSunCleric = mkMinion Neutral ShatteredSunCleric 3 3 2 [
+shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
@@ -682,7 +682,7 @@ shatteredSunCleric = mkMinion Neutral ShatteredSunCleric 3 3 2 [
 
 
 sheep :: Minion
-sheep = uncollectible $ mkMinion Neutral Sheep 0 1 1 []
+sheep = uncollectible $ mkMinion Neutral Sheep [Beast] 0 1 1 []
 
 
 shiv :: Spell
@@ -695,7 +695,7 @@ shiv = mkSpell Rogue Shiv 2 $ \this ->
 
 
 silverbackPatriarch :: Minion
-silverbackPatriarch = mkMinion Neutral SilverbackPatriarch 3 1 4 [
+silverbackPatriarch = mkMinion Neutral SilverbackPatriarch [Beast] 3 1 4 [
     Taunt ]
 
 
@@ -722,24 +722,24 @@ starfire = mkSpell Druid Starfire 6 $ \this ->
 
 
 stonetuskBoar :: Minion
-stonetuskBoar = mkMinion Neutral StonetuskBoar 1 1 1 [
+stonetuskBoar = mkMinion Neutral StonetuskBoar [Beast] 1 1 1 [
     Charge ]
 
 
 stormpikeCommando :: Minion
-stormpikeCommando = mkMinion Neutral StormpikeCommando 5 4 2 [
+stormpikeCommando = mkMinion Neutral StormpikeCommando [] 5 4 2 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 2 ]
 
 
 stormwindKnight :: Minion
-stormwindKnight = mkMinion Neutral StormwindKnight 4 2 5 [
+stormwindKnight = mkMinion Neutral StormwindKnight [] 4 2 5 [
     Charge ]
 
 
 stormwindChampion :: Minion
-stormwindChampion = mkMinion Neutral StormwindChampion 7 6 6 [
+stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
@@ -765,26 +765,26 @@ theCoin = uncollectible $ mkSpell Neutral TheCoin 0 $ \this ->
 
 
 voidwalker :: Minion
-voidwalker = mkMinion Warlock Voidwalker 1 1 3 [
+voidwalker = mkMinion Warlock Voidwalker [Demon] 1 1 3 [
     Taunt ]
 
 
 voodooDoctor :: Minion
-voodooDoctor = mkMinion Neutral VoodooDoctor 1 2 1 [
+voodooDoctor = mkMinion Neutral VoodooDoctor [] 1 2 1 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
 waterElemental :: Minion
-waterElemental = mkMinion Mage WaterElemental 4 3 6 [
+waterElemental = mkMinion Mage WaterElemental [] 4 3 6 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ source ->
             Effect $ when (this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
 
 warGolem :: Minion
-warGolem = mkMinion Neutral WarGolem 7 7 7 []
+warGolem = mkMinion Neutral WarGolem [] 7 7 7 []
 
 
 whirlwind :: Spell
@@ -804,7 +804,7 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
 
 
 wolfRider :: Minion
-wolfRider = mkMinion Neutral WolfRider 3 3 1 [
+wolfRider = mkMinion Neutral WolfRider [] 3 3 1 [
     Charge ]
 
 

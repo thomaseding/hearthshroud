@@ -9,6 +9,7 @@ module Hearth.Authoring.Combinators where
 --------------------------------------------------------------------------------
 
 
+import qualified Data.Set as Set
 import Hearth.Model
 import Hearth.CardName
 
@@ -58,9 +59,10 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Health -> [Ability] -> Minion
-mkMinion' f rarity clazz name mana attack health abilities = Minion' {
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability] -> Minion
+mkMinion' f rarity clazz name types mana attack health abilities = Minion' {
     _minionCost = ManaCost mana,
+    _minionTypes = Set.fromList types,
     _minionAttack = attack,
     _minionHealth = health,
     _minionAbilities = abilities,
