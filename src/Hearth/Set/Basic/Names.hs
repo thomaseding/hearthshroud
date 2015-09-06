@@ -26,10 +26,12 @@ data BasicCardName
     | BloodfenRaptor
     | Bloodlust
     | BluegillWarrior
+    | Boar
     | BootyBayBodyguard
     | BoulderfistOgre
     | Charge
     | ChillwindYeti
+    | Claw
     | Cleave
     | Consecration
     | CoreHound
@@ -48,7 +50,10 @@ data BasicCardName
     | Frog
     | Frostbolt
     | FrostNova
+    | FrostShock
     | FrostwolfGrunt
+    | FrostwolfWarlord
+    | GurubashiBerserker
     | GnomishInventor
     | GoldshireFootman
     | GuardianOfKings

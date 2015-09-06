@@ -31,10 +31,12 @@ cards = let x = toCard in [
     x bloodfenRaptor,
     x bloodlust,
     x bluegillWarrior,
+    x boar,
     x bootyBayBodyguard,
     x boulderfistOgre,
     x charge,
     x chillwindYeti,
+    x claw,
     x cleave,
     x consecration,
     x coreHound,
@@ -53,10 +55,13 @@ cards = let x = toCard in [
     x frog,
     x frostbolt,
     x frostNova,
+    x frostShock,
     x frostwolfGrunt,
+    x frostwolfWarlord,
     x gnomishInventor,
     x goldshireFootman,
     x guardianOfKings,
+    x gurubashiBerserker,
     x hammerOfWrath,
     x handOfProtection,
     x healingTouch,
@@ -190,6 +195,10 @@ bluegillWarrior = mkMinion Neutral BluegillWarrior 2 2 1 [
     Charge ]
 
 
+boar :: Minion
+boar = uncollectible $ mkMinion Neutral Boar 1 1 1 []
+
+
 bootyBayBodyguard :: Minion
 bootyBayBodyguard = mkMinion Neutral BootyBayBodyguard 5 5 4 [
     Taunt ]
@@ -211,6 +220,14 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
 
 chillwindYeti :: Minion
 chillwindYeti = mkMinion Neutral ChillwindYeti 4 4 5 []
+
+
+claw :: Spell
+claw = mkSpell Druid Claw 1 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Sequence [
+            Enchant you $ Limited $ Until EndOfTurn $ statsDelta 2 0,
+            GainArmor you 2 ]
 
 
 cleave :: Spell
@@ -351,9 +368,26 @@ frostNova = mkSpell Mage FrostNova 3 $ \this ->
                     Freeze (MinionCharacter victim)
 
 
+frostShock :: Spell
+frostShock = mkSpell Shaman FrostShock 1 $ \this ->
+    A $ Character [] $ \target ->
+        Effect $ Sequence [
+            (this `damages` target) 1,
+            Freeze target ]
+
+
 frostwolfGrunt :: Minion
 frostwolfGrunt = mkMinion Neutral FrostwolfGrunt 2 2 2 [
     Taunt ]
+
+
+frostwolfWarlord :: Minion
+frostwolfWarlord = mkMinion Neutral FrostwolfWarlord 5 4 4 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            All $ Minions [OwnedBy you, Not this] $ \minions -> do
+                Effect $ ForEach minions $ \_ ->
+                    Enchant this $ Continuous $ statsDelta 1 1 ]
 
 
 gnomishInventor :: Minion
@@ -373,6 +407,13 @@ guardianOfKings = mkMinion Paladin GuardianOfKings 7 5 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 6 ]
+
+
+gurubashiBerserker :: Minion
+gurubashiBerserker = mkMinion Neutral GurubashiBerserker 5 2 7 [
+    Whenever $ \this ->
+        DamageIsDealt $ \victim _ _ ->
+            Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ Enchant this $ Continuous $ statsDelta 3 0 ]
 
 
 hammerOfWrath :: Spell
