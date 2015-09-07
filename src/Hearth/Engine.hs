@@ -1177,37 +1177,52 @@ instance CharacterTraits CharacterHandle where
 
 
 dynamicRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
-dynamicRemainingHealth h = do
+dynamicRemainingHealth h = logCall 'dynamicRemainingHealth $ do
     damage <- dynamicDamage h
     health <- dynamicMaxHealth h
     return $ health - Health (unDamage damage)
 
 
+dynamicSpellDamage :: (HearthMonad m) => Handle Player -> Hearth m Int
+dynamicSpellDamage player = logCall 'dynamicSpellDamage $ observeDynamicState $ do
+    minions <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle
+    liftM sum $ forM minions $ \minion -> do
+        abilities <- dynamicMinionAbilities minion
+        return $ sum $ flip mapMaybe abilities $ \case
+            SpellDamage n -> Just n
+            _ -> Nothing
+
+
 dealDamage :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
-dealDamage charHandle damage source = logCall 'dealDamage $ case damage <= 0 of
-    True -> return ()
-    False -> case charHandle of
-        PlayerCharacter handle -> do
-            bh <- view $ getPlayer handle.playerHero
-            let dmg = unDamage damage
-                armor = bh^.boardHeroArmor
-                armor' = max 0 $ armor - Armor dmg
-                armorDamage = Damage $ unArmor $ armor - armor'
-                healthDamage = damage - armorDamage
-            zoom (getPlayer handle.playerHero) $ do
-                boardHeroDamage += healthDamage
-                boardHeroArmor .= armor'
-            promptGameEvent $ DealtDamage charHandle damage source
-        MinionCharacter handle -> do
-            bm <- view $ getMinion handle
-            case loseDivineShield bm of
-                Just bm' -> do
-                    getMinion handle .= bm'
-                    promptGameEvent $ LostDivineShield $ handle
-                Nothing -> do
-                    let bm' = bm & boardMinionDamage +~ damage
-                    getMinion handle .= bm'
-                    promptGameEvent $ DealtDamage charHandle damage source
+dealDamage charHandle (Damage baseDamage) source = logCall 'dealDamage $ do
+    modifier <- case source of
+        DamagingSpell spell -> ownerOf spell >>= dynamicSpellDamage
+        _ -> return 0
+    let damage = Damage $ baseDamage + modifier
+    case damage <= 0 of
+        True -> return ()
+        False -> case charHandle of
+            PlayerCharacter handle -> do
+                bh <- view $ getPlayer handle.playerHero
+                let dmg = unDamage damage
+                    armor = bh^.boardHeroArmor
+                    armor' = max 0 $ armor - Armor dmg
+                    armorDamage = Damage $ unArmor $ armor - armor'
+                    healthDamage = damage - armorDamage
+                zoom (getPlayer handle.playerHero) $ do
+                    boardHeroDamage += healthDamage
+                    boardHeroArmor .= armor'
+                promptGameEvent $ DealtDamage charHandle damage source
+            MinionCharacter handle -> do
+                bm <- view $ getMinion handle
+                case loseDivineShield bm of
+                    Just bm' -> do
+                        getMinion handle .= bm'
+                        promptGameEvent $ LostDivineShield $ handle
+                    Nothing -> do
+                        let bm' = bm & boardMinionDamage +~ damage
+                        getMinion handle .= bm'
+                        promptGameEvent $ DealtDamage charHandle damage source
 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()

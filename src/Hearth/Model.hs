@@ -324,6 +324,7 @@ data Ability :: * where
     DivineShield :: Ability
     Enrage :: [Ability] -> [Enchantment Continuous Minion] -> Ability
     Taunt :: Ability
+    SpellDamage :: Int -> Ability
     deriving (Typeable)
 
 

@@ -269,6 +269,7 @@ showAbility = \case
     DivineShield -> return "Divine Shield"
     Enrage abilities enchantments -> showEnrage abilities enchantments
     Taunt -> return "Taunt"
+    SpellDamage n -> return $ "Spell Damage +" ++ show n
 
 
 showAuraAbility :: (Handle Minion -> Aura) -> ShowCard String

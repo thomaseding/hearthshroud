@@ -25,6 +25,7 @@ cards = let x = toCard in [
     x arcaneExplosion,
     x arcaneIntellect,
     x arcaneShot,
+    x archmage,
     x assassinate,
     x backstab,
     x blessingOfKings,
@@ -42,6 +43,7 @@ cards = let x = toCard in [
     x consecration,
     x coreHound,
     x corruption,
+    x dalaranMage,
     x darkscaleHealer,
     x deadlyShot,
     x divineSpirit,
@@ -82,6 +84,7 @@ cards = let x = toCard in [
     x ironbarkProtector,
     x innervate,
     x ironforgeRifleman,
+    x koboldGeomancer,
     x kor'kronElite,
     x leokk,
     x lordOfTheArena,
@@ -100,6 +103,7 @@ cards = let x = toCard in [
     x northshireCleric,
     x noviceEngineer,
     x oasisSnapjaw,
+    x ogreMagi,
     x polymorph,
     x powerWordShield,
     x raidLeader,
@@ -178,6 +182,11 @@ arcaneShot :: Spell
 arcaneShot = mkSpell Hunter ArcaneShot 1 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 2
+
+
+archmage :: Minion
+archmage = mkMinion Neutral Archmage [] 6 4 7 [
+    SpellDamage 1 ]
 
 
 assassinate :: Spell
@@ -286,6 +295,11 @@ corruption = mkSpell Warlock Corruption 1 $ \this ->
             A $ Minion [OwnedBy opponent] $ \target ->
                 Effect $ Enchant target $ Limited $ DelayedEffect (Delay 1 BeginOfTurn) $ DestroyMinion target
     
+
+
+dalaranMage :: Minion
+dalaranMage = mkMinion Neutral DalaranMage [] 3 1 4 [
+    SpellDamage 1 ]
 
 
 darkscaleHealer :: Minion
@@ -557,6 +571,11 @@ hunter'sMark = mkSpell Hunter Hunter'sMark 0 $ \_ ->
         Effect $ Enchant target $ Continuous $ ChangeStat (Right 1)
 
 
+koboldGeomancer :: Minion
+koboldGeomancer = mkMinion Neutral KoboldGeomancer [] 2 2 2 [
+    SpellDamage 1 ]
+
+
 kor'kronElite :: Minion
 kor'kronElite = mkMinion Warrior Kor'kronElite [] 4 4 3 [
     Charge ]
@@ -693,6 +712,11 @@ noviceEngineer = mkMinion Neutral NoviceEngineer [] 2 1 1 [
 
 oasisSnapjaw :: Minion
 oasisSnapjaw = mkMinion Neutral OasisSnapjaw [Beast] 4 2 7 []
+
+
+ogreMagi :: Minion
+ogreMagi = mkMinion Neutral OgreMagi [] 4 4 4 [
+    SpellDamage 1 ]
 
 
 polymorph :: Spell

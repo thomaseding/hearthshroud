@@ -20,6 +20,7 @@ data BasicCardName
     | ArcaneExplosion
     | ArcaneIntellect
     | ArcaneShot
+    | Archmage
     | Assassinate
     | Backstab
     | BlessingOfKings
@@ -37,6 +38,7 @@ data BasicCardName
     | Consecration
     | CoreHound
     | Corruption
+    | DalaranMage
     | DarkscaleHealer
     | DeadlyShot
     | DivineSpirit
@@ -77,6 +79,7 @@ data BasicCardName
     | Innervate
     | IronbarkProtector
     | IronforgeRifleman
+    | KoboldGeomancer
     | Kor'kronElite
     | Leokk
     | LordOfTheArena
@@ -96,6 +99,7 @@ data BasicCardName
     | NorthshireCleric
     | NoviceEngineer
     | OasisSnapjaw
+    | OgreMagi
     | Polymorph
     | PowerWordShield
     | RaidLeader
