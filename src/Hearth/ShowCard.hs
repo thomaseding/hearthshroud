@@ -320,6 +320,13 @@ showEventListener = \case
     SpellIsCast listener -> showSpellIsCast listener
     DamageIsDealt listener -> showDamageIsDealt listener
     HealthIsRestored listener -> showHealthIsRestored listener
+    EndOfTurnEvent listener -> showEndOfTurnEvent listener
+
+
+showEndOfTurnEvent :: (Handle Player -> Elect AtRandom) -> ShowCard String
+showEndOfTurnEvent listener = do
+    player <- genHandle "ACTIVE_PLAYER"
+    liftM ("end of turn: " ++) $ showElect $ listener player
 
 
 showSpellIsCast :: (Handle Spell -> Elect AtRandom) -> ShowCard String

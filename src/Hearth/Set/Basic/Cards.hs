@@ -68,6 +68,7 @@ cards = let x = toCard in [
     x gurubashiBerserker,
     x hammerOfWrath,
     x handOfProtection,
+    x healingTotem,
     x healingTouch,
     x hellfire,
     x heroicStrike,
@@ -477,6 +478,16 @@ handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ GrantAbilities target [
             DivineShield ]
+
+
+healingTotem :: Minion
+healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
+    Whenever $ \this ->
+        EndOfTurnEvent $ \player ->
+            OwnerOf this $ \you ->
+                Effect $ when (player `Satisfies` [Is you]) $ Elect $ All $ Minions [OwnedBy you] $ \minions ->
+                    Effect $ ForEach minions $ \minion ->
+                        RestoreHealth (MinionCharacter minion) 1 ]
 
 
 healingTouch :: Spell

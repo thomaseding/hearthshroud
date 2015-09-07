@@ -1678,29 +1678,12 @@ handleGameEvent = \case
     HealthRestored recipient health -> processEvent $ \case
         HealthIsRestored listener -> run $ listener recipient health
         _ -> return ()
+    PhaseEvent (Begin EndTurnPhase) -> processEvent $ \case
+        EndOfTurnEvent listener -> getActivePlayerHandle >>= run . listener
+        _ -> return ()
     _ -> return ()
     where
         run cont = scopedPhase TriggeredEffectPhase $ enactElect cont >> return ()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
