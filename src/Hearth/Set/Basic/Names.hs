@@ -19,6 +19,7 @@ data BasicCardName
     = AnimalCompanion
     | ArcaneExplosion
     | ArcaneIntellect
+    | ArcaneMissiles
     | ArcaneShot
     | Archmage
     | Assassinate

@@ -24,6 +24,7 @@ cards = let x = toCard in [
     x animalCompanion,
     x arcaneExplosion,
     x arcaneIntellect,
+    x arcaneMissiles,
     x arcaneShot,
     x archmage,
     x assassinate,
@@ -176,6 +177,13 @@ arcaneIntellect :: Spell
 arcaneIntellect = mkSpell Mage ArcaneIntellect 3 $ \this ->
     OwnerOf this $ \you ->
         Effect $ DrawCards you 2
+
+
+arcaneMissiles :: Spell
+arcaneMissiles = mkSpell Mage ArcaneMissiles 1 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            Effect $ RandomMissiles [OwnedBy opponent] 3 this
 
 
 arcaneShot :: Spell

@@ -296,6 +296,7 @@ data Effect :: * where
     Observing :: Effect -> EventListener -> Effect
     PutInHand :: Handle Player -> Card -> Effect
     Summon :: Handle Player -> Minion -> BoardLocation -> Effect
+    RandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> Effect
     deriving (Typeable)
 
 

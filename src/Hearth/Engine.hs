@@ -323,7 +323,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck [] -> do
         getPlayer handle.playerExcessDrawCount += 1
         excess <- view $ getPlayer handle.playerExcessDrawCount
-        dealDamage (PlayerCharacter handle) (Damage excess) Fatigue
+        enactDealDamage (PlayerCharacter handle) (Damage excess) Fatigue
         return Nothing
     Deck (c:cs) -> do
         let c' = toHandCard c
@@ -735,7 +735,7 @@ enactEffect = logCall 'enactEffect . \case
     Sequence effects -> sequenceEffects effects
     If cond true false -> enactIf cond true false
     DrawCards handle n -> drawCards handle n >> return success
-    DealDamage victim damage source -> dealDamage victim damage source >> return success
+    DealDamage victim damage source -> enactDealDamage victim damage source >> return success
     Enchant handle enchantment -> enactEnchant handle enchantment >> return success
     GrantAbilities handle abilities -> grantAbilities handle abilities >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
@@ -748,6 +748,7 @@ enactEffect = logCall 'enactEffect . \case
     Observing effect listener -> enactObserving effect listener
     PutInHand player card -> enactPutInHand player card >> return success
     Summon player minion loc -> enactSummon player minion loc >> return success
+    RandomMissiles reqs n spell -> enactRandomMissiles reqs n spell >> return success
     where
         success = purePick ()
 
@@ -1193,36 +1194,60 @@ dynamicSpellDamage player = logCall 'dynamicSpellDamage $ observeDynamicState $ 
             _ -> Nothing
 
 
-dealDamage :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
-dealDamage charHandle (Damage baseDamage) source = logCall 'dealDamage $ do
+enactRandomMissiles :: (HearthMonad m) => [Requirement Character] -> Int -> Handle Spell -> Hearth m ()
+enactRandomMissiles reqs n spell = logCall 'enactRandomMissiles $ do
+    modifier <- ownerOf spell >>= dynamicSpellDamage
+    enactRandomMissilesPrim reqs (n + modifier) spell
+
+
+enactRandomMissilesPrim :: (HearthMonad m) => [Requirement Character] -> Int -> Handle Spell -> Hearth m ()
+enactRandomMissilesPrim reqs n spell = logCall 'enactRandomMissilesPrim $ case n of
+    0 -> return ()
+    _ -> do
+        players <- viewListOf $ gamePlayers.traversed.playerHandle
+        minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+        let characters = map PlayerCharacter players ++ map MinionCharacter minions
+        restrict reqs characters >>= pickFrom >>= \case
+            NotAvailable -> return ()
+            Available (AtRandomPick victim) -> do
+                dealDamagePrim victim 1 $ DamagingSpell spell
+                enactRandomMissilesPrim reqs (n - 1) spell
+
+
+enactDealDamage :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
+enactDealDamage charHandle (Damage baseDamage) source = logCall 'enactDealDamage $ do
     modifier <- case source of
         DamagingSpell spell -> ownerOf spell >>= dynamicSpellDamage
         _ -> return 0
     let damage = Damage $ baseDamage + modifier
-    case damage <= 0 of
-        True -> return ()
-        False -> case charHandle of
-            PlayerCharacter handle -> do
-                bh <- view $ getPlayer handle.playerHero
-                let dmg = unDamage damage
-                    armor = bh^.boardHeroArmor
-                    armor' = max 0 $ armor - Armor dmg
-                    armorDamage = Damage $ unArmor $ armor - armor'
-                    healthDamage = damage - armorDamage
-                zoom (getPlayer handle.playerHero) $ do
-                    boardHeroDamage += healthDamage
-                    boardHeroArmor .= armor'
-                promptGameEvent $ DealtDamage charHandle damage source
-            MinionCharacter handle -> do
-                bm <- view $ getMinion handle
-                case loseDivineShield bm of
-                    Just bm' -> do
-                        getMinion handle .= bm'
-                        promptGameEvent $ LostDivineShield $ handle
-                    Nothing -> do
-                        let bm' = bm & boardMinionDamage +~ damage
-                        getMinion handle .= bm'
-                        promptGameEvent $ DealtDamage charHandle damage source
+    dealDamagePrim charHandle damage source
+
+
+dealDamagePrim :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
+dealDamagePrim charHandle damage source = logCall 'dealDamagePrim $ case damage <= 0 of
+    True -> return ()
+    False -> case charHandle of
+        PlayerCharacter handle -> do
+            bh <- view $ getPlayer handle.playerHero
+            let dmg = unDamage damage
+                armor = bh^.boardHeroArmor
+                armor' = max 0 $ armor - Armor dmg
+                armorDamage = Damage $ unArmor $ armor - armor'
+                healthDamage = damage - armorDamage
+            zoom (getPlayer handle.playerHero) $ do
+                boardHeroDamage += healthDamage
+                boardHeroArmor .= armor'
+            promptGameEvent $ DealtDamage charHandle damage source
+        MinionCharacter handle -> do
+            bm <- view $ getMinion handle
+            case loseDivineShield bm of
+                Just bm' -> do
+                    getMinion handle .= bm'
+                    promptGameEvent $ LostDivineShield $ handle
+                Nothing -> do
+                    let bm' = bm & boardMinionDamage +~ damage
+                    getMinion handle .= bm'
+                    promptGameEvent $ DealtDamage charHandle damage source
 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()
@@ -1639,7 +1664,7 @@ enactAttack attacker defender = logCall 'enactAttack $ do
             promptGameEvent $ EnactAttack attackerHandle defenderHandle
             let source `harms` victim = do
                     dmg <- liftM (Damage . unAttack) $ dynamicAttack source
-                    dealDamage (characterHandle victim) dmg (DamagingCharacter source)
+                    enactDealDamage (characterHandle victim) dmg (DamagingCharacter source)
             scopedPhase AttackResolutionPhase $ do
                 attacker `harms` defender
                 defender `harms` attacker

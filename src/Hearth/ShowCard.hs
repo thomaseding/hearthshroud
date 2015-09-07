@@ -396,6 +396,14 @@ showEffect = \case
     Observing effect listener -> showObserving effect listener
     PutInHand player card -> showPutInHand player card
     Summon player minion loc -> showSummon player minion loc
+    RandomMissiles reqs n spell -> showRandomMissiles reqs n spell
+
+
+showRandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> ShowCard String
+showRandomMissiles reqs n spell = do
+    reqsStr <- showRequirements reqs
+    spellStr <- readHandle spell
+    return $ show n ++ " RandomMissiles from " ++ spellStr ++ " targeting " ++ reqsStr ++ " characters"
 
 
 showSummon :: Handle Player -> Minion -> BoardLocation -> ShowCard String
