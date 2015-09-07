@@ -126,37 +126,38 @@ genAlgebraicSymbol = do
 
 
 readAlgebraicSymbol :: AlgebraicSymbol -> ShowCard String
-readAlgebraicSymbol = return . \case
-    n -> case n < 0 of
-        False -> show n
-        True -> let
-            idx = negate $ n + 1
-            in symbols !! idx
+readAlgebraicSymbol n = return $ symbols !! n
     where
-        symbols = words "X Y Z W" ++ map (\n -> "N" ++ show n) [1 :: Int ..]
+        symbols = words "X Y Z W" ++ map (\i -> "N" ++ show i) [1 :: Int ..]
 
 
 --------------------------------------------------------------------------------
 
 
+genAlgebraicInt :: ShowCard Int
+genAlgebraicInt = liftM (subtract 1 . negate) genAlgebraicSymbol
+
+
+readAlgebraicInt :: Int -> ShowCard String
+readAlgebraicInt n = case n < 0 of
+    True -> readAlgebraicSymbol $ negate $ n + 1
+    False -> return $ show n
+
+
 genAlgebraicDamage :: ShowCard Damage
-genAlgebraicDamage = liftM (Damage . subtract 1 . negate) genAlgebraicSymbol
+genAlgebraicDamage = liftM Damage genAlgebraicInt
 
 
 readDamage :: Damage -> ShowCard String
-readDamage (Damage n) = case n < 0 of
-    False -> return $ show n
-    True -> readAlgebraicSymbol $ negate $ n + 1
+readDamage (Damage n) = readAlgebraicInt n
 
 
 genAlgebraicHealth :: ShowCard Health
-genAlgebraicHealth = liftM (Health . subtract 1 . negate) genAlgebraicSymbol
+genAlgebraicHealth = liftM Health genAlgebraicInt
 
 
 readHealth :: Health -> ShowCard String
-readHealth (Health n) = case n < 0 of
-    False -> return $ show n
-    True -> readAlgebraicSymbol $ negate $ n + 1
+readHealth (Health n) = readAlgebraicInt n
 
 
 --------------------------------------------------------------------------------
@@ -484,9 +485,10 @@ showGainArmor player (Armor amount) = do
 
 
 showRestoreHealth :: Handle Character -> Health -> ShowCard String
-showRestoreHealth character (Health amount) = do
+showRestoreHealth character health = do
+    healthStr <- readHealth health
     characterStr <- readHandle character
-    return $ "Restore " ++ show amount ++ " health on " ++ characterStr
+    return $ "Restore " ++ healthStr ++ " health on " ++ characterStr
 
 
 showDestroyMinion :: Handle Minion -> ShowCard String

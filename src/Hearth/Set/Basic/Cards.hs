@@ -658,9 +658,9 @@ nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
 northshireCleric :: Minion
 northshireCleric = mkMinion Priest NorthshireCleric [] 1 1 3 [
     Whenever $ \this ->
-        HealthIsRestored $ \_ _ ->
+        HealthIsRestored $ \recipient _ ->
             OwnerOf this $ \you ->
-                Effect $ DrawCards you 1 ]
+                Effect $ when (recipient `Satisfies` [IsMinion]) $ DrawCards you 1 ]
 
 
 noviceEngineer :: Minion
