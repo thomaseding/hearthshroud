@@ -423,35 +423,58 @@ scopedPhase phase action = logCall 'scopedPhase $ do
     return x
 
 
-clearUntil :: (HearthMonad m) => TimePoint -> Hearth m ()
-clearUntil candidate = do
+tickTimePointEnchantments :: (HearthMonad m) => TimePoint -> Hearth m ()
+tickTimePointEnchantments timeEvent = logCall 'tickTimePointEnchantments $ do
     players <- viewListOf $ gamePlayers.traversed.playerHandle
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
-    forM_ players $ \player -> getPlayer player.playerEnchantments %= mapMaybe generalPredicate
-    forM_ minions $ \minion -> getMinion minion.boardMinionEnchantments %= mapMaybe generalPredicate
+    forM_ players $ \player -> do
+        es <- view $ getPlayer player.playerEnchantments
+        es' <- liftM catMaybes $ mapM generalConsume es
+        getPlayer player.playerEnchantments .= es'
+    forM_ minions $ \minion -> do
+        es <- view $ getMinion minion.boardMinionEnchantments
+        es' <- liftM catMaybes $ mapM generalConsume es
+        getMinion minion.boardMinionEnchantments .= es'
+    clearDeadMinions
     where
-        generalPredicate :: AnyEnchantment a -> Maybe (AnyEnchantment a)
-        generalPredicate = \case
-            Continuous e -> Just $ Continuous e
-            Limited e -> fmap Limited $ limitedPredicate e
-        limitedPredicate :: Enchantment Limited a -> Maybe (Enchantment Limited a)
-        limitedPredicate = \case
-            MinionEnchantment e -> fmap MinionEnchantment $ limitedPredicate e
-            PlayerEnchantment e -> fmap PlayerEnchantment $ limitedPredicate e
-            eUntil @ (Until timePoint e) -> case timePoint of
-                Delay n timePoint' -> case timePoint' == candidate of
-                    True -> Just $ case n of
-                        1 -> Until timePoint' e
-                        _ -> Until (Delay (n - 1) timePoint') e
-                    False -> Just eUntil
-                _ -> case timePoint == candidate of
-                    True -> Nothing
-                    False -> Just eUntil
+        tickTimePoint :: TimePoint -> Maybe TimePoint
+        tickTimePoint = \case
+            Delay n timePoint -> case timeEvent == timePoint of
+                True -> case n of
+                    0 -> tickTimePoint timePoint
+                    _ -> Just $ Delay (n - 1) timePoint
+                False -> Just $ Delay n timePoint
+            timePoint -> case timeEvent == timePoint of
+                True -> Nothing
+                False -> Just timePoint
+
+        generalConsume :: (HearthMonad m) => AnyEnchantment a -> Hearth m (Maybe (AnyEnchantment a))
+        generalConsume = \case
+            Continuous e -> liftM (liftM Continuous) $ continuousConsume e
+            Limited e -> liftM (liftM Limited) $ limitedConsume e
+
+        continuousConsume :: (HearthMonad m) => Enchantment Continuous a -> Hearth m (Maybe (Enchantment Continuous a))
+        continuousConsume = return . Just
+
+        limitedConsume :: (HearthMonad m) => Enchantment Limited a -> Hearth m (Maybe (Enchantment Limited a))
+        limitedConsume = \case
+            MinionEnchantment e -> liftM (liftM MinionEnchantment) $ limitedConsume e
+            PlayerEnchantment e -> liftM (liftM PlayerEnchantment) $ limitedConsume e
+
+            Until timePoint e -> return $ case tickTimePoint timePoint of
+                Just timePoint' -> Just $ Until timePoint' e
+                Nothing -> Nothing
+
+            DelayedEffect timePoint e -> case tickTimePoint timePoint of
+                Just timePoint' -> return $ Just $ DelayedEffect timePoint' e
+                Nothing -> do
+                    _ <- enactEffect e
+                    return Nothing
 
 
 beginTurn :: (HearthMonad m) => Hearth m ()
 beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
-    clearUntil BeginOfTurn
+    tickTimePointEnchantments BeginOfTurn
     handle <- getActivePlayerHandle
     gainManaCrystal handle CrystalFull
     zoom (getPlayer handle) $ do
@@ -466,7 +489,7 @@ beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
 
 endTurn :: (HearthMonad m) => Hearth m ()
 endTurn = logCall 'endTurn $ scopedPhase EndTurnPhase $ do
-    clearUntil EndOfTurn
+    tickTimePointEnchantments EndOfTurn
     handle <- getActivePlayerHandle
     zoom (getPlayer handle) $ do
         tempCount <- view playerTemporaryManaCrystals
@@ -947,38 +970,25 @@ underAnyEnchantment f = \case
     Limited e -> f e
 
 
-dynamicHasMinionEnchantment :: (HearthMonad m) => Enchantment Continuous Minion -> Handle Minion -> Hearth m Bool
-dynamicHasMinionEnchantment candidate minion = logCall 'dynamicHasMinionEnchantment $ observeDynamicState $ do
+dynamicIsFrozenMinion :: (HearthMonad m) => Handle Minion -> Hearth m Bool
+dynamicIsFrozenMinion minion = logCall 'dynamicIsFrozenMinion $ observeDynamicState $ do
     enchantments <- staticMinionEnchantments minion
-    return $ any (underAnyEnchantment predicate) enchantments
-    where
-        predicate :: Enchantment t a -> Bool
-        predicate = \case
-            MinionEnchantment e -> predicate e
-            PlayerEnchantment{} -> False
-            Until _ e -> predicate e
-            e @ StatsDelta{} -> MinionEnchantment e == candidate
-            e @ StatsScale{} -> e == candidate
-            e @ ChangeStat{} -> e == candidate
-            e @ SwapStats{} -> e == candidate
-            e @ Frozen{} -> MinionEnchantment e == candidate
+    return $ any (underAnyEnchantment grantsFrozen) enchantments
 
 
-dynamicHasPlayerEnchantment :: (HearthMonad m) => Enchantment Continuous Player -> Handle Player -> Hearth m Bool
-dynamicHasPlayerEnchantment candidate entity = logCall 'dynamicHasMinionEnchantment $ do
-    enchantments <- staticPlayerEnchantments entity
-    return $ any (underAnyEnchantment predicate) enchantments
-    where
-        predicate :: Enchantment t a -> Bool
-        predicate = \case
-            MinionEnchantment{} -> False
-            PlayerEnchantment e -> predicate e
-            Until _ e -> predicate e
-            StatsDelta{} -> False
-            StatsScale{} -> False
-            ChangeStat{} -> False
-            SwapStats{} -> False
-            e @ Frozen{} -> PlayerEnchantment e == candidate
+dynamicIsFrozenPlayer :: (HearthMonad m) => Handle Player -> Hearth m Bool
+dynamicIsFrozenPlayer player = logCall 'dynamicIsFrozenMinion $ do
+    enchantments <- staticPlayerEnchantments player
+    return $ any (underAnyEnchantment grantsFrozen) enchantments
+
+
+grantsFrozen :: Enchantment t a -> Bool
+grantsFrozen = \case
+    MinionEnchantment e -> grantsFrozen e
+    PlayerEnchantment e -> grantsFrozen e
+    Until _ e -> grantsFrozen e
+    Frozen -> True
+    _ -> False
 
 
 class IsCharacterHandle a where
@@ -1009,7 +1019,7 @@ class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
     getAttackCount :: (HearthMonad m) => h -> Hearth m Int
     bumpAttackCount :: (HearthMonad m) => h -> Hearth m ()
     hasSummoningSickness :: (HearthMonad m) => h -> Hearth m Bool
-    isFrozen :: (HearthMonad m) => h -> Hearth m Bool
+    dynamicIsFrozen :: (HearthMonad m) => h -> Hearth m Bool
 
 
 instance CharacterTraits PlayerHandle where
@@ -1027,8 +1037,7 @@ instance CharacterTraits PlayerHandle where
         getPlayer pHandle.playerHero.boardHeroAttackCount += 1
     hasSummoningSickness _ = logCall 'hasSummoningSickness $ do
         return False
-    isFrozen pHandle = logCall 'isFrozen $ do
-        dynamicHasPlayerEnchantment (PlayerEnchantment Frozen) pHandle
+    dynamicIsFrozen = logCall 'dynamicIsFrozen $ dynamicIsFrozenPlayer
 
 
 auraAbilitiesOf :: [Ability] -> [Handle Minion -> Aura]
@@ -1081,6 +1090,7 @@ observeDynamicState action = logCall 'observeDynamicState $ local id $ do
                 getMinion minion.boardMinion.minionAttack .= Attack (health - damage)
                 getMinion minion.boardMinion.minionHealth .= Health attack
             Until _ enchantment -> applyMinionEnchantment minion enchantment
+            DelayedEffect {} -> return ()
         applyCharacterEnchantment :: (HearthMonad m) => Handle Character -> Enchantment t Character -> Hearth m ()
         applyCharacterEnchantment character = \case
             Until _ enchantment -> applyCharacterEnchantment character enchantment
@@ -1136,8 +1146,7 @@ instance CharacterTraits MinionHandle where
         case bm^.boardMinionNewlySummoned of
             False -> return False
             True -> liftM not $ dynamicHasCharge bmHandle
-    isFrozen handle = logCall 'isFrozen $ do
-        dynamicHasMinionEnchantment (MinionEnchantment Frozen) handle
+    dynamicIsFrozen = logCall 'dynamicIsFrozen $ dynamicIsFrozenMinion
 
 
 instance CharacterTraits CharacterHandle where
@@ -1162,9 +1171,9 @@ instance CharacterTraits CharacterHandle where
     hasSummoningSickness = logCall 'hasSummoningSickness $ \case
         PlayerCharacter h -> hasSummoningSickness h
         MinionCharacter h -> hasSummoningSickness h
-    isFrozen = logCall 'isFrozen $ \case
-        PlayerCharacter h -> isFrozen h
-        MinionCharacter h -> isFrozen h
+    dynamicIsFrozen = logCall 'dynamicIsFrozen $ \case
+        PlayerCharacter h -> dynamicIsFrozen h
+        MinionCharacter h -> dynamicIsFrozen h
 
 
 dynamicRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
@@ -1596,7 +1605,7 @@ enactAttack attacker defender = logCall 'enactAttack $ do
                             False -> do
                                 promptGameEvent $ AttackFailed OutOfAttacks
                                 return $ Failure "Character is out of attacks."
-                            True -> isFrozen attacker >>= \case
+                            True -> dynamicIsFrozen attacker >>= \case
                                 True -> do
                                     promptGameEvent $ AttackFailed AttackerIsFrozen
                                     return $ Failure "Attacker is frozen."

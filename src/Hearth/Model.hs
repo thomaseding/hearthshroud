@@ -359,15 +359,13 @@ data Enchantment :: * -> * -> * where
     MinionEnchantment :: Enchantment t Character -> Enchantment t Minion
     PlayerEnchantment :: Enchantment t Character -> Enchantment t Player
     Until :: TimePoint -> Enchantment Continuous a -> Enchantment Limited a
+    DelayedEffect :: TimePoint -> Effect -> Enchantment Limited Minion
     StatsDelta :: Attack -> Health -> Enchantment Continuous Character
     StatsScale :: Attack -> Health -> Enchantment Continuous Minion
     ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
     SwapStats :: Enchantment Continuous Minion
     Frozen :: Enchantment Continuous Character
     deriving (Typeable)
-
-
-deriving instance Eq (Enchantment t a)
 
 
 data AnyEnchantment :: * -> * where

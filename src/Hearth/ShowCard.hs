@@ -724,6 +724,7 @@ showEnchantment = \case
     MinionEnchantment e -> showEnchantment e
     PlayerEnchantment e -> showEnchantment e
     Until timePoint enchantment -> showUntil timePoint enchantment
+    DelayedEffect timePoint effect -> showDelayedEffect timePoint effect
     StatsDelta (Attack x) (Health y) -> return $ showWithSign x ++ "/" ++ showWithSign y
     StatsScale (Attack x) (Health y) -> return $ "Scale stats by " ++ show x ++ "/" ++ show y
     ChangeStat e -> case e of
@@ -731,6 +732,13 @@ showEnchantment = \case
         Right (Health y) -> return $ "Health changed to " ++ show y
     SwapStats -> return "Swapped attack and health"
     Frozen -> return "Frozen"
+
+
+showDelayedEffect :: TimePoint -> Effect -> ShowCard String
+showDelayedEffect timePoint effect = do
+    timePointStr <- showTimePoint timePoint
+    effectStr <- showEffect effect
+    return $ effectStr ++ " at " ++ timePointStr
 
 
 showUntil :: TimePoint -> Enchantment Continuous a -> ShowCard String

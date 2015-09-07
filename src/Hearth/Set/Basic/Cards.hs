@@ -41,6 +41,7 @@ cards = let x = toCard in [
     x cleave,
     x consecration,
     x coreHound,
+    x corruption,
     x darkscaleHealer,
     x deadlyShot,
     x divineSpirit,
@@ -275,6 +276,15 @@ consecration = mkSpell Paladin Consecration 4 $ \this ->
 
 coreHound :: Minion
 coreHound = mkMinion Neutral CoreHound [Beast] 7 9 5 []
+
+
+corruption :: Spell
+corruption = mkSpell Warlock Corruption 1 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            A $ Minion [OwnedBy opponent] $ \target ->
+                Effect $ Enchant target $ Limited $ DelayedEffect (Delay 1 BeginOfTurn) $ DestroyMinion target
+    
 
 
 darkscaleHealer :: Minion
