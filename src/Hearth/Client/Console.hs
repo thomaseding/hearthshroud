@@ -490,31 +490,40 @@ instance MonadPrompt HearthPrompt Console where
         PromptGameEvent snapshot e -> gameEvent snapshot e
         PromptAction snapshot -> getAction snapshot
         PromptShuffle xs -> liftIO $ shuffleM xs
-        PromptPickAtRandom p -> handlePromptPick p
-        PromptPickTargeted p -> handlePromptPick p
+        PromptPickAtRandom snapshot p -> handlePromptPick snapshot p
+        PromptPickTargeted snapshot p -> handlePromptPick snapshot p
         PromptMulligan _ xs -> return xs
 
 
-handlePromptPick :: (MakePick s) => PromptPick s a -> Console (PickResult s a)
-handlePromptPick = \case
-    PickMinion snapshot xs -> pickMinion snapshot xs
-    PickPlayer snapshot xs -> pickPlayer snapshot xs
-    PickCharacter snapshot xs -> pickCharacter snapshot xs
-    PickElect snapshot xs -> pickElect snapshot xs
+handlePromptPick :: (MakePick s) => GameSnapshot -> PromptPick s a -> Console (PickResult s a)
+handlePromptPick snapshot = \case
+    PickHandCard xs -> pickHandCard snapshot xs
+    PickMinion xs -> pickMinion snapshot xs
+    PickPlayer xs -> pickPlayer snapshot xs
+    PickCharacter xs -> pickCharacter snapshot xs
+    PickElect xs -> pickElect snapshot xs
+
+
+elemBy :: (a -> a -> Bool) -> a -> [a] -> Bool
+elemBy f x = \case
+    [] -> False
+    y : ys -> case f x y of
+        True -> True
+        False -> elemBy f x ys
 
 
 class MakePick s where
-    mkPick :: (Eq a) => (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> NonEmpty a -> Console (PickResult s a)
+    mkPick :: (a -> a -> Bool) -> (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> NonEmpty a -> Console (PickResult s a)
     pickElect :: GameSnapshot -> NonEmpty (Elect s) -> Console (PickResult s (Elect s))
 
 
 instance MakePick AtRandom where
-    mkPick _ _ = liftM AtRandomPick . pickRandom
+    mkPick _ _ _ = liftM AtRandomPick . pickRandom
     pickElect _ = liftM AtRandomPick . pickRandom
 
 
 instance MakePick Targeted where
-    mkPick fromSignedInt snapshot candidates = do
+    mkPick eq fromSignedInt snapshot candidates = do
         view isAutoplay >>= \case
             True -> liftM TargetedPick $ pickRandom candidates
             False -> let
@@ -526,7 +535,7 @@ instance MakePick Targeted where
                         mTarget <- runQuery snapshot $ fromSignedInt pendingTarget
                         case mTarget of
                             Nothing -> abort
-                            Just target -> case target `elem` toList candidates of
+                            Just target -> case elemBy eq target $ toList candidates of
                                 True -> return $ TargetedPick target
                                 False -> abort
     pickElect _ candidates = do
@@ -549,16 +558,22 @@ instance MakePick Targeted where
                             Just index -> return $ TargetedPick $ candidates' !! index
 
 
+pickHandCard :: (MakePick s) => GameSnapshot -> NonEmpty HandCard -> Console (PickResult s HandCard)
+pickHandCard = mkPick eq fetchHandCard
+    where
+        eq = (==) `on` cardName
+
+
 pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty MinionHandle -> Console (PickResult s MinionHandle)
-pickMinion = mkPick fetchMinionHandle
+pickMinion = mkPick (==) fetchMinionHandle
 
 
 pickPlayer :: (MakePick s) => GameSnapshot -> NonEmpty PlayerHandle -> Console (PickResult s PlayerHandle)
-pickPlayer = mkPick fetchPlayerHandle
+pickPlayer = mkPick (==) fetchPlayerHandle
 
 
 pickCharacter :: (MakePick s) => GameSnapshot -> NonEmpty CharacterHandle -> Console (PickResult s CharacterHandle)
-pickCharacter = mkPick fetchCharacterHandle
+pickCharacter = mkPick (==) fetchCharacterHandle
 
 
 enums :: (Enum a) => [a]
@@ -1063,6 +1078,19 @@ fetchPlayerHandle (SignedInt sign idx) = case idx of
         Positive -> getActivePlayerHandle
         Negative -> getNonActivePlayerHandle
     _ -> return Nothing
+
+
+fetchHandCard :: SignedInt -> Hearth Console (Maybe HandCard)
+fetchHandCard (SignedInt sign idx) = case idx of
+    0 -> return Nothing
+    _ -> do
+        snap <- lift $ view targetsSnapshot
+        lift $ runQuery snap $ do
+            p <- case sign of
+                Positive -> getActivePlayerHandle
+                Negative -> getNonActivePlayerHandle
+            Hand cs <- view $ getPlayer p.playerHand
+            return $ lookupIndex cs $ idx - 1
 
 
 fetchMinionHandle :: SignedInt -> Hearth Console (Maybe MinionHandle)

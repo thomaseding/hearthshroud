@@ -261,7 +261,7 @@ initGame = logCall 'initGame $ do
 flipCoin :: (HearthMonad m) => Hearth m ()
 flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     snap <- gets GameSnapshot
-    AtRandomPick handle <- prompt $ PromptPickAtRandom $ PickPlayer snap $ NonEmpty.fromList handles
+    AtRandomPick handle <- prompt $ PromptPickAtRandom snap $ PickPlayer $ NonEmpty.fromList handles
     let handles' = dropWhile (/= handle) $ cycle handles
     gamePlayerTurnOrder .= handles'
 
@@ -750,8 +750,24 @@ enactEffect = logCall 'enactEffect . \case
     PutInHand player card -> enactPutInHand player card >> return success
     Summon player minion loc -> enactSummon player minion loc >> return success
     RandomMissiles reqs n spell -> enactRandomMissiles reqs n spell >> return success
+    DiscardsAtRandom player -> enactDiscardsAtRandom player >> return success
     where
         success = purePick ()
+
+
+enactDiscardsAtRandom :: (HearthMonad m) => Handle Player -> Hearth m ()
+enactDiscardsAtRandom player = logCall 'enactDiscardsAtRandom $ do
+    Hand cards <- view $ getPlayer player.playerHand
+    pickFrom cards >>= \case
+        NotAvailable -> return ()
+        Available (AtRandomPick card) -> discardCard player card
+
+
+discardCard :: (HearthMonad m) => Handle Player -> HandCard -> Hearth m ()
+discardCard player candidate = logCall 'discardCard $ do
+    Hand cards <- view $ getPlayer player.playerHand
+    let cards' = deleteBy (on (==) cardName) candidate cards
+    getPlayer player.playerHand .= Hand cards'
 
 
 getMinionCount :: (HearthMonad m) => Handle Player -> Hearth m Int
@@ -1458,7 +1474,7 @@ instance CanSatisfy a [Requirement a] where
 
 
 class Pickable (s :: Selection) a where
-    promptPick :: GameSnapshot -> NonEmpty a -> PromptPick s a
+    promptPick :: NonEmpty a -> PromptPick s a
     pickFailError :: Proxy s -> Proxy a -> HearthError
     pickGuard :: Proxy s -> [a] -> a -> Bool
 
@@ -1481,6 +1497,12 @@ instance Pickable s CharacterHandle where
     pickGuard _ = flip elem
 
 
+instance Pickable s HandCard where
+    promptPick = PickHandCard
+    pickFailError _ _ = InvalidHandCard
+    pickGuard _ cs c = cardName c `elem` map cardName cs
+
+
 instance Pickable s (Elect s) where
     promptPick = PickElect
     pickFailError _ _ = InvalidElect
@@ -1497,7 +1519,7 @@ instance PickFrom AtRandom where
         [] -> return NotAvailable
         xs -> liftM Available $ do
             snapshot <- gets GameSnapshot
-            guardedPrompt (PromptPickAtRandom $ promptPick snapshot $ NonEmpty.fromList xs) $ \case
+            guardedPrompt (PromptPickAtRandom snapshot $ promptPick $ NonEmpty.fromList xs) $ \case
                 AtRandomPick x -> case pickGuard (Proxy :: Proxy AtRandom) xs x of
                     True -> return True
                     False -> do
@@ -1511,7 +1533,7 @@ instance PickFrom Targeted where
         [] -> return NotAvailable
         xs -> liftM Available $ do
             snapshot <- gets GameSnapshot
-            guardedPrompt (PromptPickTargeted $ promptPick snapshot $ NonEmpty.fromList xs) $ \case
+            guardedPrompt (PromptPickTargeted snapshot $ promptPick $ NonEmpty.fromList xs) $ \case
                 AbortTargetedPick -> return True
                 TargetedPick x -> case pickGuard (Proxy :: Proxy Targeted) xs x of
                     True -> return True

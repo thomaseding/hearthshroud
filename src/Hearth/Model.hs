@@ -299,6 +299,7 @@ data Effect :: * where
     PutInHand :: Handle Player -> Card -> Effect
     Summon :: Handle Player -> Minion -> BoardLocation -> Effect
     RandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> Effect
+    DiscardsAtRandom :: Handle Player -> Effect
     deriving (Typeable)
 
 

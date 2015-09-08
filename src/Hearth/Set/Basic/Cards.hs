@@ -131,6 +131,7 @@ cards = let x = toCard in [
     x silverbackPatriarch,
     x silverHandRecruit,
     x sinisterStrike,
+    x soulfire,
     x sprint,
     x starfire,
     x stoneclawTotem,
@@ -138,6 +139,7 @@ cards = let x = toCard in [
     x stormpikeCommando,
     x stormwindChampion,
     x stormwindKnight,
+    x succubus,
     x swipe,
     x theCoin,
     x timberWolf,
@@ -913,6 +915,15 @@ sinisterStrike = mkSpell Rogue SinisterStrike 1 $ \this ->
             Effect $ (this `damages` opponent) 3
 
 
+soulfire :: Spell
+soulfire = mkSpell Warlock Soulfire 1 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Character [] $ \victim ->
+            Effect $ Sequence [
+                (this `damages` victim) 4,
+                DiscardsAtRandom you ]
+
+
 sprint :: Spell
 sprint = mkSpell Rogue Sprint 7 $ \this ->
     OwnerOf this $ \you ->
@@ -956,6 +967,13 @@ stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
         AuraOwnerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
                 Has minion $ statsDelta 1 1 ]
+
+
+succubus :: Minion
+succubus = mkMinion Warlock Succubus [Demon] 2 4 3 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ DiscardsAtRandom you ]
 
 
 swipe :: Spell

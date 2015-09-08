@@ -27,6 +27,7 @@ import Hearth.Model
 data HearthError
     = InvalidMulligan
     | InvalidShuffle
+    | InvalidHandCard
     | InvalidMinion
     | InvalidPlayer
     | InvalidCharacter
@@ -55,15 +56,16 @@ data HearthPrompt :: * -> * where
     PromptAction :: GameSnapshot -> HearthPrompt Action
     PromptShuffle :: [a] -> HearthPrompt [a]
     PromptMulligan :: Handle Player -> [HandCard] -> HearthPrompt [HandCard]
-    PromptPickAtRandom :: PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
-    PromptPickTargeted :: PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
+    PromptPickAtRandom :: GameSnapshot -> PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
+    PromptPickTargeted :: GameSnapshot -> PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
 
 
 data PromptPick :: Selection -> * -> * where
-    PickMinion :: GameSnapshot -> NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
-    PickPlayer :: GameSnapshot -> NonEmpty (Handle Player) -> PromptPick s (Handle Player)
-    PickCharacter :: GameSnapshot -> NonEmpty (Handle Character) -> PromptPick s (Handle Character)
-    PickElect :: GameSnapshot -> NonEmpty (Elect s) -> PromptPick s (Elect s)
+    PickHandCard :: NonEmpty HandCard -> PromptPick s HandCard
+    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
+    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s (Handle Player)
+    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s (Handle Character)
+    PickElect :: NonEmpty (Elect s) -> PromptPick s (Elect s)
 
 
 

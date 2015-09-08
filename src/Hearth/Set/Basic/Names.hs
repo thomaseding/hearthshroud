@@ -126,6 +126,7 @@ data BasicCardName
     | SilverbackPatriarch
     | SilverHandRecruit
     | SinisterStrike
+    | Soulfire
     | Sprint
     | Starfire
     | StoneclawTotem
@@ -133,6 +134,7 @@ data BasicCardName
     | StormpikeCommando
     | StormwindChampion
     | StormwindKnight
+    | Succubus
     | Swipe
     | TheCoin
     | TimberWolf
