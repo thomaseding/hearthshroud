@@ -60,6 +60,7 @@ data BasicCardName
     | FrostShock
     | FrostwolfGrunt
     | FrostwolfWarlord
+    | GrimscaleOracle
     | GurubashiBerserker
     | GnomishInventor
     | GoldshireFootman
@@ -74,12 +75,14 @@ data BasicCardName
     | HolyLight
     | HolyNova
     | HolySmite
+    | Houndmaster
     | Huffer
     | Humility
     | Hunter'sMark
     | Innervate
     | IronbarkProtector
     | IronforgeRifleman
+    | KillCommand
     | KoboldGeomancer
     | Kor'kronElite
     | Leokk
@@ -88,7 +91,8 @@ data BasicCardName
     | MarkOfTheWild
     | MechanicalDragonling
     | MindBlast
-    | MirrorImage
+    | MirrorImage_Minion
+    | MirrorImage_Spell
     | Misha
     | Moonfire
     | MortalCoil
@@ -108,6 +112,7 @@ data BasicCardName
     | RecklessRocketeer
     | RiverCrocolisk
     | RockbiterWeapon
+    | SacrificialPact
     | SavageRoar
     | SearingTotem
     | Sen'jinShieldmasta
@@ -116,6 +121,7 @@ data BasicCardName
     | ShadowWordPain
     | ShatteredSunCleric
     | Sheep
+    | ShieldBlock
     | Shiv
     | SilverbackPatriarch
     | SilverHandRecruit
@@ -129,6 +135,9 @@ data BasicCardName
     | StormwindKnight
     | Swipe
     | TheCoin
+    | TimberWolf
+    | TotemicMight
+    | TundraRhino
     | Voidwalker
     | VoodooDoctor
     | WarGolem
@@ -136,6 +145,7 @@ data BasicCardName
     | Whirlwind
     | WildGrowth
     | WolfRider
+    | WrathOfAirTotem
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 

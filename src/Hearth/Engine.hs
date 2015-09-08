@@ -39,6 +39,7 @@ import Data.Maybe
 import Data.NonEmpty (NonEmpty)
 import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
+import qualified Data.Set as Set
 import Hearth.Action
 import Hearth.CardName
 import Hearth.Cards (cardByName, cardName)
@@ -1111,6 +1112,7 @@ enactAura = logCall 'enactAura $ \case
     While handle requirements aura -> enactWhile handle requirements aura
     EachMinion requirements cont -> enactEachMinion requirements cont
     Has handle enchantment -> enactHas handle enchantment
+    HasAbility handle ability -> enactHasAbility handle ability
 
 
 enactEachMinion :: (HearthMonad m) => [Requirement Minion] -> (Handle Minion -> Aura) -> Hearth m ()
@@ -1127,6 +1129,11 @@ enactWhile handle requirements = logCall 'enactWhile $ whenM (satisfies handle r
 enactHas :: (HearthMonad m) => Handle Minion -> Enchantment Continuous Minion -> Hearth m ()
 enactHas handle enchantment = logCall 'enactHas $ do
     getMinion handle.boardMinionEnchantments %= (++ [Continuous enchantment])
+
+
+enactHasAbility :: (HearthMonad m) => Handle Minion -> Ability -> Hearth m ()
+enactHasAbility handle ability = logCall 'enactHasAbility $ do
+    getMinion handle.boardMinionAbilities %= (++ [ability])
 
 
 instance CharacterTraits MinionHandle where
@@ -1440,6 +1447,10 @@ instance CanSatisfy a (Requirement a) where
             view playerTotalManaCrystals >>= \case
                 MaxManaCrystals -> liftM (== 0) $ view playerTemporaryManaCrystals
                 _ -> return False
+        HasType minionType -> view $ getMinion candidate.boardMinion.minionTypes.to (Set.member minionType)
+        HasMinion reqs -> do
+            minions <- viewListOf $ getPlayer candidate.playerMinions.traversed.boardMinionHandle
+            anyM (`satisfies` reqs) minions
 
 
 instance CanSatisfy a [Requirement a] where

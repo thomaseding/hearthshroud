@@ -67,6 +67,7 @@ cards = let x = toCard in [
     x frostwolfWarlord,
     x gnomishInventor,
     x goldshireFootman,
+    x grimscaleOracle,
     x guardianOfKings,
     x gurubashiBerserker,
     x hammerOfWrath,
@@ -79,12 +80,14 @@ cards = let x = toCard in [
     x holyLight,
     x holyNova,
     x holySmite,
+    x houndmaster,
     x huffer,
     x humility,
     x hunter'sMark,
     x ironbarkProtector,
     x innervate,
     x ironforgeRifleman,
+    x killCommand,
     x koboldGeomancer,
     x kor'kronElite,
     x leokk,
@@ -93,6 +96,8 @@ cards = let x = toCard in [
     x markOfTheWild,
     x mechanicalDragonling,
     x mindBlast,
+    x mirrorImage_minion,
+    x mirrorImage_spell,
     x misha,
     x moonfire,
     x mortalCoil,
@@ -112,6 +117,7 @@ cards = let x = toCard in [
     x recklessRocketeer,
     x riverCrocolisk,
     x rockbiterWeapon,
+    x sacrificialPact,
     x savageRoar,
     x searingTotem,
     x sen'jinShieldmasta,
@@ -120,8 +126,10 @@ cards = let x = toCard in [
     x shadowWordPain,
     x shatteredSunCleric,
     x sheep,
+    x shieldBlock,
     x shiv,
     x silverbackPatriarch,
+    x silverHandRecruit,
     x sinisterStrike,
     x sprint,
     x starfire,
@@ -132,13 +140,17 @@ cards = let x = toCard in [
     x stormwindKnight,
     x swipe,
     x theCoin,
+    x timberWolf,
+    x totemicMight,
+    x tundraRhino,
     x voidwalker,
     x voodooDoctor,
     x waterElemental,
     x warGolem,
     x whirlwind,
     x wildGrowth,
-    x wolfRider ]
+    x wolfRider,
+    x wrathOfAirTotem ]
 
 
 --------------------------------------------------------------------------------
@@ -158,10 +170,10 @@ mkSpell = mkSpell' BasicCardName Free
 animalCompanion :: Spell
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Elect $ Choice $ map Effect [
-            (you `Summon` huffer) Rightmost,
-            (you `Summon` leokk) Rightmost,
-            (you `Summon` misha) Rightmost ]
+        Effect $ Elect $ Choice $ map (\minion -> Effect $ (you `Summon` minion) Rightmost) [
+            huffer,
+            leokk,
+            misha ]
 
 
 arcaneExplosion :: Spell
@@ -472,6 +484,13 @@ goldshireFootman = mkMinion Neutral GoldshireFootman [] 1 1 2 [
     Taunt ]
 
 
+grimscaleOracle :: Minion
+grimscaleOracle = mkMinion Neutral GrimscaleOracle [Murloc] 1 1 1 [
+    Aura $ \this ->
+        EachMinion [Not this, HasType Murloc] $ \minion ->
+            Has minion $ statsDelta 1 0 ]
+
+
 guardianOfKings :: Minion
 guardianOfKings = mkMinion Paladin GuardianOfKings [] 7 5 6 [
     Battlecry $ \this ->
@@ -562,6 +581,17 @@ holySmite = mkSpell Priest HolySmite 1 $ \this ->
         Effect $ (this `damages` target) 2
 
 
+houndmaster :: Minion
+houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            A $ Minion [OwnedBy you, HasType Beast] $ \beast ->
+                Effect $ Sequence [
+                    Enchant beast $ Continuous $ statsDelta 2 2,
+                    GrantAbilities beast [
+                        Taunt ]]]
+
+
 huffer :: Minion
 huffer = uncollectible $ mkMinion Hunter Huffer [Beast] 3 4 2 [
     Charge ]
@@ -607,6 +637,16 @@ ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
             Effect $ (this `damages` target) 1 ]
 
 
+killCommand :: Spell
+killCommand = mkSpell Hunter KillCommand 3 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Character [] $ \victim -> let
+            deal = this `damages` victim
+            in Effect $ If (you `Satisfies` [HasMinion [HasType Beast]])
+                (deal 5)
+                (deal 3)
+
+
 leokk :: Minion
 leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
     Aura $ \this ->
@@ -642,6 +682,17 @@ mindBlast = mkSpell Priest MindBlast 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 5
+
+
+mirrorImage_minion :: Minion
+mirrorImage_minion = uncollectible $ mkMinion Mage MirrorImage_Minion [] 1 0 2 [
+    Taunt ]
+
+
+mirrorImage_spell :: Spell
+mirrorImage_spell = mkSpell Mage MirrorImage_Spell 1 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Sequence $ replicate 2 $ (you `Summon` mirrorImage_minion) Rightmost
 
 
 misha :: Minion
@@ -773,6 +824,15 @@ rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
             Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 3 0
 
 
+sacrificialPact :: Spell
+sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Minion [HasType Demon] $ \demon ->
+            Effect $ Sequence [
+                DestroyMinion demon,
+                RestoreHealth (PlayerCharacter you) 5 ]
+
+
 savageRoar :: Spell
 savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
     OwnerOf this $ \you ->
@@ -820,6 +880,14 @@ sheep :: Minion
 sheep = uncollectible $ mkMinion Neutral Sheep [Beast] 0 1 1 []
 
 
+shieldBlock :: Spell
+shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Sequence [
+            GainArmor you 5,
+            DrawCards you 1 ]
+
+
 shiv :: Spell
 shiv = mkSpell Rogue Shiv 2 $ \this ->
     A $ Character [] $ \target ->
@@ -832,6 +900,10 @@ shiv = mkSpell Rogue Shiv 2 $ \this ->
 silverbackPatriarch :: Minion
 silverbackPatriarch = mkMinion Neutral SilverbackPatriarch [Beast] 3 1 4 [
     Taunt ]
+
+
+silverHandRecruit :: Minion
+silverHandRecruit = uncollectible $ mkMinion Paladin SilverHandRecruit [] 1 1 1 []
 
 
 sinisterStrike :: Spell
@@ -904,6 +976,30 @@ theCoin = uncollectible $ mkSpell Neutral TheCoin 0 $ \this ->
         Effect $ GainManaCrystals you 1 CrystalTemporary
 
 
+timberWolf :: Minion
+timberWolf = mkMinion Hunter TimberWolf [Beast] 1 1 1 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [OwnedBy you, Not this, HasType Beast] $ \minion ->
+                Has minion $ statsDelta 1 0 ]
+
+
+totemicMight :: Spell
+totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
+    OwnerOf this $ \you ->
+        All $ Minions [OwnedBy you, HasType Totem] $ \totems ->
+            Effect $ ForEach totems $ \totem ->
+                Enchant totem $ Continuous $ statsDelta 0 2
+
+
+tundraRhino :: Minion
+tundraRhino = mkMinion Hunter TundraRhino [Beast] 5 2 5 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [OwnedBy you, HasType Beast] $ \minion ->
+                HasAbility minion Charge ]
+
+
 voidwalker :: Minion
 voidwalker = mkMinion Warlock Voidwalker [Demon] 1 1 3 [
     Taunt ]
@@ -946,6 +1042,11 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
 wolfRider :: Minion
 wolfRider = mkMinion Neutral WolfRider [] 3 3 1 [
     Charge ]
+
+
+wrathOfAirTotem :: Minion
+wrathOfAirTotem = uncollectible $ mkMinion Shaman WrathOfAirTotem [Totem] 1 0 2 [
+    SpellDamage 1 ]
 
 
 

@@ -231,6 +231,8 @@ data Requirement :: * -> * where
     IsMinion :: Requirement Character
     AdjacentTo :: Handle Minion -> Requirement Minion
     HasMaxManaCrystals :: Requirement Player
+    HasType :: MinionType -> Requirement Minion
+    HasMinion :: [Requirement Minion] -> Requirement Player
 
 
 data Comparison
@@ -314,6 +316,7 @@ data Aura :: * where
     While :: Handle a -> [Requirement a] -> Aura -> Aura
     EachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> Aura
     Has :: Handle Minion -> Enchantment Continuous Minion -> Aura
+    HasAbility :: Handle Minion -> Ability -> Aura
 
 
 data Ability :: * where

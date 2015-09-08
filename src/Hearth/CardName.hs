@@ -25,7 +25,7 @@ data CardName :: * where
 
 
 showCardName :: CardName -> String
-showCardName = \case
+showCardName = takeWhile (/= '_') . \case
     BasicCardName name -> show name
     ClassicCardName name -> show name
 

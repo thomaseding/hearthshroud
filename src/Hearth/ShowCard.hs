@@ -282,7 +282,8 @@ showAura = \case
     AuraOpponentOf handle cont -> showOpponentOf showAura handle cont
     While handle requirements cont -> showWhile handle requirements cont
     EachMinion requirements cont -> showEachMinion requirements cont
-    Has handle enchantments -> showHas handle enchantments
+    Has handle enchantment -> showHas handle enchantment
+    HasAbility handle ability -> showHasAbility handle ability
 
 
 showEachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> ShowCard String
@@ -298,6 +299,13 @@ showHas minion enchantment = do
     minionStr <- readHandle minion
     enchantmentStr <- showEnchantment enchantment
     return $ unwords [minionStr, "has", enchantmentStr]
+
+
+showHasAbility :: Handle Minion -> Ability -> ShowCard String
+showHasAbility minion ability = do
+    minionStr <- readHandle minion
+    abilityStr <- showAbility ability
+    return $ unwords [minionStr, "has", abilityStr]
 
 
 showWhile :: Handle a -> [Requirement a] -> Aura -> ShowCard String
@@ -656,6 +664,10 @@ showRequirement = \case
     IsMinion -> return "IS_MINION"
     AdjacentTo handle -> readHandle handle >>= \str -> return ("ADJACENT_TO " ++ str)
     HasMaxManaCrystals -> return "HAS_MAX_MANA_CRYSTALS"
+    HasType minionType -> return $ "is " ++ show minionType
+    HasMinion reqs -> do
+        reqsStr <- showRequirements reqs
+        return $ "HAS_MINION" ++ reqsStr
 
 
 showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle Player -> x) -> ShowCard String
