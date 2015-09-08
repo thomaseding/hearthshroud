@@ -469,7 +469,7 @@ frostwolfWarlord :: Minion
 frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            All $ Minions [OwnedBy you, Not this] $ \minions -> do
+            All $ Minions [OwnedBy you, Not this] $ \minions ->
                 Effect $ ForEach minions $ \_ ->
                     Enchant this $ Continuous $ statsDelta 1 1 ]
 
@@ -1048,7 +1048,6 @@ whirlwind = mkSpell Warrior Whirlwind 1 $ \this ->
             (this `damages` minion) 1
 
 
--- TODO: ExcessMana effect
 wildGrowth :: Spell
 wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
     OwnerOf this $ \you ->
