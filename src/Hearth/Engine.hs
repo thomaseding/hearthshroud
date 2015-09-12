@@ -43,7 +43,6 @@ import qualified Data.Set as Set
 import Hearth.Action
 import Hearth.CardName
 import Hearth.Cards (cardByName, cardName)
-import Hearth.DebugEvent
 import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.Model
@@ -203,9 +202,7 @@ instance Ownable (Handle a) where
             case players' of
                 [player] -> return $ player^.playerHandle
                 _ -> $logicError 'ownerOf $ "Invalid handle: " ++ show h
-        h @ PlayerHandle {} -> do
-            prompt $ PromptDebugEvent $ DiagnosticMessage $ "Warning: " ++ show 'ownerOf ++ " used with " ++ show 'PlayerHandle
-            return h
+        h @ PlayerHandle {} -> return h
         MinionCharacter h -> ownerOf h
         PlayerCharacter h -> ownerOf h
 
@@ -909,11 +906,6 @@ condensePickResults :: (PurePick s) => [SimplePickResult s] -> SimplePickResult 
 condensePickResults results = case dropWhile (== purePick ()) results of
     [] -> purePick ()
     r : _ -> r
-
-
-grantAbilities :: (HearthMonad m) => Handle Minion -> [Ability] -> Hearth m ()
-grantAbilities handle abilities = logCall 'grantAbilities $ do
-    getMinion handle.boardMinionAbilities %= (abilities ++)
 
 
 enactEnchant :: (HearthMonad m) => Handle a -> AnyEnchantment a -> Hearth m ()
@@ -1633,7 +1625,7 @@ viewAbility predicate bmHandle = logCall 'viewAbility $ do
 
 viewWindfury :: (HearthMonad m) => Handle Minion -> Hearth m Bool
 viewWindfury = logCall 'viewWindfury $ viewAbility $ \case
-    Taunt -> True
+    Windfury -> True
     _ -> False
 
 
