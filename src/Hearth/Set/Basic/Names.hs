@@ -146,6 +146,8 @@ data BasicCardName
     | WaterElemental
     | Whirlwind
     | WildGrowth
+    | Windfury
+    | Windspeaker
     | WolfRider
     | WrathOfAirTotem
     deriving (Show, Eq, Ord, Enum, Data, Typeable)

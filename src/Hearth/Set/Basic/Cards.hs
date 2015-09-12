@@ -12,7 +12,7 @@ module Hearth.Set.Basic.Cards (
 import Hearth.Authoring.Combinators
 import Hearth.CardName
 import Hearth.Model
-import Hearth.Set.Basic.Names hiding (Charge)
+import Hearth.Set.Basic.Names hiding (Charge, Windfury)
 import qualified Hearth.Set.Basic.Names as Basic
 
 
@@ -151,6 +151,8 @@ cards = let x = toCard in [
     x warGolem,
     x whirlwind,
     x wildGrowth,
+    x windfury,
+    x windspeaker,
     x wolfRider,
     x wrathOfAirTotem ]
 
@@ -1050,6 +1052,20 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
         Effect $ If (you `Satisfies` [HasMaxManaCrystals])
             (PutInHand you $ SpellCard excessMana)
             $ GainManaCrystals you 1 CrystalEmpty
+
+
+windfury :: Spell
+windfury = mkSpell Shaman Basic.Windfury 2 $ \_ ->
+    A $ Minion [] $ \target ->
+        Effect $ Enchant target $ Continuous $ Grant Windfury
+
+
+windspeaker :: Minion
+windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            A $ Minion [Not this, OwnedBy you] $ \target ->
+                Effect $ Enchant target $ Continuous $ Grant Windfury ]
 
 
 wolfRider :: Minion
