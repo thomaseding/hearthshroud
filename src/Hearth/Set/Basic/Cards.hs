@@ -271,8 +271,7 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
         A $ Minion [OwnedBy you] $ \target ->
             Effect $ Sequence [
                 Enchant target $ Continuous $ statsDelta 2 0,
-                GrantAbilities target [
-                    Charge ]]
+                Enchant target $ Continuous $ Grant Charge ]
 
 
 chillwindYeti :: Minion
@@ -519,8 +518,7 @@ hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
 handOfProtection :: Spell
 handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
     A $ Minion [] $ \target ->
-        Effect $ GrantAbilities target [
-            DivineShield ]
+        Effect $ Enchant target $ Continuous $ Grant DivineShield
 
 
 healingTotem :: Minion
@@ -590,8 +588,7 @@ houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
             A $ Minion [OwnedBy you, HasType Beast] $ \beast ->
                 Effect $ Sequence [
                     Enchant beast $ Continuous $ statsDelta 2 2,
-                    GrantAbilities beast [
-                        Taunt ]]]
+                    Enchant beast $ Continuous $ Grant Taunt ]]
 
 
 huffer :: Minion
@@ -666,8 +663,7 @@ markOfTheWild :: Spell
 markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
-            GrantAbilities target [
-                Taunt ],
+            Enchant target $ Continuous $ Grant Taunt,
             Enchant target $ Continuous $ statsDelta 2 2 ]
 
 

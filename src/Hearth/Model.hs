@@ -287,7 +287,6 @@ data Effect :: * where
     DrawCards :: Handle Player -> Int -> Effect
     DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
     Enchant :: Handle a -> AnyEnchantment a -> Effect
-    GrantAbilities :: Handle Minion -> [Ability] -> Effect
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
     RestoreHealth :: Handle Character -> Health -> Effect
@@ -330,6 +329,7 @@ data Ability :: * where
     Enrage :: [Ability] -> [Enchantment Continuous Minion] -> Ability
     Taunt :: Ability
     SpellDamage :: Int -> Ability
+    Windfury :: Ability
     deriving (Typeable)
 
 
@@ -371,6 +371,7 @@ data Enchantment :: * -> * -> * where
     StatsScale :: Attack -> Health -> Enchantment Continuous Minion
     ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
     SwapStats :: Enchantment Continuous Minion
+    Grant :: Ability -> Enchantment Continuous Minion
     Frozen :: Enchantment Continuous Character
     deriving (Typeable)
 

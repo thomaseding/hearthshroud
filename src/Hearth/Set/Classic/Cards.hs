@@ -143,8 +143,7 @@ argentProtector = mkMinion Common Paladin ArgentProtector [] 2 2 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion [OwnedBy you, Not this] $ \target ->
-                Effect $ GrantAbilities target [
-                    DivineShield ]]
+                Effect $ Enchant target $ Continuous $ Grant DivineShield ]
 
 
 argentSquire :: Minion
@@ -341,8 +340,7 @@ markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
         A $ Minion [] $ \target ->
             Effect $ Sequence [
                 Enchant target $ Continuous $ statsDelta 0 4,
-                GrantAbilities target [
-                    Taunt ]]]
+                Enchant target $ Continuous $ Grant Taunt ]]
 
 
 massDispel :: Spell

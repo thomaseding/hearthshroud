@@ -270,6 +270,7 @@ showAbility = \case
     Enrage abilities enchantments -> showEnrage abilities enchantments
     Taunt -> return "Taunt"
     SpellDamage n -> return $ "Spell Damage +" ++ show n
+    Windfury -> return "Windfury"
 
 
 showAuraAbility :: (Handle Minion -> Aura) -> ShowCard String
@@ -393,7 +394,6 @@ showEffect = \case
     DrawCards handle n -> showDrawCards handle n
     DealDamage victim damage source -> showDealDamage victim damage source
     Enchant handle enchantments -> showEnchant handle enchantments
-    GrantAbilities handle abilities -> showGrantAbilities handle abilities
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
@@ -731,13 +731,6 @@ showEnchant minion enchantment = do
     return $ unwords ["Give", minionStr, enchantmentStr]
 
 
-showGrantAbilities :: Handle Minion -> [Ability] -> ShowCard String
-showGrantAbilities minion abilities = do
-    minionStr <- readHandle minion
-    abilitiesStr <- showAbilities abilities
-    return $ unwords ["Grant", minionStr, abilitiesStr]
-
-
 showGainManaCrystals :: Handle Player -> Int -> CrystalState -> ShowCard String
 showGainManaCrystals player amount crystalState = do
     playerStr <- readHandle player
@@ -766,6 +759,7 @@ showEnchantment = \case
         Left (Attack x) -> return $ "Attack changed to " ++ show x
         Right (Health y) -> return $ "Health changed to " ++ show y
     SwapStats -> return "Swapped attack and health"
+    Grant ability -> showAbility ability >>= \str -> return $ "Grant " ++ str
     Frozen -> return "Frozen"
 
 
