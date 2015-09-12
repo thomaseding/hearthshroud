@@ -347,7 +347,7 @@ isDead character = logCall 'isDead $ isMortallyWounded character >>= \case
 
 
 isMortallyWounded :: (HearthMonad m) => Handle Character -> Hearth m Bool
-isMortallyWounded = logCall 'isMortallyWounded $ liftM (<= 0) . dynamicRemainingHealth
+isMortallyWounded = logCall 'isMortallyWounded $ liftM (<= 0) . dynamic . viewRemainingHealth
 
 
 shuffleDeck :: (HearthMonad m) => Handle Player -> Hearth m ()
@@ -571,7 +571,7 @@ actionHeroPower = logCall 'actionHeroPower $ do
 
 concede :: (HearthMonad m) => Handle Player -> Hearth m ()
 concede p = logCall 'concede $ do
-    health <- dynamicMaxHealth p
+    health <- dynamic $ viewMaxHealth p
     getPlayer p.playerHero.boardHeroDamage .= Damage (unHealth health)
 
 
@@ -688,7 +688,7 @@ enactSpell spell = logCall 'enactSpell $ scopedPhase SpellPhase $ do
 
 enactAnyDeathrattles :: (HearthMonad m) => Handle Minion -> Hearth m ()
 enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
-    abilities <- dynamicMinionAbilities bmHandle
+    abilities <- dynamic $ viewMinionAbilities bmHandle
     forM_ abilities $ \case
         Deathrattle elect -> enactDeathrattle bmHandle elect
         _ -> return ()
@@ -697,7 +697,7 @@ enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
 enactAnyBattleCries :: (HearthMonad m) => Handle Minion -> Hearth m Result
 enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
     st <- get
-    abilities <- dynamicMinionAbilities bmHandle
+    abilities <- dynamic $ viewMinionAbilities bmHandle
     result <- liftM condensePickResults $ forM abilities $ \case
         Battlecry effect -> enactBattlecry bmHandle effect
         _ -> return $ purePick ()
@@ -839,7 +839,7 @@ freeze character = logCall 'freeze $ do
     owner <- ownerOf character
     timePoint <- case active == owner of
         False -> return $ Delay 1 BeginOfTurn
-        True -> liftM (== 0) (getAttackCount character) >>= \case
+        True -> liftM (== 0) (viewAttackCount character) >>= \case
             True -> return EndOfTurn
             False -> return $ Delay 1 EndOfTurn
     case character of
@@ -946,30 +946,25 @@ enactEnchantCharacter character enchantment = logCall 'enactEnchantCharacter $ c
             Continuous e -> Continuous $ f e
 
 
-staticIsDamaged :: BoardMinion -> Bool
-staticIsDamaged bm = bm^.boardMinionDamage > 0
+viewIsDamaged :: BoardMinion -> Bool
+viewIsDamaged bm = bm^.boardMinionDamage > 0
 
 
-dynamicMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
-dynamicMinionAbilities minion = logCall 'dynamicMinionAbilities $ observeDynamicState $ do
-    staticMinionAbilities minion
-
-
-staticMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
-staticMinionAbilities bmHandle = logCall 'staticMinionAbilities $ do
+viewMinionAbilities :: (HearthMonad m) => Handle Minion -> Hearth m [Ability]
+viewMinionAbilities bmHandle = logCall 'viewMinionAbilities $ do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
-        Enrage abilities _ -> case staticIsDamaged bm of
+        Enrage abilities _ -> case viewIsDamaged bm of
             True -> ability : abilities  -- TODO: Need to check correct interleaving.
             False -> [ability]
         _ -> [ability]
 
 
-staticMinionEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment Minion]
-staticMinionEnchantments bmHandle = logCall 'staticMinionEnchantments $ do
+viewMinionEnchantments :: (HearthMonad m) => Handle Minion -> Hearth m [AnyEnchantment Minion]
+viewMinionEnchantments bmHandle = logCall 'viewMinionEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
-        enrageEnchantments = case staticIsDamaged bm of
+        enrageEnchantments = case viewIsDamaged bm of
             False -> []
             True -> bm^.boardMinionAbilities >>= \case
                 Enrage _ es -> es
@@ -977,8 +972,8 @@ staticMinionEnchantments bmHandle = logCall 'staticMinionEnchantments $ do
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
-staticPlayerEnchantments :: (HearthMonad m) => Handle Player -> Hearth m [AnyEnchantment Player]
-staticPlayerEnchantments player = logCall 'staticPlayerEnchantments $ do
+viewPlayerEnchantments :: (HearthMonad m) => Handle Player -> Hearth m [AnyEnchantment Player]
+viewPlayerEnchantments player = logCall 'viewPlayerEnchantments $ do
     view $ getPlayer player.playerEnchantments
 
 
@@ -989,18 +984,18 @@ underAnyEnchantment f = \case
 
 
 class SatisfiesEnchantment a where
-    dynamicSatisfiesEnchantment :: (HearthMonad m) => (forall t. Enchantment t a -> Bool) -> Handle a -> Hearth m Bool
+    viewSatisfiesEnchantment :: (HearthMonad m) => (forall t. Enchantment t a -> Bool) -> Handle a -> Hearth m Bool
 
 
 instance SatisfiesEnchantment Minion where
-    dynamicSatisfiesEnchantment p minion = logCall 'dynamicSatisfiesEnchantment $ observeDynamicState $ do
-        enchantments <- staticMinionEnchantments minion
+    viewSatisfiesEnchantment p minion = logCall 'viewSatisfiesEnchantment $ do
+        enchantments <- viewMinionEnchantments minion
         return $ any (underAnyEnchantment p) enchantments
 
 
 instance SatisfiesEnchantment Player where
-    dynamicSatisfiesEnchantment p player = logCall 'dynamicSatisfiesEnchantment $ observeDynamicState $ do
-        enchantments <- staticPlayerEnchantments player
+    viewSatisfiesEnchantment p player = logCall 'viewSatisfiesEnchantment $ do
+        enchantments <- viewPlayerEnchantments player
         return $ any (underAnyEnchantment p) enchantments
 
 
@@ -1010,15 +1005,6 @@ discoverEnchantment p = \case
     MinionEnchantment e -> discoverEnchantment p e
     PlayerEnchantment e -> discoverEnchantment p e
     e -> p e
-
-
-grantsWindfury :: Enchantment t a -> Bool
-grantsWindfury = \case
-    MinionEnchantment e -> grantsWindfury e
-    PlayerEnchantment e -> grantsWindfury e
-    Until _ e -> grantsWindfury e
-    Grant Windfury -> True
-    _ -> False
 
 
 grantsFrozen :: Enchantment t a -> Bool
@@ -1052,32 +1038,33 @@ instance IsCharacterHandle BoardMinion where
 
 -- TODO: Make CharacterTraits not a class and just make it a constraint over a bunch of modular classes
 class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
-    dynamicDamage :: (HearthMonad m) => h -> Hearth m Damage
-    dynamicAttack :: (HearthMonad m) => h -> Hearth m Attack
-    dynamicMaxHealth :: (HearthMonad m) => h -> Hearth m Health
-    dynamicMaxAttackCount :: (HearthMonad m) => h -> Hearth m Int
-    getAttackCount :: (HearthMonad m) => h -> Hearth m Int
     bumpAttackCount :: (HearthMonad m) => h -> Hearth m ()
-    hasSummoningSickness :: (HearthMonad m) => h -> Hearth m Bool
-    dynamicIsFrozen :: (HearthMonad m) => h -> Hearth m Bool
+    viewAttackCount :: (HearthMonad m) => h -> Hearth m Int
+    viewMaxAttackCount :: (HearthMonad m) => h -> Hearth m Int
+    viewDamage :: (HearthMonad m) => h -> Hearth m Damage
+    viewAttack :: (HearthMonad m) => h -> Hearth m Attack
+    viewMaxHealth :: (HearthMonad m) => h -> Hearth m Health
+    viewSummoningSickness :: (HearthMonad m) => h -> Hearth m Bool
+    viewIsFrozen :: (HearthMonad m) => h -> Hearth m Bool
 
 
 instance CharacterTraits PlayerHandle where
-    dynamicDamage pHandle = logCall 'dynamicDamage $ do
-        view $ getPlayer pHandle.playerHero.boardHeroDamage
-    dynamicAttack pHandle = logCall 'dynamicAttack $ observeDynamicState $ do
-        view $ getPlayer pHandle.playerHero.boardHero.heroAttack
-    dynamicMaxHealth pHandle = logCall 'dynamicMaxHealth $ observeDynamicState $ do
-        view $ getPlayer pHandle.playerHero.boardHero.heroHealth
-    dynamicMaxAttackCount _ = logCall 'dynamicMaxAttackCount $ do
-        return 1
-    getAttackCount pHandle = logCall 'getAttackCount $ do
-        view $ getPlayer pHandle.playerHero.boardHeroAttackCount
     bumpAttackCount pHandle = logCall 'bumpAttackCount $ do
         getPlayer pHandle.playerHero.boardHeroAttackCount += 1
-    hasSummoningSickness _ = logCall 'hasSummoningSickness $ do
+    viewAttackCount pHandle = logCall 'viewAttackCount $ do
+        view $ getPlayer pHandle.playerHero.boardHeroAttackCount
+    viewMaxAttackCount _ = logCall 'viewMaxAttackCount $ do
+        return 1
+    viewDamage pHandle = logCall 'viewDamage $ do
+        view $ getPlayer pHandle.playerHero.boardHeroDamage
+    viewAttack pHandle = logCall 'viewAttack $ do
+        view $ getPlayer pHandle.playerHero.boardHero.heroAttack
+    viewMaxHealth pHandle = logCall 'viewMaxHealth $ do
+        view $ getPlayer pHandle.playerHero.boardHero.heroHealth
+    viewSummoningSickness _ = logCall 'viewSummoningSickness $ do
         return False
-    dynamicIsFrozen = logCall 'dynamicIsFrozen $ dynamicSatisfiesEnchantment grantsFrozen
+    viewIsFrozen = logCall 'viewIsFrozen $ do
+        viewSatisfiesEnchantment grantsFrozen
 
 
 auraAbilitiesOf :: [Ability] -> [Handle Minion -> Aura]
@@ -1086,8 +1073,8 @@ auraAbilitiesOf = mapMaybe $ \case
     _ -> Nothing
 
 
-observeDynamicState :: (HearthMonad m) => Hearth m a -> Hearth m a
-observeDynamicState action = logCall 'observeDynamicState $ local id $ do
+dynamic :: (HearthMonad m) => Hearth m a -> Hearth m a
+dynamic action = logCall 'dynamic $ local id $ do
     -- TODO: This function should not be use recursively. There should be a $logicError guard.
     enactMinionAuras
     applyMinionEnchantments
@@ -1098,17 +1085,17 @@ observeDynamicState action = logCall 'observeDynamicState $ local id $ do
         enactMinionAuras = do
             minions <- getAllMinions
             forM_ minions $ \minion -> do
-                auras <- liftM auraAbilitiesOf $ staticMinionAbilities minion
+                auras <- liftM auraAbilitiesOf $ viewMinionAbilities minion
                 forM_ auras $ enactAura . ($ minion)
         applyMinionEnchantments = do
             minions <- getAllMinions
             forM_ minions $ \minion -> do
-                enchantments <- staticMinionEnchantments minion
+                enchantments <- viewMinionEnchantments minion
                 forM_ enchantments $ underAnyEnchantment $ applyMinionEnchantment minion
         applyPlayerEnchantments = do
             players <- viewListOf $ gamePlayers.traversed.playerHandle
             forM_ players $ \player -> do
-                enchantments <- staticPlayerEnchantments player
+                enchantments <- viewPlayerEnchantments player
                 forM_ enchantments $ underAnyEnchantment $ applyPlayerEnchantment player
         applyPlayerEnchantment :: (HearthMonad m) => Handle Player -> Enchantment t Player -> Hearth m ()
         applyPlayerEnchantment player = \case
@@ -1178,67 +1165,67 @@ enactHasAbility handle ability = logCall 'enactHasAbility $ do
 
 
 instance CharacterTraits MinionHandle where
-    dynamicDamage bmHandle = logCall 'dynamicDamage $ observeDynamicState $ do
-        view $ getMinion bmHandle.boardMinionDamage
-    dynamicAttack bmHandle = logCall 'dynamicAttack $ observeDynamicState $ do
-        view $ getMinion bmHandle.boardMinion.minionAttack
-    dynamicMaxHealth bmHandle = logCall 'dynamicMaxHealth $ observeDynamicState $ do
-        view $ getMinion bmHandle.boardMinion.minionHealth
-    dynamicMaxAttackCount minion = logCall 'dynamicMaxAttackCount $ do
-        dynamicSatisfiesEnchantment grantsWindfury minion >>= return . \case
-            True -> 2
-            False -> 1
-    getAttackCount bmHandle = logCall 'getAttackCount $ do
-        view $ getMinion bmHandle.boardMinionAttackCount
     bumpAttackCount bmHandle = logCall 'bumpAttackCount $ do
         getMinion bmHandle.boardMinionAttackCount += 1
-    hasSummoningSickness bmHandle = logCall 'hasSummoningSickness $ do
+    viewAttackCount bmHandle = logCall 'viewAttackCount $ do
+        view $ getMinion bmHandle.boardMinionAttackCount
+    viewMaxAttackCount minion = logCall 'viewMaxAttackCount $ do
+        viewWindfury minion >>= return . \case
+            True -> 2
+            False -> 1
+    viewDamage bmHandle = logCall 'viewDamage $ do
+        view $ getMinion bmHandle.boardMinionDamage
+    viewAttack bmHandle = logCall 'viewAttack $ do
+        view $ getMinion bmHandle.boardMinion.minionAttack
+    viewMaxHealth bmHandle = logCall 'viewMaxHealth $ do
+        view $ getMinion bmHandle.boardMinion.minionHealth
+    viewSummoningSickness bmHandle = logCall 'viewSummoningSickness $ do
         bm <- view $ getMinion bmHandle
         case bm^.boardMinionNewlySummoned of
             False -> return False
-            True -> liftM not $ dynamicHasCharge bmHandle
-    dynamicIsFrozen = logCall 'dynamicIsFrozen $ dynamicSatisfiesEnchantment grantsFrozen
+            True -> liftM not $ viewCharge bmHandle
+    viewIsFrozen = logCall 'viewIsFrozen $ viewSatisfiesEnchantment grantsFrozen
 
 
 instance CharacterTraits CharacterHandle where
-    dynamicDamage = logCall 'dynamicDamage $ \case
-        PlayerCharacter h -> dynamicDamage h
-        MinionCharacter h -> dynamicDamage h
-    dynamicAttack = logCall 'dynamicAttack $ \case
-        PlayerCharacter h -> dynamicAttack h
-        MinionCharacter h -> dynamicAttack h
-    dynamicMaxHealth = logCall 'dynamicMaxHealth $ \case
-        PlayerCharacter h -> dynamicMaxHealth h
-        MinionCharacter h -> dynamicMaxHealth h
-    dynamicMaxAttackCount = logCall 'dynamicMaxAttackCount $ \case
-        PlayerCharacter h -> dynamicMaxAttackCount h
-        MinionCharacter h -> dynamicMaxAttackCount h
-    getAttackCount = logCall 'getAttackCount $ \case
-        PlayerCharacter h -> getAttackCount h
-        MinionCharacter h -> getAttackCount h
     bumpAttackCount = logCall 'bumpAttackCount $ \case
         PlayerCharacter h -> bumpAttackCount h
         MinionCharacter h -> bumpAttackCount h
-    hasSummoningSickness = logCall 'hasSummoningSickness $ \case
-        PlayerCharacter h -> hasSummoningSickness h
-        MinionCharacter h -> hasSummoningSickness h
-    dynamicIsFrozen = logCall 'dynamicIsFrozen $ \case
-        PlayerCharacter h -> dynamicIsFrozen h
-        MinionCharacter h -> dynamicIsFrozen h
+    viewAttackCount = logCall 'viewAttackCount $ \case
+        PlayerCharacter h -> viewAttackCount h
+        MinionCharacter h -> viewAttackCount h
+    viewMaxAttackCount = logCall 'viewMaxAttackCount $ \case
+        PlayerCharacter h -> viewMaxAttackCount h
+        MinionCharacter h -> viewMaxAttackCount h
+    viewDamage = logCall 'viewDamage $ \case
+        PlayerCharacter h -> viewDamage h
+        MinionCharacter h -> viewDamage h
+    viewAttack = logCall 'viewAttack $ \case
+        PlayerCharacter h -> viewAttack h
+        MinionCharacter h -> viewAttack h
+    viewMaxHealth = logCall 'viewMaxHealth $ \case
+        PlayerCharacter h -> viewMaxHealth h
+        MinionCharacter h -> viewMaxHealth h
+    viewSummoningSickness = logCall 'viewSummoningSickness $ \case
+        PlayerCharacter h -> viewSummoningSickness h
+        MinionCharacter h -> viewSummoningSickness h
+    viewIsFrozen = logCall 'viewIsFrozen $ \case
+        PlayerCharacter h -> viewIsFrozen h
+        MinionCharacter h -> viewIsFrozen h
 
 
-dynamicRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
-dynamicRemainingHealth h = logCall 'dynamicRemainingHealth $ do
-    damage <- dynamicDamage h
-    health <- dynamicMaxHealth h
+viewRemainingHealth :: (HearthMonad m) => Handle Character -> Hearth m Health
+viewRemainingHealth h = logCall 'viewRemainingHealth $ do
+    damage <- viewDamage h
+    health <- viewMaxHealth h
     return $ health - Health (unDamage damage)
 
 
-dynamicSpellDamage :: (HearthMonad m) => Handle Player -> Hearth m Int
-dynamicSpellDamage player = logCall 'dynamicSpellDamage $ observeDynamicState $ do
+viewSpellDamage :: (HearthMonad m) => Handle Player -> Hearth m Int
+viewSpellDamage player = logCall 'viewSpellDamage $ do
     minions <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle
     liftM sum $ forM minions $ \minion -> do
-        abilities <- dynamicMinionAbilities minion
+        abilities <- viewMinionAbilities minion
         return $ sum $ flip mapMaybe abilities $ \case
             SpellDamage n -> Just n
             _ -> Nothing
@@ -1246,7 +1233,7 @@ dynamicSpellDamage player = logCall 'dynamicSpellDamage $ observeDynamicState $ 
 
 enactRandomMissiles :: (HearthMonad m) => [Requirement Character] -> Int -> Handle Spell -> Hearth m ()
 enactRandomMissiles reqs n spell = logCall 'enactRandomMissiles $ do
-    modifier <- ownerOf spell >>= dynamicSpellDamage
+    modifier <- ownerOf spell >>= dynamic . viewSpellDamage
     enactRandomMissilesPrim reqs (n + modifier) spell
 
 
@@ -1267,7 +1254,7 @@ enactRandomMissilesPrim reqs n spell = logCall 'enactRandomMissilesPrim $ case n
 enactDealDamage :: (HearthMonad m) => Handle Character -> Damage -> DamageSource -> Hearth m ()
 enactDealDamage charHandle (Damage baseDamage) source = logCall 'enactDealDamage $ do
     modifier <- case source of
-        DamagingSpell spell -> ownerOf spell >>= dynamicSpellDamage
+        DamagingSpell spell -> ownerOf spell >>= dynamic . viewSpellDamage
         _ -> return 0
     let damage = Damage $ baseDamage + modifier
     dealDamagePrim charHandle damage source
@@ -1302,11 +1289,11 @@ dealDamagePrim charHandle damage source = logCall 'dealDamagePrim $ case damage 
 
 silence :: (HearthMonad m) => Handle Minion -> Hearth m ()
 silence victim = logCall 'silence $ do
-    health <- dynamicMaxHealth victim
+    health <- dynamic $ viewMaxHealth victim
     zoom (getMinion victim) $ do
         boardMinionAbilities .= []
         boardMinionEnchantments .= []
-    health' <- dynamicMaxHealth victim
+    health' <- dynamic $ viewMaxHealth victim
     getMinion victim %= \bm -> let
         delta = Damage $ unHealth $ health' - health
         in case delta < 0 of
@@ -1475,12 +1462,12 @@ instance CanSatisfy a (Requirement a) where
                 Just candidate' -> candidate' == spell
                 Nothing ->  False
         WithAttack cmp attackVal -> do
-            actualAttack <- dynamicAttack candidate
+            actualAttack <- dynamic $ viewAttack candidate
             return $ fromComparison cmp actualAttack attackVal
         WithHealth cmp healthVal -> do
-            actualHealth <- dynamicRemainingHealth candidate
+            actualHealth <- dynamic $ viewRemainingHealth candidate
             return $ fromComparison cmp actualHealth healthVal
-        Damaged -> liftM (> 0) $ dynamicDamage candidate
+        Damaged -> liftM (> 0) $ dynamic $ viewDamage candidate
         Undamaged -> liftM not $ candidate `satisfies` Damaged
         IsMinion -> return $ case candidate of
             MinionCharacter {} -> True
@@ -1638,27 +1625,33 @@ removeSpell spell = do
     getPlayer owner.playerSpells %= filter (\s -> s^.castSpellHandle /= spell)
 
 
-dynamicHasAbility :: (HearthMonad m) => (Ability -> Bool) -> Handle Minion -> Hearth m Bool
-dynamicHasAbility predicate bmHandle = logCall 'dynamicHasAbility $ do
-    abilities <- dynamicMinionAbilities bmHandle
+viewAbility :: (HearthMonad m) => (Ability -> Bool) -> Handle Minion -> Hearth m Bool
+viewAbility predicate bmHandle = logCall 'viewAbility $ do
+    abilities <- viewMinionAbilities bmHandle
     return $ any predicate abilities
 
 
-dynamicHasTaunt :: (HearthMonad m) => Handle Minion -> Hearth m Bool
-dynamicHasTaunt = logCall 'dynamicHasTaunt $ dynamicHasAbility $ \case
+viewWindfury :: (HearthMonad m) => Handle Minion -> Hearth m Bool
+viewWindfury = logCall 'viewWindfury $ viewAbility $ \case
     Taunt -> True
     _ -> False
 
 
-dynamicHasCharge :: (HearthMonad m) => Handle Minion -> Hearth m Bool
-dynamicHasCharge = logCall 'dynamicHasCharge $ dynamicHasAbility $ \case
+viewTaunt :: (HearthMonad m) => Handle Minion -> Hearth m Bool
+viewTaunt = logCall 'viewTaunt $ viewAbility $ \case
+    Taunt -> True
+    _ -> False
+
+
+viewCharge :: (HearthMonad m) => Handle Minion -> Hearth m Bool
+viewCharge = logCall 'viewCharge $ viewAbility $ \case
     Charge -> True
     _ -> False
 
 
-hasTauntMinions :: (HearthMonad m) => Handle Player -> Hearth m Bool
-hasTauntMinions player = logCall 'hasTauntMinions $ do
-    view (getPlayer player.playerMinions) >>= anyM (dynamicHasTaunt . _boardMinionHandle)
+viewHasTauntMinions :: (HearthMonad m) => Handle Player -> Hearth m Bool
+viewHasTauntMinions player = logCall 'viewHasTauntMinions $ do
+    view (getPlayer player.playerMinions) >>= anyM (viewTaunt . _boardMinionHandle)
 
 
 isAlly :: (Ownable a, HearthMonad m) => a -> Hearth m Bool
@@ -1672,21 +1665,21 @@ isEnemy :: (Ownable a, HearthMonad m) => a -> Hearth m Bool
 isEnemy = liftM not . isAlly
 
 
-hasRemainingAttacks :: (CharacterTraits a, HearthMonad m) => a -> Hearth m Bool
-hasRemainingAttacks c = logCall 'hasRemainingAttacks $ liftM2 (<) (getAttackCount c) (dynamicMaxAttackCount c)
+viewRemainingAttacks :: (CharacterTraits a, HearthMonad m) => a -> Hearth m Int
+viewRemainingAttacks c = logCall 'viewRemainingAttacks $ liftM2 (\x y -> max 0 $ x - y) (viewMaxAttackCount c) (viewAttackCount c)
 
 
-isLegalAttack :: (HearthMonad m) => Handle Character -> Handle Character -> Hearth m Result
-isLegalAttack attacker defender = logCall 'isLegalAttack $ do
-    let computeDefenderHasTaunt = case defender of
+isLegalAttackSetup :: (HearthMonad m) => Handle Character -> Handle Character -> Hearth m Result
+isLegalAttackSetup attacker defender = logCall 'isLegalAttackSetup $ dynamic $ do
+    let viewDefenderTaunt = case defender of
             PlayerCharacter _ -> return False
-            MinionCharacter m -> dynamicHasTaunt m
+            MinionCharacter m -> viewTaunt m
     isAlly attacker >>= \case
         False -> do
             promptGameEvent $ AttackFailed AttackWithEnemy
             return $ Failure "Can't attack with an enemy character."
         True -> do
-            attack <- dynamicAttack attacker
+            attack <- viewAttack attacker
             case attack <= 0 of
                 True -> do
                     promptGameEvent $ AttackFailed ZeroAttack
@@ -1695,23 +1688,23 @@ isLegalAttack attacker defender = logCall 'isLegalAttack $ do
                     False -> do
                         promptGameEvent $ AttackFailed DefendWithFriendly
                         return $ Failure "Can't attack into a friendly character."
-                    True -> hasSummoningSickness attacker >>= \case
+                    True -> viewSummoningSickness attacker >>= \case
                         True -> do
                             promptGameEvent $ AttackFailed DoesNotHaveCharge
                             return $ Failure "Minion needs charge to attack."
-                        False -> hasRemainingAttacks attacker >>= \case
-                            False -> do
+                        False -> viewRemainingAttacks attacker >>= \case
+                            0 -> do
                                 promptGameEvent $ AttackFailed OutOfAttacks
                                 return $ Failure "Character is out of attacks."
-                            True -> dynamicIsFrozen attacker >>= \case
+                            _ -> viewIsFrozen attacker >>= \case
                                 True -> do
                                     promptGameEvent $ AttackFailed AttackerIsFrozen
                                     return $ Failure "Attacker is frozen."
-                                False -> computeDefenderHasTaunt >>= \case
+                                False -> viewDefenderTaunt >>= \case
                                     True -> return Success
                                     False -> do
                                         defenderController <- ownerOf defender
-                                        hasTauntMinions defenderController >>= \case
+                                        viewHasTauntMinions defenderController >>= \case
                                             True -> do
                                                 promptGameEvent $ AttackFailed TauntsExist
                                                 return $ Failure "Must attack a minion with taunt."
@@ -1720,12 +1713,12 @@ isLegalAttack attacker defender = logCall 'isLegalAttack $ do
 
 enactAttack :: (HearthMonad m) => Handle Character -> Handle Character -> Hearth m Result
 enactAttack attacker defender = logCall 'enactAttack $ do
-    isLegalAttack attacker defender >>= \case
+    isLegalAttackSetup attacker defender >>= \case
         Failure msg -> return $ Failure msg
         Success -> do
             promptGameEvent $ EnactAttack attacker defender
             let source `harms` victim = do
-                    dmg <- liftM (Damage . unAttack) $ dynamicAttack source
+                    dmg <- liftM (Damage . unAttack) $ dynamic $ viewAttack source
                     enactDealDamage (characterHandle victim) dmg (DamagingCharacter source)
             scopedPhase AttackResolutionPhase $ do
                 attacker `harms` defender
@@ -1753,11 +1746,11 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
-dynamicEventListeners :: (HearthMonad m) => Hearth m [EventListener]
-dynamicEventListeners = do
+viewEventListeners :: (HearthMonad m) => Hearth m [EventListener]
+viewEventListeners = logCall 'viewEventListeners $ do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     minionListeners <- liftM concat $ forM minions $ \minion -> do
-        abilities <- dynamicMinionAbilities minion
+        abilities <- viewMinionAbilities minion
         return $ flip mapMaybe abilities $ \case
             Whenever listener -> Just $ listener minion
             _ -> Nothing
@@ -1766,7 +1759,7 @@ dynamicEventListeners = do
 
 
 processEvent :: (HearthMonad m) => (EventListener -> Hearth m ()) -> Hearth m ()
-processEvent f = dynamicEventListeners >>= mapM_ f
+processEvent f = dynamic viewEventListeners >>= mapM_ f
 
 
 handleGameEvent :: (HearthMonad m) => GameEvent -> Hearth m ()

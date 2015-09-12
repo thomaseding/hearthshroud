@@ -372,7 +372,7 @@ data Enchantment :: * -> * -> * where
     ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
     SwapStats :: Enchantment Continuous Minion
     Grant :: Ability -> Enchantment Continuous Minion
-    Frozen :: Enchantment Continuous Character
+    Frozen :: Enchantment Continuous Character -- TODO: Should this be an Ability instead? (Probably not?)
     deriving (Typeable)
 
 

@@ -270,8 +270,8 @@ verbosityGate name m = do
     where
         isLight = (`notElem` lightBanList)
         lightBanList = map nameBase [
-            'dynamicAttack,
-            'dynamicMaxHealth,
+            'viewAttack,
+            'viewMaxHealth,
             'getActivePlayerHandle,
             'ownerOf ]
 
