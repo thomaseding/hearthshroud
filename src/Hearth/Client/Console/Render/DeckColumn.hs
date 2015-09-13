@@ -18,7 +18,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-deckColumn :: Deck -> [SGRString]
+deckColumn :: Deck c -> [SGRString]
 deckColumn (Deck cs) = [
     sgrColor (Dull, Green) ++ "Deck",
     sgrColor (Dull, Green) ++ "----",

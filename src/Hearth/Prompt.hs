@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -15,6 +16,7 @@ module Hearth.Prompt where
 
 
 import Data.NonEmpty
+import GHC.Prim (Constraint)
 import Hearth.Action
 import Hearth.DebugEvent
 import Hearth.GameEvent
@@ -49,23 +51,23 @@ data instance PickResult Targeted a
     deriving (Show, Eq, Ord)
 
 
-data HearthPrompt :: * -> * where
-    PromptDebugEvent :: DebugEvent -> HearthPrompt ()
-    PromptError :: HearthError -> HearthPrompt ()
-    PromptGameEvent :: GameSnapshot -> GameEvent -> HearthPrompt ()
-    PromptAction :: GameSnapshot -> HearthPrompt Action
-    PromptShuffle :: [a] -> HearthPrompt [a]
-    PromptMulligan :: Handle Player -> [HandCard] -> HearthPrompt [HandCard]
-    PromptPickAtRandom :: GameSnapshot -> PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
-    PromptPickTargeted :: GameSnapshot -> PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
+data HearthPrompt :: (* -> Constraint) -> * -> * where
+    PromptDebugEvent :: DebugEvent -> HearthPrompt c ()
+    PromptError :: HearthError -> HearthPrompt c ()
+    PromptGameEvent :: GameSnapshot c -> GameEvent c -> HearthPrompt c ()
+    PromptAction :: GameSnapshot c -> HearthPrompt c (Action c)
+    PromptShuffle :: [a] -> HearthPrompt c [a]
+    PromptMulligan :: Handle Player -> [HandCard c] -> HearthPrompt c [HandCard c]
+    PromptPickAtRandom :: GameSnapshot c -> PromptPick AtRandom c a -> HearthPrompt c (PickResult AtRandom a)
+    PromptPickTargeted :: GameSnapshot c -> PromptPick Targeted c a -> HearthPrompt c (PickResult Targeted a)
 
 
-data PromptPick :: Selection -> * -> * where
-    PickHandCard :: NonEmpty HandCard -> PromptPick s HandCard
-    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
-    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s (Handle Player)
-    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s (Handle Character)
-    PickElect :: NonEmpty (Elect s) -> PromptPick s (Elect s)
+data PromptPick :: Selection -> (* -> Constraint) -> * -> * where
+    PickHandCard :: NonEmpty (HandCard c) -> PromptPick s c (HandCard c)
+    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s c (Handle Minion)
+    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s c (Handle Player)
+    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s c (Handle Character)
+    PickElect :: NonEmpty (Elect c s) -> PromptPick s c (Elect c s)
 
 
 

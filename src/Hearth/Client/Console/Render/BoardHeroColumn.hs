@@ -23,7 +23,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-boardHeroColumn :: (HearthMonad m) => Player -> Hearth m [SGRString]
+boardHeroColumn :: (HearthMonad c m) => PlayerObject c -> Hearth c m [SGRString]
 boardHeroColumn player = do
     let pHandle = player^.playerHandle
         hero = player^.playerHero

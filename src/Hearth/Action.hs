@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 
@@ -8,19 +9,20 @@ module Hearth.Action where
 --------------------------------------------------------------------------------
 
 
+import GHC.Prim (Constraint)
 import Hearth.Model
 
 
 --------------------------------------------------------------------------------
 
 
-data Action :: * where
-    ActionPlayerConceded :: Handle Player -> Action
-    ActionEndTurn :: Action
-    ActionPlayMinion :: HandCard -> BoardIndex -> Action
-    ActionPlaySpell :: HandCard -> Action
-    ActionAttack :: Handle Character -> Handle Character -> Action
-    ActionHeroPower :: Action
+data Action :: (* -> Constraint) -> * where
+    ActionPlayerConceded :: Handle Player -> Action c
+    ActionEndTurn :: Action c
+    ActionPlayMinion :: HandCard c -> BoardIndex -> Action c
+    ActionPlaySpell :: HandCard c -> Action c
+    ActionAttack :: Handle Character -> Handle Character -> Action c
+    ActionHeroPower :: Action c
 
 
 

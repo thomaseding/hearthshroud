@@ -19,7 +19,7 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-possibleAttacks :: (HearthMonad m) => Hearth m [(Handle Character, Handle Character)]
+possibleAttacks :: (HearthMonad c m) => Hearth c m [(Handle Character, Handle Character)]
 possibleAttacks = do
     activeHandle <- getActivePlayerHandle
     activeMinions' <- view $ getPlayer activeHandle.playerMinions
@@ -37,7 +37,7 @@ possibleAttacks = do
             Success -> return True
 
 
-playableMinions :: (HearthMonad m) => Hearth m [(HandCard, BoardIndex)]
+playableMinions :: (HearthMonad c m) => Hearth c m [(HandCard c, BoardIndex)]
 playableMinions = do
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
@@ -50,7 +50,7 @@ playableMinions = do
                 Success -> return True
 
 
-playableSpells :: (HearthMonad m) => Hearth m [HandCard]
+playableSpells :: (HearthMonad c m) => Hearth c m [HandCard c]
 playableSpells = do
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards

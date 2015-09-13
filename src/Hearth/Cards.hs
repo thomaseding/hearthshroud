@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -20,13 +21,13 @@ import qualified Hearth.Set.Classic.Cards as Classic
 --------------------------------------------------------------------------------
 
 
-cardUniverse :: [Card]
+cardUniverse :: (UserConstraint c) => [Card c]
 cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . showCardName . cardName) $ concat [
     Basic.cards,
     Classic.cards ]
 
 
-cardByName :: CardName -> Card
+cardByName :: (UserConstraint c) => CardName -> Card c
 cardByName name = let
     mCard = flip find cardUniverse $ \card -> cardName card == name
     in case mCard of 
@@ -38,29 +39,29 @@ class GetCardName a where
     cardName :: a -> CardName
 
 
-instance GetCardName Card where
+instance GetCardName (Card c) where
     cardName = \case
-        MinionCard x -> cardName x
-        SpellCard x -> cardName x
+        CardMinion x -> cardName x
+        CardSpell x -> cardName x
 
 
-instance GetCardName DeckCard where
+instance GetCardName (DeckCard c) where
     cardName = \case
         DeckCardMinion x -> cardName x
         DeckCardSpell x -> cardName x
 
 
-instance GetCardName HandCard where
+instance GetCardName (HandCard c) where
     cardName = \case
         HandCardMinion x -> cardName x
         HandCardSpell x -> cardName x
 
 
-instance GetCardName Minion where
+instance GetCardName (MinionCard c) where
     cardName = cardName . _minionMeta
 
 
-instance GetCardName Spell where
+instance GetCardName (SpellCard c) where
     cardName = cardName . _spellMeta
 
 

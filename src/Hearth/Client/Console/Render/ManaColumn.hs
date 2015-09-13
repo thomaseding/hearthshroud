@@ -19,7 +19,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-manaColumn :: Player -> [SGRString]
+manaColumn :: PlayerObject c -> [SGRString]
 manaColumn player = let
     totalMana = player^.playerTotalManaCrystals
     emptyMana = player^.playerEmptyManaCrystals

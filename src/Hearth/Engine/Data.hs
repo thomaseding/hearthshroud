@@ -23,6 +23,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
+import GHC.Prim (Constraint)
 import Hearth.DebugEvent
 import Hearth.Model
 import Hearth.Prompt
@@ -38,24 +39,25 @@ type Pair a = (a, a)
 --------------------------------------------------------------------------------
 
 
-newtype Hearth' st m a = Hearth {
+newtype Hearth' (c :: * -> Constraint) st m a = Hearth {
     unHearth :: StateT st m a
 } deriving (Functor, Applicative, Monad, MonadState st, MonadIO, MonadTrans)
 
 
-instance (Monad m) => MonadReader st (Hearth' st m) where
+instance (Monad m) => MonadReader st (Hearth' c st m) where
     ask = get
     local = stateLocal
 
 
-type Hearth = Hearth' GameState
-type HearthMonad m = (MonadPrompt HearthPrompt m)
+type Hearth (c :: * -> Constraint) = Hearth' c (GameState c)
+type HearthMonad' c m = (MonadPrompt (HearthPrompt c) m)
+type HearthMonad c m = (UserConstraint c, HearthMonad' c m)
 
 
-type instance Zoomed (Hearth' st m) = Focusing m
+type instance Zoomed (Hearth' c st m) = Focusing m
 
 
-instance Monad m => Zoom (Hearth' st m) (Hearth' st' m) st st' where
+instance Monad m => Zoom (Hearth' c st m) (Hearth' c st' m) st st' where
     zoom l = Hearth . zoom l . unHearth
 
 
@@ -66,7 +68,7 @@ class LogCall a where
 --------------------------------------------------------------------------------
 
 
-instance (HearthMonad m) => LogCall (Hearth' st m a) where
+instance (HearthMonad' c m) => LogCall (Hearth' c st m a) where
     logCall funcName m = do
         lift $ prompt $ PromptDebugEvent $ FunctionEntered funcName
         x <- m
@@ -74,22 +76,22 @@ instance (HearthMonad m) => LogCall (Hearth' st m a) where
         return x
 
 
-instance (HearthMonad m) => LogCall (a -> Hearth' st m z) where
+instance (HearthMonad' c m) => LogCall (a -> Hearth' c st m z) where
     logCall msg f = logCall msg . f
 
 
-instance (HearthMonad m) => LogCall (a -> b -> Hearth' st m z) where
+instance (HearthMonad' c m) => LogCall (a -> b -> Hearth' c st m z) where
     logCall msg f = logCall msg . f
 
 
-instance (HearthMonad m) => LogCall (a -> b -> c -> Hearth' st m z) where
+instance (HearthMonad' k m) => LogCall (a -> b -> c -> Hearth' k st m z) where
     logCall msg f = logCall msg . f
 
 
 --------------------------------------------------------------------------------
 
 
-data PlayerData = PlayerData Hero Deck
+data PlayerData c = PlayerData (Hero c) (Deck c)
     deriving (Typeable)
 
 
@@ -97,32 +99,32 @@ data PlayerData = PlayerData Hero Deck
 
 
 class ToCard a where
-    toCard :: a -> Card
+    toCard :: a c -> Card c
 
 
 instance ToCard HandCard where
     toCard = \case
-        HandCardMinion minion -> MinionCard minion
-        HandCardSpell spell -> SpellCard spell
+        HandCardMinion minion -> CardMinion minion
+        HandCardSpell spell -> CardSpell spell
 
 
 instance ToCard DeckCard where
     toCard = \case
-        DeckCardMinion minion -> MinionCard minion
-        DeckCardSpell spell -> SpellCard spell
+        DeckCardMinion minion -> CardMinion minion
+        DeckCardSpell spell -> CardSpell spell
 
 
 --------------------------------------------------------------------------------
 
 
 class ToHandCard a where
-    toHandCard :: a -> HandCard
+    toHandCard :: a c -> HandCard c
 
 
 instance ToHandCard Card where
     toHandCard = \case
-        MinionCard minion -> HandCardMinion minion
-        SpellCard spell -> HandCardSpell spell
+        CardMinion minion -> HandCardMinion minion
+        CardSpell spell -> HandCardSpell spell
 
 
 instance ToHandCard DeckCard where
@@ -133,13 +135,13 @@ instance ToHandCard DeckCard where
 
 
 class ToDeckCard a where
-    toDeckCard :: a -> DeckCard
+    toDeckCard :: a c -> DeckCard c
 
 
 instance ToDeckCard Card where
     toDeckCard = \case
-        MinionCard minion -> DeckCardMinion minion
-        SpellCard spell -> DeckCardSpell spell
+        CardMinion minion -> DeckCardMinion minion
+        CardSpell spell -> DeckCardSpell spell
 
 
 instance ToDeckCard HandCard where

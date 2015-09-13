@@ -26,7 +26,7 @@ import Hearth.Client.Console.SGRString
 --------------------------------------------------------------------------------
 
 
-playerColumn :: (HearthMonad m) => Player -> Hearth m [SGRString]
+playerColumn :: (HearthMonad c m) => PlayerObject c -> Hearth c m [SGRString]
 playerColumn player = do
     bhc <- boardHeroColumn player
     return $ concat [

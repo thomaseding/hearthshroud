@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -26,19 +27,19 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-handColumn :: (HearthMonad m) => Hand -> Hearth m [SGRString]
+handColumn :: (HearthMonad c m) => Hand c -> Hearth c m [SGRString]
 handColumn (Hand cs) = return $ let
     cs' = map (uncurry cardColumn) $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 
 
-cardColumn :: Int -> HandCard -> [SGRString]
+cardColumn :: Int -> HandCard c -> [SGRString]
 cardColumn idx = \case
     HandCardMinion minion -> minionColumn idx minion
     HandCardSpell spell -> spellColumn idx spell
 
 
-minionColumn :: Int -> Minion -> [SGRString]
+minionColumn :: Int -> MinionCard c -> [SGRString]
 minionColumn idx minion = let
     nameColor = case hasDivineShield minion of
         True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
@@ -62,7 +63,7 @@ minionColumn idx minion = let
     in [header, "    " ++ stats]
 
 
-spellColumn :: Int -> Spell -> [SGRString]
+spellColumn :: Int -> SpellCard c -> [SGRString]
 spellColumn idx spell = let
     nameColor = sgrColor (Vivid, Green)
     name = nameColor ++ getSpellName spell
@@ -75,15 +76,15 @@ spellColumn idx spell = let
     in [header, "    Spell"]
 
 
-getSpellName :: Spell -> SGRString
+getSpellName :: SpellCard c -> SGRString
 getSpellName = fromString . showCardName . cardName
 
 
-getMinionName :: Minion -> SGRString
+getMinionName :: MinionCard c -> SGRString
 getMinionName = fromString . showCardName . cardName
 
 
-hasDivineShield :: Minion -> Bool
+hasDivineShield :: MinionCard c -> Bool
 hasDivineShield minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case
@@ -91,7 +92,7 @@ hasDivineShield minion = let
         _ -> False
 
 
-hasTaunt :: Minion -> Bool
+hasTaunt :: MinionCard c -> Bool
 hasTaunt minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case

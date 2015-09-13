@@ -11,34 +11,35 @@ module Hearth.GameEvent where
 
 
 import Data.Data
+import GHC.Prim (Constraint)
 import Hearth.Model
 
 
 --------------------------------------------------------------------------------
 
 
-data GameEvent :: * where
-    GameBegins :: GameEvent
-    GameEnds :: GameResult -> GameEvent
-    PhaseEvent :: Scoped Phase -> GameEvent
-    DeckShuffled :: Handle Player -> Deck -> GameEvent
-    CardDrawn :: Handle Player -> Either DeckCard HandCard -> Deck -> GameEvent
-    UsedHeroPower :: Handle Player -> HeroPower -> GameEvent
-    PlayedMinion :: Handle Player -> Handle Minion -> GameEvent
-    PlayedSpell :: Handle Player -> Handle Spell -> GameEvent
-    DealtDamage :: Handle Character -> Damage -> DamageSource -> GameEvent
-    HealthRestored :: Handle Character -> Health -> GameEvent
-    GainedArmor :: Handle Player -> Armor -> GameEvent
-    MinionDestroyed :: Handle Minion -> GameEvent
-    MinionDied :: Handle Minion -> GameEvent
-    EnactAttack :: Handle Character -> Handle Character -> GameEvent
-    GainsManaCrystal :: Handle Player -> Maybe CrystalState -> GameEvent
-    ManaCrystalsRefill :: Handle Player -> Int -> GameEvent
-    ManaCrystalsEmpty :: Handle Player -> Int -> GameEvent
-    LostDivineShield :: Handle Minion -> GameEvent
-    Silenced :: Handle Minion -> GameEvent
-    AttackFailed :: AttackFailedReason -> GameEvent
-    Transformed :: Handle Minion -> Minion -> GameEvent
+data GameEvent :: (* -> Constraint) -> * where
+    GameBegins :: GameEvent c
+    GameEnds :: GameResult -> GameEvent c
+    PhaseEvent :: Scoped Phase -> GameEvent c
+    DeckShuffled :: Handle Player -> Deck c -> GameEvent c
+    CardDrawn :: Handle Player -> Either (DeckCard c) (HandCard c) -> Deck c -> GameEvent c
+    UsedHeroPower :: Handle Player -> HeroPower c -> GameEvent c
+    PlayedMinion :: Handle Player -> Handle Minion -> GameEvent c
+    PlayedSpell :: Handle Player -> Handle Spell -> GameEvent c
+    DealtDamage :: Handle Character -> Damage -> DamageSource -> GameEvent c
+    HealthRestored :: Handle Character -> Health -> GameEvent c
+    GainedArmor :: Handle Player -> Armor -> GameEvent c
+    MinionDestroyed :: Handle Minion -> GameEvent c
+    MinionDied :: Handle Minion -> GameEvent c
+    EnactAttack :: Handle Character -> Handle Character -> GameEvent c
+    GainsManaCrystal :: Handle Player -> Maybe CrystalState -> GameEvent c
+    ManaCrystalsRefill :: Handle Player -> Int -> GameEvent c
+    ManaCrystalsEmpty :: Handle Player -> Int -> GameEvent c
+    LostDivineShield :: Handle Minion -> GameEvent c
+    Silenced :: Handle Minion -> GameEvent c
+    AttackFailed :: AttackFailedReason -> GameEvent c
+    Transformed :: Handle Minion -> MinionCard c -> GameEvent c
     deriving (Typeable)
 
 
