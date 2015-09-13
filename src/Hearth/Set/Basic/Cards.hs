@@ -20,7 +20,7 @@ import qualified Hearth.Set.Basic.Names as Basic
 --------------------------------------------------------------------------------
 
 
-cards :: (UserConstraint c) => [Card c]
+cards :: (UserConstraint k) => [Card k]
 cards = let x = toCard in [
     x ancestralHealing,
     x animalCompanion,
@@ -163,18 +163,18 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: (UserConstraint c) => Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability c Minion] -> MinionCard c
+mkMinion :: (UserConstraint k) => Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability k Minion] -> MinionCard k
 mkMinion = mkMinion' BasicCardName Free
 
 
-mkSpell :: (UserConstraint c) => Class -> BasicCardName -> Mana -> SpellEffect c -> SpellCard c
+mkSpell :: (UserConstraint k) => Class -> BasicCardName -> Mana -> SpellEffect k -> SpellCard k
 mkSpell = mkSpell' BasicCardName Free
 
 
 --------------------------------------------------------------------------------
 
 
-ancestralHealing :: (UserConstraint c) => SpellCard c
+ancestralHealing :: (UserConstraint k) => SpellCard k
 ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
     A $ Minion [] $ \minion ->
         Effect $ Sequence [
@@ -182,7 +182,7 @@ ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
             Enchant minion $ Continuous $ Grant Taunt ]
 
 
-animalCompanion :: (UserConstraint c) => SpellCard c
+animalCompanion :: (UserConstraint k) => SpellCard k
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Elect $ Choice $ map (\minion -> Effect $ (you `Summon` minion) Rightmost) [
@@ -191,7 +191,7 @@ animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
             misha ]
 
 
-arcaneExplosion :: (UserConstraint c) => SpellCard c
+arcaneExplosion :: (UserConstraint k) => SpellCard k
 arcaneExplosion = mkSpell Mage ArcaneExplosion 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -200,59 +200,59 @@ arcaneExplosion = mkSpell Mage ArcaneExplosion 2 $ \this ->
                     (this `damages` enemy) 1
 
 
-arcaneIntellect :: (UserConstraint c) => SpellCard c
+arcaneIntellect :: (UserConstraint k) => SpellCard k
 arcaneIntellect = mkSpell Mage ArcaneIntellect 3 $ \this ->
     OwnerOf this $ \you ->
         Effect $ DrawCards you 2
 
 
-arcaneMissiles :: (UserConstraint c) => SpellCard c
+arcaneMissiles :: (UserConstraint k) => SpellCard k
 arcaneMissiles = mkSpell Mage ArcaneMissiles 1 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             Effect $ RandomMissiles [OwnedBy opponent] 3 this
 
 
-arcaneShot :: (UserConstraint c) => SpellCard c
+arcaneShot :: (UserConstraint k) => SpellCard k
 arcaneShot = mkSpell Hunter ArcaneShot 1 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 2
 
 
-archmage :: (UserConstraint c) => MinionCard c
+archmage :: (UserConstraint k) => MinionCard k
 archmage = mkMinion Neutral Archmage [] 6 4 7 [
     SpellDamage 1 ]
 
 
-assassinate :: (UserConstraint c) => SpellCard c
+assassinate :: (UserConstraint k) => SpellCard k
 assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ DestroyMinion target
 
 
-backstab :: (UserConstraint c) => SpellCard c
+backstab :: (UserConstraint k) => SpellCard k
 backstab = mkSpell Rogue Backstab 0 $ \this ->
     A $ Minion [RequireMinion Undamaged] $ \target ->
         Effect $ (this `damages` target) 2
 
 
-blessingOfKings :: (UserConstraint c) => SpellCard c
+blessingOfKings :: (UserConstraint k) => SpellCard k
 blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ statsDelta 4 4
 
 
-blessingOfMight :: (UserConstraint c) => SpellCard c
+blessingOfMight :: (UserConstraint k) => SpellCard k
 blessingOfMight = mkSpell Paladin BlessingOfMight 4 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ statsDelta 3 0
 
 
-bloodfenRaptor :: (UserConstraint c) => MinionCard c
+bloodfenRaptor :: (UserConstraint k) => MinionCard k
 bloodfenRaptor = mkMinion Neutral BloodfenRaptor [Beast] 2 3 2 []
 
 
-bloodlust :: (UserConstraint c) => SpellCard c
+bloodlust :: (UserConstraint k) => SpellCard k
 bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
     OwnerOf this $ \you ->
         All $ Minions [OwnedBy you] $ \minions ->
@@ -260,25 +260,25 @@ bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
                 Enchant minion $ Limited $ Until EndOfTurn $ statsDelta 3 0
 
 
-bluegillWarrior :: (UserConstraint c) => MinionCard c
+bluegillWarrior :: (UserConstraint k) => MinionCard k
 bluegillWarrior = mkMinion Neutral BluegillWarrior [Murloc] 2 2 1 [
     Charge ]
 
 
-boar :: (UserConstraint c) => MinionCard c
+boar :: (UserConstraint k) => MinionCard k
 boar = uncollectible $ mkMinion Neutral Boar [Beast] 1 1 1 []
 
 
-bootyBayBodyguard :: (UserConstraint c) => MinionCard c
+bootyBayBodyguard :: (UserConstraint k) => MinionCard k
 bootyBayBodyguard = mkMinion Neutral BootyBayBodyguard [] 5 5 4 [
     Taunt ]
 
 
-boulderfistOgre :: (UserConstraint c) => MinionCard c
+boulderfistOgre :: (UserConstraint k) => MinionCard k
 boulderfistOgre = mkMinion Neutral BoulderfistOgre [] 6 6 7 []
 
 
-charge :: (UserConstraint c) => SpellCard c
+charge :: (UserConstraint k) => SpellCard k
 charge = mkSpell Warrior Basic.Charge 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion [OwnedBy you] $ \target ->
@@ -287,11 +287,11 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
                 Enchant target $ Continuous $ Grant Charge ]
 
 
-chillwindYeti :: (UserConstraint c) => MinionCard c
+chillwindYeti :: (UserConstraint k) => MinionCard k
 chillwindYeti = mkMinion Neutral ChillwindYeti [] 4 4 5 []
 
 
-claw :: (UserConstraint c) => SpellCard c
+claw :: (UserConstraint k) => SpellCard k
 claw = mkSpell Druid Claw 1 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence [
@@ -299,7 +299,7 @@ claw = mkSpell Druid Claw 1 $ \this ->
             GainArmor you 2 ]
 
 
-cleave :: (UserConstraint c) => SpellCard c
+cleave :: (UserConstraint k) => SpellCard k
 cleave = mkSpell Warrior Cleave 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -309,7 +309,7 @@ cleave = mkSpell Warrior Cleave 2 $ \this ->
                         (this `damages` victim) 2
 
 
-consecration :: (UserConstraint c) => SpellCard c
+consecration :: (UserConstraint k) => SpellCard k
 consecration = mkSpell Paladin Consecration 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -318,11 +318,11 @@ consecration = mkSpell Paladin Consecration 4 $ \this ->
                     (this `damages` enemy) 2
 
 
-coreHound :: (UserConstraint c) => MinionCard c
+coreHound :: (UserConstraint k) => MinionCard k
 coreHound = mkMinion Neutral CoreHound [Beast] 7 9 5 []
 
 
-corruption :: (UserConstraint c) => SpellCard c
+corruption :: (UserConstraint k) => SpellCard k
 corruption = mkSpell Warlock Corruption 1 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -331,12 +331,12 @@ corruption = mkSpell Warlock Corruption 1 $ \this ->
     
 
 
-dalaranMage :: (UserConstraint c) => MinionCard c
+dalaranMage :: (UserConstraint k) => MinionCard k
 dalaranMage = mkMinion Neutral DalaranMage [] 3 1 4 [
     SpellDamage 1 ]
 
 
-darkscaleHealer :: (UserConstraint c) => MinionCard c
+darkscaleHealer :: (UserConstraint k) => MinionCard k
 darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -345,7 +345,7 @@ darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
                     RestoreHealth friendly 2 ]
 
 
-deadlyShot :: (UserConstraint c) => SpellCard c
+deadlyShot :: (UserConstraint k) => SpellCard k
 deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -353,20 +353,20 @@ deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
                 Effect $ DestroyMinion victim
 
 
-divineSpirit :: (UserConstraint c) => SpellCard c
+divineSpirit :: (UserConstraint k) => SpellCard k
 divineSpirit = mkSpell Priest DivineSpirit 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ StatsScale 1 2
 
 
-dragonlingMechanic :: (UserConstraint c) => MinionCard c
+dragonlingMechanic :: (UserConstraint k) => MinionCard k
 dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (you `Summon` mechanicalDragonling) $ RightOf this ]
 
 
-drainLife :: (UserConstraint c) => SpellCard c
+drainLife :: (UserConstraint k) => SpellCard k
 drainLife = mkSpell Warlock DrainLife 3 $ \this ->
     A $ Character [] $ \target ->
         OwnerOf this $ \you ->
@@ -375,7 +375,7 @@ drainLife = mkSpell Warlock DrainLife 3 $ \this ->
                 RestoreHealth (PlayerCharacter you) 2 ]
 
 
-dreadInfernal :: (UserConstraint c) => MinionCard c
+dreadInfernal :: (UserConstraint k) => MinionCard k
 dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
     Battlecry $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
@@ -383,26 +383,26 @@ dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
                 (this `damages` victim) 1 ]
 
 
-elvenArcher :: (UserConstraint c) => MinionCard c
+elvenArcher :: (UserConstraint k) => MinionCard k
 elvenArcher = mkMinion Neutral ElvenArcher [] 1 1 1 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
-excessMana :: (UserConstraint c) => SpellCard c
+excessMana :: (UserConstraint k) => SpellCard k
 excessMana = uncollectible $ mkSpell Druid ExcessMana 0 $ \this ->
     OwnerOf this $ \you ->
         Effect $ DrawCards you 1
 
 
-execute :: (UserConstraint c) => SpellCard c
+execute :: (UserConstraint k) => SpellCard k
 execute = mkSpell Warrior Execute 1 $ \_ ->
     A $ Minion [RequireMinion Damaged] $ \target ->
         Effect $ DestroyMinion target
 
 
-fanOfKnives :: (UserConstraint c) => SpellCard c
+fanOfKnives :: (UserConstraint k) => SpellCard k
 fanOfKnives = mkSpell Rogue FanOfKnives 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -413,20 +413,20 @@ fanOfKnives = mkSpell Rogue FanOfKnives 4 $ \this ->
                     DrawCards you 1 ]
 
 
-fireball :: (UserConstraint c) => SpellCard c
+fireball :: (UserConstraint k) => SpellCard k
 fireball = mkSpell Mage Fireball 4 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 6
 
 
-fireElemental :: (UserConstraint c) => MinionCard c
+fireElemental :: (UserConstraint k) => MinionCard k
 fireElemental = mkMinion Shaman FireElemental [] 6 6 5 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 3 ]
 
 
-flamestrike :: (UserConstraint c) => SpellCard c
+flamestrike :: (UserConstraint k) => SpellCard k
 flamestrike = mkSpell Mage Flamestrike 7 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -435,19 +435,19 @@ flamestrike = mkSpell Mage Flamestrike 7 $ \this ->
                     (this `damages` victim) 4
 
 
-flametongueTotem :: (UserConstraint c) => MinionCard c
+flametongueTotem :: (UserConstraint k) => MinionCard k
 flametongueTotem = mkMinion Shaman FlametongueTotem [Totem] 2 0 3 [
     Aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
             Has minion $ statsDelta 2 0 ]
 
 
-frog :: (UserConstraint c) => MinionCard c
+frog :: (UserConstraint k) => MinionCard k
 frog = uncollectible $ mkMinion Neutral Frog [Beast] 0 0 1 [
     Taunt ]
 
 
-frostbolt :: (UserConstraint c) => SpellCard c
+frostbolt :: (UserConstraint k) => SpellCard k
 frostbolt = mkSpell Mage Frostbolt 2 $ \this ->
     A $ Character [] $ \target ->
         Effect $ Sequence [
@@ -455,7 +455,7 @@ frostbolt = mkSpell Mage Frostbolt 2 $ \this ->
             Freeze target ]
 
 
-frostNova :: (UserConstraint c) => SpellCard c
+frostNova :: (UserConstraint k) => SpellCard k
 frostNova = mkSpell Mage FrostNova 3 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -464,7 +464,7 @@ frostNova = mkSpell Mage FrostNova 3 $ \this ->
                     Freeze (MinionCharacter victim)
 
 
-frostShock :: (UserConstraint c) => SpellCard c
+frostShock :: (UserConstraint k) => SpellCard k
 frostShock = mkSpell Shaman FrostShock 1 $ \this ->
     A $ Character [] $ \target ->
         Effect $ Sequence [
@@ -472,12 +472,12 @@ frostShock = mkSpell Shaman FrostShock 1 $ \this ->
             Freeze target ]
 
 
-frostwolfGrunt :: (UserConstraint c) => MinionCard c
+frostwolfGrunt :: (UserConstraint k) => MinionCard k
 frostwolfGrunt = mkMinion Neutral FrostwolfGrunt [] 2 2 2 [
     Taunt ]
 
 
-frostwolfWarlord :: (UserConstraint c) => MinionCard c
+frostwolfWarlord :: (UserConstraint k) => MinionCard k
 frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -486,40 +486,40 @@ frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
                     Enchant this $ Continuous $ statsDelta 1 1 ]
 
 
-gnomishInventor :: (UserConstraint c) => MinionCard c
+gnomishInventor :: (UserConstraint k) => MinionCard k
 gnomishInventor = mkMinion Neutral GnomishInventor [] 4 2 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
-goldshireFootman :: (UserConstraint c) => MinionCard c
+goldshireFootman :: (UserConstraint k) => MinionCard k
 goldshireFootman = mkMinion Neutral GoldshireFootman [] 1 1 2 [
     Taunt ]
 
 
-grimscaleOracle :: (UserConstraint c) => MinionCard c
+grimscaleOracle :: (UserConstraint k) => MinionCard k
 grimscaleOracle = mkMinion Neutral GrimscaleOracle [Murloc] 1 1 1 [
     Aura $ \this ->
         EachMinion [Not this, HasType Murloc] $ \minion ->
             Has minion $ statsDelta 1 0 ]
 
 
-guardianOfKings :: (UserConstraint c) => MinionCard c
+guardianOfKings :: (UserConstraint k) => MinionCard k
 guardianOfKings = mkMinion Paladin GuardianOfKings [] 7 5 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 6 ]
 
 
-gurubashiBerserker :: (UserConstraint c) => MinionCard c
+gurubashiBerserker :: (UserConstraint k) => MinionCard k
 gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ _ ->
             Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ Enchant this $ Continuous $ statsDelta 3 0 ]
 
 
-hammerOfWrath :: (UserConstraint c) => SpellCard c
+hammerOfWrath :: (UserConstraint k) => SpellCard k
 hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
     A $ Character [] $ \target ->
         OwnerOf this $ \you ->
@@ -528,13 +528,13 @@ hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
                 DrawCards you 1 ]
 
 
-handOfProtection :: (UserConstraint c) => SpellCard c
+handOfProtection :: (UserConstraint k) => SpellCard k
 handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ Grant DivineShield
 
 
-healingTotem :: (UserConstraint c) => MinionCard c
+healingTotem :: (UserConstraint k) => MinionCard k
 healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
     Whenever $ \this ->
         EndOfTurnEvent $ \player ->
@@ -544,38 +544,38 @@ healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
                         RestoreHealth (MinionCharacter minion) 1 ]
 
 
-healingTouch :: (UserConstraint c) => SpellCard c
+healingTouch :: (UserConstraint k) => SpellCard k
 healingTouch = mkSpell Druid HealingTouch 3 $ \_ ->
     A $ Character [] $ \target ->
         Effect $ RestoreHealth target 8
 
 
-hellfire :: (UserConstraint c) => SpellCard c
+hellfire :: (UserConstraint k) => SpellCard k
 hellfire = mkSpell Warlock Hellfire 4 $ \this ->
     All $ Characters [] $ \victims ->
         Effect $ ForEach victims $ \victim ->
             (this `damages` victim) 3
 
 
-heroicStrike :: (UserConstraint c) => SpellCard c
+heroicStrike :: (UserConstraint k) => SpellCard k
 heroicStrike = mkSpell Warrior HeroicStrike 2 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Enchant you $ Limited $ Until EndOfTurn $ statsDelta 4 0
 
 
-hex :: (UserConstraint c) => SpellCard c
+hex :: (UserConstraint k) => SpellCard k
 hex = mkSpell Shaman Hex 3 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Transform target frog
 
 
-holyLight :: (UserConstraint c) => SpellCard c
+holyLight :: (UserConstraint k) => SpellCard k
 holyLight = mkSpell Paladin HolyLight 2 $ \_ ->
     A $ Character [] $ \target ->
         Effect $ RestoreHealth target 6
 
 
-holyNova :: (UserConstraint c) => SpellCard c
+holyNova :: (UserConstraint k) => SpellCard k
 holyNova = mkSpell Priest HolyNova 5 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -588,13 +588,13 @@ holyNova = mkSpell Priest HolyNova 5 $ \this ->
                             RestoreHealth friendly 2 ]
 
 
-holySmite :: (UserConstraint c) => SpellCard c
+holySmite :: (UserConstraint k) => SpellCard k
 holySmite = mkSpell Priest HolySmite 1 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 2
 
 
-houndmaster :: (UserConstraint c) => MinionCard c
+houndmaster :: (UserConstraint k) => MinionCard k
 houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -604,52 +604,52 @@ houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
                     Enchant beast $ Continuous $ Grant Taunt ]]
 
 
-huffer :: (UserConstraint c) => MinionCard c
+huffer :: (UserConstraint k) => MinionCard k
 huffer = uncollectible $ mkMinion Hunter Huffer [Beast] 3 4 2 [
     Charge ]
 
 
-humility :: (UserConstraint c) => SpellCard c
+humility :: (UserConstraint k) => SpellCard k
 humility = mkSpell Paladin Humility 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ ChangeStat (Left 1)
 
 
-hunter'sMark :: (UserConstraint c) => SpellCard c
+hunter'sMark :: (UserConstraint k) => SpellCard k
 hunter'sMark = mkSpell Hunter Hunter'sMark 0 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ ChangeStat (Right 1)
 
 
-koboldGeomancer :: (UserConstraint c) => MinionCard c
+koboldGeomancer :: (UserConstraint k) => MinionCard k
 koboldGeomancer = mkMinion Neutral KoboldGeomancer [] 2 2 2 [
     SpellDamage 1 ]
 
 
-kor'kronElite :: (UserConstraint c) => MinionCard c
+kor'kronElite :: (UserConstraint k) => MinionCard k
 kor'kronElite = mkMinion Warrior Kor'kronElite [] 4 4 3 [
     Charge ]
 
 
-innervate :: (UserConstraint c) => SpellCard c
+innervate :: (UserConstraint k) => SpellCard k
 innervate = mkSpell Druid Innervate 0 $ \this ->
     OwnerOf this $ \you ->
         Effect $ GainManaCrystals you 2 CrystalTemporary
 
 
-ironbarkProtector :: (UserConstraint c) => MinionCard c
+ironbarkProtector :: (UserConstraint k) => MinionCard k
 ironbarkProtector = mkMinion Druid IronbarkProtector [] 8 8 8 [
     Taunt ]
 
 
-ironforgeRifleman :: (UserConstraint c) => MinionCard c
+ironforgeRifleman :: (UserConstraint k) => MinionCard k
 ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
-killCommand :: (UserConstraint c) => SpellCard c
+killCommand :: (UserConstraint k) => SpellCard k
 killCommand = mkSpell Hunter KillCommand 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Character [] $ \victim -> let
@@ -659,7 +659,7 @@ killCommand = mkSpell Hunter KillCommand 3 $ \this ->
                 (deal 3)
 
 
-leokk :: (UserConstraint c) => MinionCard c
+leokk :: (UserConstraint k) => MinionCard k
 leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
@@ -667,12 +667,12 @@ leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
                 Has minion $ statsDelta 1 0 ]
 
 
-lordOfTheArena :: (UserConstraint c) => MinionCard c
+lordOfTheArena :: (UserConstraint k) => MinionCard k
 lordOfTheArena = mkMinion Neutral LordOfTheArena [] 6 6 5 [
     Taunt ]
 
 
-markOfTheWild :: (UserConstraint c) => SpellCard c
+markOfTheWild :: (UserConstraint k) => SpellCard k
 markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Sequence [
@@ -680,22 +680,22 @@ markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
             Enchant target $ Continuous $ statsDelta 2 2 ]
 
 
-magmaRager :: (UserConstraint c) => MinionCard c
+magmaRager :: (UserConstraint k) => MinionCard k
 magmaRager = mkMinion Neutral MagmaRager [] 3 5 1 []
 
 
-mechanicalDragonling :: (UserConstraint c) => MinionCard c
+mechanicalDragonling :: (UserConstraint k) => MinionCard k
 mechanicalDragonling = uncollectible $ mkMinion Neutral MechanicalDragonling [Mech] 1 2 1 []
 
 
-mindBlast :: (UserConstraint c) => SpellCard c
+mindBlast :: (UserConstraint k) => SpellCard k
 mindBlast = mkSpell Priest MindBlast 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 5
 
 
-mindControl :: (UserConstraint c) => SpellCard c
+mindControl :: (UserConstraint k) => SpellCard k
 mindControl = mkSpell Priest MindControl 10 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -703,23 +703,23 @@ mindControl = mkSpell Priest MindControl 10 $ \this ->
                 Effect $ TakeControl you victim
 
 
-mirrorImage_minion :: (UserConstraint c) => MinionCard c
+mirrorImage_minion :: (UserConstraint k) => MinionCard k
 mirrorImage_minion = uncollectible $ mkMinion Mage MirrorImage_Minion [] 1 0 2 [
     Taunt ]
 
 
-mirrorImage_spell :: (UserConstraint c) => SpellCard c
+mirrorImage_spell :: (UserConstraint k) => SpellCard k
 mirrorImage_spell = mkSpell Mage MirrorImage_Spell 1 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence $ replicate 2 $ (you `Summon` mirrorImage_minion) Rightmost
 
 
-misha :: (UserConstraint c) => MinionCard c
+misha :: (UserConstraint k) => MinionCard k
 misha = uncollectible $ mkMinion Hunter Misha [Beast] 3 4 4 [
     Taunt ]
 
 
-moonfire :: (UserConstraint c) => SpellCard c
+moonfire :: (UserConstraint k) => SpellCard k
 moonfire = mkSpell Druid Moonfire 0 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 1
@@ -729,7 +729,7 @@ moonfire = mkSpell Druid Moonfire 0 $ \this ->
 -- MortalCoil hitting a KnifeJuggler juggled to death minion (triggered from say your VioletTeacher)
 -- Need to match this behavior - https://www.youtube.com/watch?v=MYGSoWbaIAM
 -- Comprehensive explanation - https://www.youtube.com/watch?v=H3d_qlm4Xws
-mortalCoil :: (UserConstraint c) => SpellCard c
+mortalCoil :: (UserConstraint k) => SpellCard k
 mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion [] $ \target -> let
@@ -740,7 +740,7 @@ mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
                 in Effect $ when condition $ DrawCards you 1
 
 
-multiShot :: (UserConstraint c) => SpellCard c
+multiShot :: (UserConstraint k) => SpellCard k
 multiShot = mkSpell Hunter MultiShot 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -750,22 +750,22 @@ multiShot = mkSpell Hunter MultiShot 4 $ \this ->
                         (this `damages` victim) 3
 
 
-murlocRaider :: (UserConstraint c) => MinionCard c
+murlocRaider :: (UserConstraint k) => MinionCard k
 murlocRaider = mkMinion Neutral MurlocRaider [Murloc] 1 2 1 []
 
 
-murlocScout :: (UserConstraint c) => MinionCard c
+murlocScout :: (UserConstraint k) => MinionCard k
 murlocScout = uncollectible $ mkMinion Neutral MurlocScout [Murloc] 0 1 1 []
 
 
-murlocTidehunter :: (UserConstraint c) => MinionCard c
+murlocTidehunter :: (UserConstraint k) => MinionCard k
 murlocTidehunter = mkMinion Neutral MurlocTidehunter [Murloc] 2 2 1 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (you `Summon` murlocScout) $ RightOf this ]
 
 
-nightblade :: (UserConstraint c) => MinionCard c
+nightblade :: (UserConstraint k) => MinionCard k
 nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -773,7 +773,7 @@ nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
                 Effect $ (this `damages` opponent) 3 ]
 
 
-northshireCleric :: (UserConstraint c) => MinionCard c
+northshireCleric :: (UserConstraint k) => MinionCard k
 northshireCleric = mkMinion Priest NorthshireCleric [] 1 1 3 [
     Whenever $ \this ->
         HealthIsRestored $ \recipient _ ->
@@ -781,29 +781,29 @@ northshireCleric = mkMinion Priest NorthshireCleric [] 1 1 3 [
                 Effect $ when (recipient `Satisfies` [IsMinion]) $ DrawCards you 1 ]
 
 
-noviceEngineer :: (UserConstraint c) => MinionCard c
+noviceEngineer :: (UserConstraint k) => MinionCard k
 noviceEngineer = mkMinion Neutral NoviceEngineer [] 2 1 1 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
-oasisSnapjaw :: (UserConstraint c) => MinionCard c
+oasisSnapjaw :: (UserConstraint k) => MinionCard k
 oasisSnapjaw = mkMinion Neutral OasisSnapjaw [Beast] 4 2 7 []
 
 
-ogreMagi :: (UserConstraint c) => MinionCard c
+ogreMagi :: (UserConstraint k) => MinionCard k
 ogreMagi = mkMinion Neutral OgreMagi [] 4 4 4 [
     SpellDamage 1 ]
 
 
-polymorph :: (UserConstraint c) => SpellCard c
+polymorph :: (UserConstraint k) => SpellCard k
 polymorph = mkSpell Mage Polymorph 4 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Transform target sheep
 
 
-powerWordShield :: (UserConstraint c) => SpellCard c
+powerWordShield :: (UserConstraint k) => SpellCard k
 powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
     A $ Minion [] $ \target ->
         OwnerOf this $ \you ->
@@ -812,7 +812,7 @@ powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
                 DrawCards you 1 ]
 
 
-raidLeader :: (UserConstraint c) => MinionCard c
+raidLeader :: (UserConstraint k) => MinionCard k
 raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
@@ -820,30 +820,30 @@ raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
                 Has minion $ statsDelta 1 0 ]
 
 
-razorfenHunter :: (UserConstraint c) => MinionCard c
+razorfenHunter :: (UserConstraint k) => MinionCard k
 razorfenHunter = mkMinion Neutral RazorfenHunter [] 3 2 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ (you `Summon` boar) $ RightOf this ]
 
 
-recklessRocketeer :: (UserConstraint c) => MinionCard c
+recklessRocketeer :: (UserConstraint k) => MinionCard k
 recklessRocketeer = mkMinion Neutral RecklessRocketeer [] 6 5 2 [
     Charge ]
 
 
-riverCrocolisk :: (UserConstraint c) => MinionCard c
+riverCrocolisk :: (UserConstraint k) => MinionCard k
 riverCrocolisk = mkMinion Neutral RiverCrocolisk [Beast] 2 2 3 []
 
 
-rockbiterWeapon :: (UserConstraint c) => SpellCard c
+rockbiterWeapon :: (UserConstraint k) => SpellCard k
 rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
     OwnerOf this $ \you ->
         A $ Character [OwnedBy you] $ \target ->
             Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 3 0
 
 
-sacrificialPact :: (UserConstraint c) => SpellCard c
+sacrificialPact :: (UserConstraint k) => SpellCard k
 sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion [HasType Demon] $ \demon ->
@@ -852,7 +852,7 @@ sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
                 RestoreHealth (PlayerCharacter you) 5 ]
 
 
-savageRoar :: (UserConstraint c) => SpellCard c
+savageRoar :: (UserConstraint k) => SpellCard k
 savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
     OwnerOf this $ \you ->
         All $ Characters [OwnedBy you] $ \friendlies ->
@@ -860,34 +860,34 @@ savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
                 Enchant friendly $ Limited $ Until EndOfTurn $ statsDelta 2 0
 
 
-searingTotem :: (UserConstraint c) => MinionCard c
+searingTotem :: (UserConstraint k) => MinionCard k
 searingTotem = uncollectible $ mkMinion Shaman SearingTotem [Totem] 1 1 1 []
 
 
-sen'jinShieldmasta :: (UserConstraint c) => MinionCard c
+sen'jinShieldmasta :: (UserConstraint k) => MinionCard k
 sen'jinShieldmasta = mkMinion Neutral Sen'jinShieldmasta [] 4 3 5 [
     Taunt ]
 
 
-shadowBolt :: (UserConstraint c) => SpellCard c
+shadowBolt :: (UserConstraint k) => SpellCard k
 shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
     A $ Minion [] $ \target ->
         Effect $ (this `damages` target) 4
 
 
-shadowWordDeath :: (UserConstraint c) => SpellCard c
+shadowWordDeath :: (UserConstraint k) => SpellCard k
 shadowWordDeath = mkSpell Priest ShadowWordDeath 5 $ \_ ->
     A $ Minion [RequireMinion (WithAttack GreaterEqual 5)] $ \target ->
         Effect $ DestroyMinion target
 
 
-shadowWordPain :: (UserConstraint c) => SpellCard c
+shadowWordPain :: (UserConstraint k) => SpellCard k
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
     A $ Minion [RequireMinion (WithAttack LessEqual 3)] $ \target ->
         Effect $ DestroyMinion target
 
 
-shatteredSunCleric :: (UserConstraint c) => MinionCard c
+shatteredSunCleric :: (UserConstraint k) => MinionCard k
 shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -895,11 +895,11 @@ shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
                 Effect $ Enchant target $ Continuous $ statsDelta 1 1 ]
 
 
-sheep :: (UserConstraint c) => MinionCard c
+sheep :: (UserConstraint k) => MinionCard k
 sheep = uncollectible $ mkMinion Neutral Sheep [Beast] 0 1 1 []
 
 
-shieldBlock :: (UserConstraint c) => SpellCard c
+shieldBlock :: (UserConstraint k) => SpellCard k
 shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence [
@@ -907,7 +907,7 @@ shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
             DrawCards you 1 ]
 
 
-shiv :: (UserConstraint c) => SpellCard c
+shiv :: (UserConstraint k) => SpellCard k
 shiv = mkSpell Rogue Shiv 2 $ \this ->
     A $ Character [] $ \target ->
         OwnerOf this $ \you ->
@@ -916,23 +916,23 @@ shiv = mkSpell Rogue Shiv 2 $ \this ->
                 DrawCards you 1 ]
 
 
-silverbackPatriarch :: (UserConstraint c) => MinionCard c
+silverbackPatriarch :: (UserConstraint k) => MinionCard k
 silverbackPatriarch = mkMinion Neutral SilverbackPatriarch [Beast] 3 1 4 [
     Taunt ]
 
 
-silverHandRecruit :: (UserConstraint c) => MinionCard c
+silverHandRecruit :: (UserConstraint k) => MinionCard k
 silverHandRecruit = uncollectible $ mkMinion Paladin SilverHandRecruit [] 1 1 1 []
 
 
-sinisterStrike :: (UserConstraint c) => SpellCard c
+sinisterStrike :: (UserConstraint k) => SpellCard k
 sinisterStrike = mkSpell Rogue SinisterStrike 1 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 3
 
 
-soulfire :: (UserConstraint c) => SpellCard c
+soulfire :: (UserConstraint k) => SpellCard k
 soulfire = mkSpell Warlock Soulfire 1 $ \this ->
     OwnerOf this $ \you ->
         A $ Character [] $ \victim ->
@@ -941,13 +941,13 @@ soulfire = mkSpell Warlock Soulfire 1 $ \this ->
                 DiscardAtRandom you ]
 
 
-sprint :: (UserConstraint c) => SpellCard c
+sprint :: (UserConstraint k) => SpellCard k
 sprint = mkSpell Rogue Sprint 7 $ \this ->
     OwnerOf this $ \you ->
         Effect $ DrawCards you 4
 
 
-starfire :: (UserConstraint c) => SpellCard c
+starfire :: (UserConstraint k) => SpellCard k
 starfire = mkSpell Druid Starfire 6 $ \this ->
     A $ Character [] $ \target ->
         OwnerOf this $ \you ->
@@ -956,29 +956,29 @@ starfire = mkSpell Druid Starfire 6 $ \this ->
                 DrawCards you 1 ]
 
 
-stoneclawTotem :: (UserConstraint c) => MinionCard c
+stoneclawTotem :: (UserConstraint k) => MinionCard k
 stoneclawTotem = uncollectible $ mkMinion Shaman StoneclawTotem [Totem] 1 0 2 [
     Taunt ]
 
 
-stonetuskBoar :: (UserConstraint c) => MinionCard c
+stonetuskBoar :: (UserConstraint k) => MinionCard k
 stonetuskBoar = mkMinion Neutral StonetuskBoar [Beast] 1 1 1 [
     Charge ]
 
 
-stormpikeCommando :: (UserConstraint c) => MinionCard c
+stormpikeCommando :: (UserConstraint k) => MinionCard k
 stormpikeCommando = mkMinion Neutral StormpikeCommando [] 5 4 2 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \target ->
             Effect $ (this `damages` target) 2 ]
 
 
-stormwindKnight :: (UserConstraint c) => MinionCard c
+stormwindKnight :: (UserConstraint k) => MinionCard k
 stormwindKnight = mkMinion Neutral StormwindKnight [] 4 2 5 [
     Charge ]
 
 
-stormwindChampion :: (UserConstraint c) => MinionCard c
+stormwindChampion :: (UserConstraint k) => MinionCard k
 stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
@@ -986,14 +986,14 @@ stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
                 Has minion $ statsDelta 1 1 ]
 
 
-succubus :: (UserConstraint c) => MinionCard c
+succubus :: (UserConstraint k) => MinionCard k
 succubus = mkMinion Warlock Succubus [Demon] 2 4 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DiscardAtRandom you ]
 
 
-swipe :: (UserConstraint c) => SpellCard c
+swipe :: (UserConstraint k) => SpellCard k
 swipe = mkSpell Druid Swipe 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
@@ -1005,13 +1005,13 @@ swipe = mkSpell Druid Swipe 4 $ \this ->
                             (this `damages` other) 1 ]
 
 
-theCoin :: (UserConstraint c) => SpellCard c
+theCoin :: (UserConstraint k) => SpellCard k
 theCoin = uncollectible $ mkSpell Neutral TheCoin 0 $ \this ->
     OwnerOf this $ \you ->
         Effect $ GainManaCrystals you 1 CrystalTemporary
 
 
-timberWolf :: (UserConstraint c) => MinionCard c
+timberWolf :: (UserConstraint k) => MinionCard k
 timberWolf = mkMinion Hunter TimberWolf [Beast] 1 1 1 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
@@ -1019,7 +1019,7 @@ timberWolf = mkMinion Hunter TimberWolf [Beast] 1 1 1 [
                 Has minion $ statsDelta 1 0 ]
 
 
-totemicMight :: (UserConstraint c) => SpellCard c
+totemicMight :: (UserConstraint k) => SpellCard k
 totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
     OwnerOf this $ \you ->
         All $ Minions [OwnedBy you, HasType Totem] $ \totems ->
@@ -1027,7 +1027,7 @@ totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
                 Enchant totem $ Continuous $ statsDelta 0 2
 
 
-tundraRhino :: (UserConstraint c) => MinionCard c
+tundraRhino :: (UserConstraint k) => MinionCard k
 tundraRhino = mkMinion Hunter TundraRhino [Beast] 5 2 5 [
     Aura $ \this ->
         AuraOwnerOf this $ \you ->
@@ -1035,37 +1035,37 @@ tundraRhino = mkMinion Hunter TundraRhino [Beast] 5 2 5 [
                 HasAbility minion Charge ]
 
 
-voidwalker :: (UserConstraint c) => MinionCard c
+voidwalker :: (UserConstraint k) => MinionCard k
 voidwalker = mkMinion Warlock Voidwalker [Demon] 1 1 3 [
     Taunt ]
 
 
-voodooDoctor :: (UserConstraint c) => MinionCard c
+voodooDoctor :: (UserConstraint k) => MinionCard k
 voodooDoctor = mkMinion Neutral VoodooDoctor [] 1 2 1 [
     Battlecry $ \this ->
         A $ Character [Not (MinionCharacter this)] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
-waterElemental :: (UserConstraint c) => MinionCard c
+waterElemental :: (UserConstraint k) => MinionCard k
 waterElemental = mkMinion Mage WaterElemental [] 4 3 6 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ source ->
             Effect $ when (this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
 
-warGolem :: (UserConstraint c) => MinionCard c
+warGolem :: (UserConstraint k) => MinionCard k
 warGolem = mkMinion Neutral WarGolem [] 7 7 7 []
 
 
-whirlwind :: (UserConstraint c) => SpellCard c
+whirlwind :: (UserConstraint k) => SpellCard k
 whirlwind = mkSpell Warrior Whirlwind 1 $ \this ->
     All $ Minions [] $ \minions ->
         Effect $ ForEach minions $ \minion ->
             (this `damages` minion) 1
 
 
-wildGrowth :: (UserConstraint c) => SpellCard c
+wildGrowth :: (UserConstraint k) => SpellCard k
 wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
     OwnerOf this $ \you ->
         Effect $ If (you `Satisfies` [HasMaxManaCrystals])
@@ -1073,13 +1073,13 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
             $ GainManaCrystals you 1 CrystalEmpty
 
 
-windfury :: (UserConstraint c) => SpellCard c
+windfury :: (UserConstraint k) => SpellCard k
 windfury = mkSpell Shaman Basic.Windfury 2 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ Grant Windfury
 
 
-windspeaker :: (UserConstraint c) => MinionCard c
+windspeaker :: (UserConstraint k) => MinionCard k
 windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
@@ -1087,12 +1087,12 @@ windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
                 Effect $ Enchant target $ Continuous $ Grant Windfury ]
 
 
-wolfRider :: (UserConstraint c) => MinionCard c
+wolfRider :: (UserConstraint k) => MinionCard k
 wolfRider = mkMinion Neutral WolfRider [] 3 3 1 [
     Charge ]
 
 
-wrathOfAirTotem :: (UserConstraint c) => MinionCard c
+wrathOfAirTotem :: (UserConstraint k) => MinionCard k
 wrathOfAirTotem = uncollectible $ mkMinion Shaman WrathOfAirTotem [Totem] 1 0 2 [
     SpellDamage 1 ]
 

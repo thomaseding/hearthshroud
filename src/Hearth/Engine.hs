@@ -54,7 +54,7 @@ import Hearth.Set.Basic.Names (BasicCardName(TheCoin))
 --------------------------------------------------------------------------------
 
 
-instance (HearthMonad c m) => MonadPrompt (HearthPrompt c) (Hearth c m) where
+instance (HearthMonad k m) => MonadPrompt (HearthPrompt k) (Hearth k m) where
     prompt p = do
         result <- lift (prompt p)
         case p of
@@ -63,7 +63,7 @@ instance (HearthMonad c m) => MonadPrompt (HearthPrompt c) (Hearth c m) where
         return result
 
 
-promptGameEvent :: (HearthMonad c m) => GameEvent c -> Hearth c m ()
+promptGameEvent :: (HearthMonad k m) => GameEvent k -> Hearth k m ()
 promptGameEvent event = do
     snap <- gets GameSnapshot
     prompt $ PromptGameEvent snap $ event
@@ -79,17 +79,17 @@ isSubsetOf :: (Ord a) => [a] -> [a] -> Bool
 isSubsetOf = subset `on` sort
 
 
-runQuery :: (HearthMonad c m) => GameSnapshot c -> Hearth c m a -> m a
+runQuery :: (HearthMonad k m) => GameSnapshot k -> Hearth k m a -> m a
 runQuery snapshot query = evalStateT (unHearth query') $ snapshot^.snapshotGameState
     where
         query' = logCall 'runQuery query
 
 
-runHearth :: (HearthMonad c m) => Pair (PlayerData c) -> m GameResult
+runHearth :: (HearthMonad k m) => Pair (PlayerData k) -> m GameResult
 runHearth = evalStateT (unHearth runHearth') . mkGameState
 
 
-mkGameState :: Pair (PlayerData c) -> GameState c
+mkGameState :: Pair (PlayerData k) -> GameState k
 mkGameState (p1, p2) = let
     ps = [p1, p2]
     in GameState {
@@ -100,7 +100,7 @@ mkGameState (p1, p2) = let
         _gamePlayers = zipWith mkPlayer (map (PlayerHandle . RawHandle ()) [0..]) ps }
 
 
-mkPlayer :: Handle Player -> PlayerData c -> PlayerObject c
+mkPlayer :: Handle Player -> PlayerData k -> PlayerObject k
 mkPlayer handle (PlayerData hero deck) = PlayerObject {
     _playerHandle = handle,
     _playerDeck = deck,
@@ -115,7 +115,7 @@ mkPlayer handle (PlayerData hero deck) = PlayerObject {
     _playerHero = mkBoardHero hero }
 
 
-mkBoardHero :: Hero c -> BoardHero c
+mkBoardHero :: Hero k -> BoardHero k
 mkBoardHero hero = BoardHero {
     _boardHeroDamage = 0,
     _boardHeroArmor = 0,
@@ -125,7 +125,7 @@ mkBoardHero hero = BoardHero {
     _boardHero = hero }
 
 
-getPlayer :: Handle Player -> Lens' (GameState c) (PlayerObject c)
+getPlayer :: Handle Player -> Lens' (GameState k) (PlayerObject k)
 getPlayer pHandle = lens getter setter
     where
         getter st = case find (\p -> p^.playerHandle == pHandle) $ st^.gamePlayers of
@@ -137,7 +137,7 @@ getPlayer pHandle = lens getter setter
                 False -> p
 
 
-getMinion :: Handle Minion -> Lens' (GameState c) (BoardMinion c)
+getMinion :: Handle Minion -> Lens' (GameState k) (BoardMinion k)
 getMinion bmHandle = lens getter setter
     where
         getter st = let
@@ -152,7 +152,7 @@ getMinion bmHandle = lens getter setter
                 False -> bm
 
 
-getSpell :: Handle Spell -> Lens' (GameState c) (CastSpell c)
+getSpell :: Handle Spell -> Lens' (GameState k) (CastSpell k)
 getSpell sHandle = lens getter setter
     where
         getter st = let
@@ -167,24 +167,24 @@ getSpell sHandle = lens getter setter
                 False -> s
 
 
-getActivePlayerHandle :: (HearthMonad c m) => Hearth c m PlayerHandle
+getActivePlayerHandle :: (HearthMonad k m) => Hearth k m PlayerHandle
 getActivePlayerHandle = logCall 'getActivePlayerHandle $ do
     (h : _) <- view gamePlayerTurnOrder
     return h
 
 
-getNonActivePlayerHandle :: (HearthMonad c m) => Hearth c m PlayerHandle
+getNonActivePlayerHandle :: (HearthMonad k m) => Hearth k m PlayerHandle
 getNonActivePlayerHandle = logCall 'getNonActivePlayerHandle $ do
     (_ : h : _) <- view gamePlayerTurnOrder
     return h
 
 
-isActivePlayer :: (HearthMonad c m) => Handle Player -> Hearth c m Bool
+isActivePlayer :: (HearthMonad k m) => Handle Player -> Hearth k m Bool
 isActivePlayer h = liftM (h ==) getActivePlayerHandle
 
 
 class Ownable a where
-    ownerOf :: (HearthMonad c m) => a -> Hearth c m PlayerHandle
+    ownerOf :: (HearthMonad k m) => a -> Hearth k m PlayerHandle
 
 
 instance Ownable (Handle a) where
@@ -208,7 +208,7 @@ instance Ownable (Handle a) where
         PlayerCharacter h -> ownerOf h
 
 
-opponentOf :: (HearthMonad c m) => Handle Player -> Hearth c m (Handle Player)
+opponentOf :: (HearthMonad k m) => Handle Player -> Hearth k m (Handle Player)
 opponentOf handle = logCall 'opponentOf $ do
     handles <- getPlayerHandles
     case filter (/= handle) handles of
@@ -216,11 +216,11 @@ opponentOf handle = logCall 'opponentOf $ do
         _ -> $logicError 'enactOpponentOf "Opponent should exist and be unique."
 
 
-getPlayerHandles :: (HearthMonad c m) => Hearth c m [Handle Player]
+getPlayerHandles :: (HearthMonad k m) => Hearth k m [Handle Player]
 getPlayerHandles = viewListOf $ gamePlayers.traversed.playerHandle
 
 
-genRawHandle :: (HearthMonad c m) => Hearth c m RawHandle
+genRawHandle :: (HearthMonad k m) => Hearth k m RawHandle
 genRawHandle = do
     handle <- liftM (RawHandle ()) $ view gameHandleSeed
     gameHandleSeed += 1
@@ -228,7 +228,7 @@ genRawHandle = do
 
 
 class GenHandle handle where
-    genHandle :: (HearthMonad c m) => Hearth c m handle
+    genHandle :: (HearthMonad k m) => Hearth k m handle
 
 
 instance GenHandle MinionHandle where
@@ -239,7 +239,7 @@ instance GenHandle SpellHandle where
     genHandle = liftM SpellHandle genRawHandle
 
 
-runHearth' :: (HearthMonad c m) => Hearth c m GameResult
+runHearth' :: (HearthMonad k m) => Hearth k m GameResult
 runHearth' = logCall 'runHearth' $ do
     promptGameEvent GameBegins
     initGame
@@ -249,14 +249,14 @@ runHearth' = logCall 'runHearth' $ do
     return gameResult
 
 
-initGame :: (HearthMonad c m) => Hearth c m ()
+initGame :: (HearthMonad k m) => Hearth k m ()
 initGame = logCall 'initGame $ do
     flipCoin
     handles <- getPlayerHandles
     mapM_ initPlayer handles
 
 
-flipCoin :: (HearthMonad c m) => Hearth c m ()
+flipCoin :: (HearthMonad k m) => Hearth k m ()
 flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     snap <- gets GameSnapshot
     AtRandomPick handle <- prompt $ PromptPickAtRandom snap $ PickPlayer $ NonEmpty.fromList handles
@@ -264,11 +264,11 @@ flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     gamePlayerTurnOrder .= handles'
 
 
-initPlayer :: (HearthMonad c m) => Handle Player -> Hearth c m ()
+initPlayer :: (HearthMonad k m) => Handle Player -> Hearth k m ()
 initPlayer = initHand
 
 
-initHand :: (HearthMonad c m) => Handle Player -> Hearth c m ()
+initHand :: (HearthMonad k m) => Handle Player -> Hearth k m ()
 initHand handle = logCall 'initHand $ do
     shuffleDeck handle
     isFirst <- isActivePlayer handle
@@ -296,11 +296,11 @@ initHand handle = logCall 'initHand $ do
             in getPlayer handle.playerHand.handCards %= (theCoin :)
 
 
-drawCards :: (HearthMonad c m) => Handle Player -> Int -> Hearth c m [HandCard c]
+drawCards :: (HearthMonad k m) => Handle Player -> Int -> Hearth k m [HandCard k]
 drawCards handle = logCall 'drawCards $ liftM catMaybes . flip replicateM (drawCard handle)
 
 
-putInHand :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m Bool
+putInHand :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m Bool
 putInHand handle card = logCall 'putInHand $ zoom (getPlayer handle.playerHand.handCards) $ do
     to length >>=. \case
         MaxHandSize -> return False
@@ -309,7 +309,7 @@ putInHand handle card = logCall 'putInHand $ zoom (getPlayer handle.playerHand.h
             return True
 
 
-removeFromHand :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m Bool
+removeFromHand :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m Bool
 removeFromHand handle card = logCall 'removeFromHand $ zoom (getPlayer handle.playerHand.handCards) $ do
     hand <- view id
     id %= deleteBy (on (==) cardName) card
@@ -317,7 +317,7 @@ removeFromHand handle card = logCall 'removeFromHand $ zoom (getPlayer handle.pl
     return $ length hand /= length hand'
 
 
-drawCard :: (HearthMonad c m) => Handle Player -> Hearth c m (Maybe (HandCard c))
+drawCard :: (HearthMonad k m) => Handle Player -> Hearth k m (Maybe (HandCard k))
 drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck [] -> do
         getPlayer handle.playerExcessDrawCount += 1
@@ -336,7 +336,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
             True -> promptDraw $ Right c'
 
 
-isDead :: (HearthMonad c m) => Handle Character -> Hearth c m Bool
+isDead :: (HearthMonad k m) => Handle Character -> Hearth k m Bool
 isDead character = logCall 'isDead $ isMortallyWounded character >>= \case
     True -> return True
     False -> case character of
@@ -344,11 +344,11 @@ isDead character = logCall 'isDead $ isMortallyWounded character >>= \case
         MinionCharacter minion -> view $ getMinion minion.boardMinionPendingDestroy
 
 
-isMortallyWounded :: (HearthMonad c m) => Handle Character -> Hearth c m Bool
+isMortallyWounded :: (HearthMonad k m) => Handle Character -> Hearth k m Bool
 isMortallyWounded = logCall 'isMortallyWounded $ liftM (<= 0) . dynamic . viewRemainingHealth
 
 
-shuffleDeck :: (HearthMonad c m) => Handle Player -> Hearth c m ()
+shuffleDeck :: (HearthMonad k m) => Handle Player -> Hearth k m ()
 shuffleDeck handle = logCall 'shuffleDeck $ do
     Deck deck <- view $ getPlayer handle.playerDeck
     deck' <- liftM Deck $ guardedPrompt (PromptShuffle deck) $ \deck' -> let
@@ -362,13 +362,13 @@ shuffleDeck handle = logCall 'shuffleDeck $ do
     promptGameEvent $ DeckShuffled handle deck'
 
 
-isGameOver :: (HearthMonad c m) => Hearth c m Bool
+isGameOver :: (HearthMonad k m) => Hearth k m Bool
 isGameOver = logCall 'isGameOver $ do
     handles <- getPlayerHandles
     anyM (isDead . PlayerCharacter) handles
 
 
-tickTurn :: (HearthMonad c m) => Hearth c m ()
+tickTurn :: (HearthMonad k m) => Hearth k m ()
 tickTurn = do
     runTurn
     isGameOver >>= \case
@@ -376,19 +376,19 @@ tickTurn = do
         True -> return ()
 
 
-runTurn :: (HearthMonad c m) => Hearth c m ()
+runTurn :: (HearthMonad k m) => Hearth k m ()
 runTurn = logCall 'runTurn $ do
     beginTurn
     pumpTurn
     endTurn
 
 
-gainManaCrystals :: (HearthMonad c m) => Handle Player -> Int -> CrystalState -> Hearth c m ()
+gainManaCrystals :: (HearthMonad k m) => Handle Player -> Int -> CrystalState -> Hearth k m ()
 gainManaCrystals handle amount crystalState = logCall 'gainManaCrystals $ do
     replicateM_ amount $ gainManaCrystal handle crystalState
 
 
-gainManaCrystal :: (HearthMonad c m) => Handle Player -> CrystalState -> Hearth c m ()
+gainManaCrystal :: (HearthMonad k m) => Handle Player -> CrystalState -> Hearth k m ()
 gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
     totalCount <- view $ getPlayer handle.playerTotalManaCrystals
     case totalCount of
@@ -414,7 +414,7 @@ gainManaCrystal handle crystalState = logCall 'gainManaCrystal $ do
             promptGameEvent $ GainsManaCrystal handle $ Just crystalState
 
 
-scopedPhase :: (HearthMonad c m) => Phase -> Hearth c m a -> Hearth c m a
+scopedPhase :: (HearthMonad k m) => Phase -> Hearth k m a -> Hearth k m a
 scopedPhase phase action = logCall 'scopedPhase $ do
     promptGameEvent $ PhaseEvent $ Begin phase
     x <- action
@@ -422,7 +422,7 @@ scopedPhase phase action = logCall 'scopedPhase $ do
     return x
 
 
-tickTimePointEnchantments :: (HearthMonad c m) => TimePoint -> Hearth c m ()
+tickTimePointEnchantments :: (HearthMonad k m) => TimePoint -> Hearth k m ()
 tickTimePointEnchantments timeEvent = logCall 'tickTimePointEnchantments $ do
     players <- viewListOf $ gamePlayers.traversed.playerHandle
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
@@ -447,15 +447,15 @@ tickTimePointEnchantments timeEvent = logCall 'tickTimePointEnchantments $ do
                 True -> Nothing
                 False -> Just timePoint
 
-        generalConsume :: (HearthMonad c m) => AnyEnchantment c a -> Hearth c m (Maybe (AnyEnchantment c a))
+        generalConsume :: (HearthMonad k m) => AnyEnchantment k a -> Hearth k m (Maybe (AnyEnchantment k a))
         generalConsume = \case
             Continuous e -> liftM (liftM Continuous) $ continuousConsume e
             Limited e -> liftM (liftM Limited) $ limitedConsume e
 
-        continuousConsume :: (HearthMonad c m) => Enchantment c Continuous a -> Hearth c m (Maybe (Enchantment c Continuous a))
+        continuousConsume :: (HearthMonad k m) => Enchantment k Continuous a -> Hearth k m (Maybe (Enchantment k Continuous a))
         continuousConsume = return . Just
 
-        limitedConsume :: (HearthMonad c m) => Enchantment c Limited a -> Hearth c m (Maybe (Enchantment c Limited a))
+        limitedConsume :: (HearthMonad k m) => Enchantment k Limited a -> Hearth k m (Maybe (Enchantment k Limited a))
         limitedConsume = \case
             MinionEnchantment e -> liftM (liftM MinionEnchantment) $ limitedConsume e
             PlayerEnchantment e -> liftM (liftM PlayerEnchantment) $ limitedConsume e
@@ -471,7 +471,7 @@ tickTimePointEnchantments timeEvent = logCall 'tickTimePointEnchantments $ do
                     return Nothing
 
 
-beginTurn :: (HearthMonad c m) => Hearth c m ()
+beginTurn :: (HearthMonad k m) => Hearth k m ()
 beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
     tickTimePointEnchantments BeginOfTurn
     handle <- getActivePlayerHandle
@@ -486,7 +486,7 @@ beginTurn = logCall 'beginTurn $ scopedPhase BeginTurnPhase $ do
     return ()
 
 
-endTurn :: (HearthMonad c m) => Hearth c m ()
+endTurn :: (HearthMonad k m) => Hearth k m ()
 endTurn = logCall 'endTurn $ scopedPhase EndTurnPhase $ do
     tickTimePointEnchantments EndOfTurn
     handle <- getActivePlayerHandle
@@ -502,7 +502,7 @@ data EndTurn = EndTurn
     deriving (Eq)
 
 
-pumpTurn :: (HearthMonad c m) => Hearth c m ()
+pumpTurn :: (HearthMonad k m) => Hearth k m ()
 pumpTurn = logCall 'pumpTurn $ do
     let cond = \case
             Nothing -> True
@@ -513,13 +513,13 @@ pumpTurn = logCall 'pumpTurn $ do
     return ()
 
 
-pumpTurn' :: (HearthMonad c m) => Hearth c m (Maybe (Either () EndTurn))
+pumpTurn' :: (HearthMonad k m) => Hearth k m (Maybe (Either () EndTurn))
 pumpTurn' = logCall 'pumpTurn' $ isGameOver >>= \case
     True -> return Nothing
     False -> liftM Just performAction
 
 
-performAction :: (HearthMonad c m) => Hearth c m (Either () EndTurn)
+performAction :: (HearthMonad k m) => Hearth k m (Either () EndTurn)
 performAction = logCall 'performAction $ do
     snapshot <- gets GameSnapshot
     evolution <- prompt (PromptAction snapshot) >>= enactAction
@@ -529,7 +529,7 @@ performAction = logCall 'performAction $ do
         Right EndTurn -> Right EndTurn
 
 
-enactAction :: (HearthMonad c m) => Action c -> Hearth c m (Either Result EndTurn)
+enactAction :: (HearthMonad k m) => Action k -> Hearth k m (Either Result EndTurn)
 enactAction = logCall 'enactAction . \case
     ActionPlayerConceded p -> concede p >> return (Left Success)
     ActionPlayMinion card pos -> liftM Left $ actionPlayMinion card pos
@@ -539,7 +539,7 @@ enactAction = logCall 'enactAction . \case
     ActionHeroPower -> liftM Left actionHeroPower
 
 
-actionHeroPower :: (HearthMonad c m) => Hearth c m Result
+actionHeroPower :: (HearthMonad k m) => Hearth k m Result
 actionHeroPower = logCall 'actionHeroPower $ do
     st <- get
     handle <- getActivePlayerHandle
@@ -567,13 +567,13 @@ actionHeroPower = logCall 'actionHeroPower $ do
                             return $ Failure "Targeted pick aborted."
 
 
-concede :: (HearthMonad c m) => Handle Player -> Hearth c m ()
+concede :: (HearthMonad k m) => Handle Player -> Hearth k m ()
 concede p = logCall 'concede $ do
     health <- dynamic $ viewMaxHealth p
     getPlayer p.playerHero.boardHeroDamage .= Damage (unHealth health)
 
 
-isCardInHand :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m Bool
+isCardInHand :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m Bool
 isCardInHand handle card = logCall 'isCardInHand $ local id $ removeFromHand handle card
 
 
@@ -583,7 +583,7 @@ insertAt n x xs = let
     in left ++ [x] ++ right
 
 
-toBoardMinion :: Handle Minion -> MinionCard c -> BoardMinion c
+toBoardMinion :: Handle Minion -> MinionCard k -> BoardMinion k
 toBoardMinion handle minion = BoardMinion {
     _boardMinionDamage = 0,
     _boardMinionEnchantments = [],
@@ -595,7 +595,7 @@ toBoardMinion handle minion = BoardMinion {
     _boardMinion = minion }
 
 
-summon :: (HearthMonad c m) => Handle Player -> MinionCard c -> BoardIndex -> Hearth c m (Either String MinionHandle)
+summon :: (HearthMonad k m) => Handle Player -> MinionCard k -> BoardIndex -> Hearth k m (Either String MinionHandle)
 summon handle minion (BoardIndex idx) = logCall 'summon $ do
     minionHandle <- genHandle
     zoom (getPlayer handle.playerMinions) $ do
@@ -608,24 +608,24 @@ summon handle minion (BoardIndex idx) = logCall 'summon $ do
                     return $ Right minionHandle
 
 
-actionAttack :: (HearthMonad c m) => Handle Character -> Handle Character -> Hearth c m Result
+actionAttack :: (HearthMonad k m) => Handle Character -> Handle Character -> Hearth k m Result
 actionAttack attacker defender = logCall 'actionAttack $ do
     enactAttack attacker defender
 
 
-actionPlayMinion :: (HearthMonad c m) => HandCard c -> BoardIndex -> Hearth c m Result
+actionPlayMinion :: (HearthMonad k m) => HandCard k -> BoardIndex -> Hearth k m Result
 actionPlayMinion card idx = logCall 'actionPlayMinion $ do
     pHandle <- getActivePlayerHandle
     playMinion pHandle card idx
 
 
-actionPlaySpell :: (HearthMonad c m) => HandCard c -> Hearth c m Result
+actionPlaySpell :: (HearthMonad k m) => HandCard k -> Hearth k m Result
 actionPlaySpell card = logCall 'actionPlaySpell $ do
     handle <- getActivePlayerHandle
     playSpell handle card
 
 
-playMinion :: (HearthMonad c m) => Handle Player -> HandCard c -> BoardIndex -> Hearth c m Result
+playMinion :: (HearthMonad k m) => Handle Player -> HandCard k -> BoardIndex -> Hearth k m Result
 playMinion pHandle card idx = logCall 'playMinion $ do
     st <- get
     playMinion' pHandle card idx >>= \case
@@ -639,7 +639,7 @@ playMinion pHandle card idx = logCall 'playMinion $ do
             return result
 
 
-playMinion' :: (HearthMonad c m) => Handle Player -> HandCard c -> BoardIndex -> Hearth c m (Either String MinionHandle)
+playMinion' :: (HearthMonad k m) => Handle Player -> HandCard k -> BoardIndex -> Hearth k m (Either String MinionHandle)
 playMinion' player card idx = logCall 'playMinion' $ playCommon player card >>= \case
     Failure msg -> return $ Left msg
     Success -> case card of
@@ -647,7 +647,7 @@ playMinion' player card idx = logCall 'playMinion' $ playCommon player card >>= 
         _ -> return $ Left "Must pick a minion to play a minion."
 
 
-playSpell :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m Result
+playSpell :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m Result
 playSpell pHandle card = logCall 'playSpell $ do
     st <- get
     result <- playSpell' pHandle card >>= \case
@@ -661,7 +661,7 @@ playSpell pHandle card = logCall 'playSpell $ do
     return result
 
 
-playSpell' :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m (Either String SpellHandle)
+playSpell' :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m (Either String SpellHandle)
 playSpell' pHandle card = logCall 'playSpell' $ playCommon pHandle card >>= \case
     Failure msg -> return $ Left msg
     Success -> case card of
@@ -673,7 +673,7 @@ playSpell' pHandle card = logCall 'playSpell' $ playCommon pHandle card >>= \cas
         _ -> return $ Left "Must pick a spell to play a spell."
 
 
-enactSpell :: (HearthMonad c m) => Handle Spell -> Hearth c m Result
+enactSpell :: (HearthMonad k m) => Handle Spell -> Hearth k m Result
 enactSpell spell = logCall 'enactSpell $ scopedPhase SpellPhase $ do
     st <- get
     let abort msg = put st >> return (Failure msg)
@@ -684,7 +684,7 @@ enactSpell spell = logCall 'enactSpell $ scopedPhase SpellPhase $ do
         NotAvailable -> abort "Not available."
 
 
-enactAnyDeathrattles :: (HearthMonad c m) => Handle Minion -> Hearth c m ()
+enactAnyDeathrattles :: (HearthMonad k m) => Handle Minion -> Hearth k m ()
 enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
     abilities <- dynamic $ viewMinionAbilities bmHandle
     forM_ abilities $ \case
@@ -692,7 +692,7 @@ enactAnyDeathrattles bmHandle = logCall 'enactAnyDeathrattles $ do
         _ -> return ()
 
 
-enactAnyBattleCries :: (HearthMonad c m) => Handle Minion -> Hearth c m Result
+enactAnyBattleCries :: (HearthMonad k m) => Handle Minion -> Hearth k m Result
 enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
     st <- get
     abilities <- dynamic $ viewMinionAbilities bmHandle
@@ -710,13 +710,13 @@ enactAnyBattleCries bmHandle = logCall 'enactAnyBattleCries $ do
                 return $ Failure "Targeted pick aborted."
 
 
-enactDeathrattle :: (HearthMonad c m) => Handle Minion -> (Handle Minion -> Elect c AtRandom) -> Hearth c m ()
+enactDeathrattle :: (HearthMonad k m) => Handle Minion -> (Handle Minion -> Elect k AtRandom) -> Hearth k m ()
 enactDeathrattle handle cont = logCall 'enactDeathrattle $ scopedPhase DeathrattlePhase $ do
     _ <- enactElect $ cont handle
     return ()
 
 
-enactBattlecry :: (HearthMonad c m) => Handle Minion -> (Handle Minion -> Elect c Targeted) -> Hearth c m (SimplePickResult Targeted)
+enactBattlecry :: (HearthMonad k m) => Handle Minion -> (Handle Minion -> Elect k Targeted) -> Hearth k m (SimplePickResult Targeted)
 enactBattlecry handle cont = logCall 'enactBattlecry $ scopedPhase BattlecryPhase $ do
     enactElect $ cont handle
 
@@ -725,7 +725,7 @@ whenM :: (Monad m) => m Bool -> m () -> m ()
 whenM bool action = bool >>= flip when action
 
 
-enactEffect :: (HearthMonad c m) => Effect c -> Hearth c m (SimplePickResult AtRandom)
+enactEffect :: (HearthMonad k m) => Effect k -> Hearth k m (SimplePickResult AtRandom)
 enactEffect = logCall 'enactEffect . \case
     Elect elect -> enactEffectElect elect
     DoNothing -> return success
@@ -754,7 +754,7 @@ enactEffect = logCall 'enactEffect . \case
         success = purePick ()
 
 
-enactTakeControl :: (HearthMonad c m) => Handle Player -> Handle Minion -> Hearth c m ()
+enactTakeControl :: (HearthMonad k m) => Handle Player -> Handle Minion -> Hearth k m ()
 enactTakeControl newOwner victim = logCall 'enactTakeControl $ do
     oldOwner <- ownerOf victim
     case oldOwner == newOwner of
@@ -770,7 +770,7 @@ enactTakeControl newOwner victim = logCall 'enactTakeControl $ do
         isVictim = (victim ==) . _boardMinionHandle
 
 
-enactDiscardAtRandom :: (HearthMonad c m) => Handle Player -> Hearth c m ()
+enactDiscardAtRandom :: (HearthMonad k m) => Handle Player -> Hearth k m ()
 enactDiscardAtRandom player = logCall 'enactDiscardAtRandom $ do
     Hand cards <- view $ getPlayer player.playerHand
     pickFrom cards >>= \case
@@ -778,19 +778,19 @@ enactDiscardAtRandom player = logCall 'enactDiscardAtRandom $ do
         Available (AtRandomPick card) -> discardCard player card
 
 
-discardCard :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m ()
+discardCard :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m ()
 discardCard player candidate = logCall 'discardCard $ do
     Hand cards <- view $ getPlayer player.playerHand
     let cards' = deleteBy (on (==) cardName) candidate cards
     getPlayer player.playerHand .= Hand cards'
 
 
-getMinionCount :: (HearthMonad c m) => Handle Player -> Hearth c m Int
+getMinionCount :: (HearthMonad k m) => Handle Player -> Hearth k m Int
 getMinionCount player = logCall 'getMinionCount $ do
     view $ getPlayer player.playerMinions.to length
 
 
-boardIndexOf :: (HearthMonad c m) => Handle Minion -> Hearth c m BoardIndex
+boardIndexOf :: (HearthMonad k m) => Handle Minion -> Hearth k m BoardIndex
 boardIndexOf minion = logCall 'boardIndexOf $ do
     owner <- ownerOf minion
     minions <- viewListOf $ getPlayer owner.playerMinions.traversed.boardMinionHandle
@@ -799,7 +799,7 @@ boardIndexOf minion = logCall 'boardIndexOf $ do
         Nothing -> $logicError 'boardIndexOf "xxx"
 
 
-enactSummon :: (HearthMonad c m) => Handle Player -> MinionCard c -> BoardLocation -> Hearth c m ()
+enactSummon :: (HearthMonad k m) => Handle Player -> MinionCard k -> BoardLocation -> Hearth k m ()
 enactSummon player minion loc = do
     idx <- case loc of
         RightOf m -> boardIndexOf m >>= return . \case
@@ -809,13 +809,13 @@ enactSummon player minion loc = do
     return ()
 
 
-enactPutInHand :: (HearthMonad c m) => Handle Player -> Card c -> Hearth c m ()
+enactPutInHand :: (HearthMonad k m) => Handle Player -> Card k -> Hearth k m ()
 enactPutInHand player card = do
     _ <- putInHand player $ toHandCard card
     return ()
 
 
-enactObserving :: (HearthMonad c m) => Effect c -> EventListener c -> Hearth c m (SimplePickResult AtRandom)
+enactObserving :: (HearthMonad k m) => Effect k -> EventListener k -> Hearth k m (SimplePickResult AtRandom)
 enactObserving effect listener = logCall 'enactObserving $ do
     originalObservers <- view gameEffectObservers
     gameEffectObservers %= (listener :)
@@ -824,32 +824,32 @@ enactObserving effect listener = logCall 'enactObserving $ do
     return result
 
 
-enactIf :: (HearthMonad c m) => Condition -> Effect c -> Effect c -> Hearth c m (SimplePickResult AtRandom)
+enactIf :: (HearthMonad k m) => Condition -> Effect k -> Effect k -> Hearth k m (SimplePickResult AtRandom)
 enactIf cond true false = logCall 'enactIf $ enactCondition cond >>= enactEffect . \case
     True -> true
     False -> false
 
 
-enactCondition :: (HearthMonad c m) => Condition -> Hearth c m Bool
+enactCondition :: (HearthMonad k m) => Condition -> Hearth k m Bool
 enactCondition = logCall 'enactCondition $ \case
     Or x y -> enactOr x y
     And x y -> enactAnd x y
     Satisfies handle requirements -> satisfies handle requirements
 
 
-enactOr :: (HearthMonad c m) => Condition -> Condition -> Hearth c m Bool
+enactOr :: (HearthMonad k m) => Condition -> Condition -> Hearth k m Bool
 enactOr x y = enactCondition x >>= \case
     True -> return True
     False -> enactCondition y
 
 
-enactAnd :: (HearthMonad c m) => Condition -> Condition -> Hearth c m Bool
+enactAnd :: (HearthMonad k m) => Condition -> Condition -> Hearth k m Bool
 enactAnd x y = enactCondition x >>= \case
     False -> return False
     True -> enactCondition y
 
 
-freeze :: (HearthMonad c m) => Handle Character -> Hearth c m ()
+freeze :: (HearthMonad k m) => Handle Character -> Hearth k m ()
 freeze character = logCall 'freeze $ do
     active <- getActivePlayerHandle
     owner <- ownerOf character
@@ -865,32 +865,32 @@ freeze character = logCall 'freeze $ do
             getMinion minion.boardMinionEnchantments %= (++ [Limited $ Until timePoint $ MinionEnchantment Frozen])
 
 
-enactWhen :: (HearthMonad c m) => Handle a -> [Requirement a] -> Effect c -> Hearth c m ()
+enactWhen :: (HearthMonad k m) => Handle a -> [Requirement a] -> Effect k -> Hearth k m ()
 enactWhen handle requirements effect = do
     whenM (satisfies handle requirements) $ do
         _ <- enactEffect effect
         return ()
 
 
-transform :: (HearthMonad c m) => Handle Minion -> MinionCard c -> Hearth c m ()
+transform :: (HearthMonad k m) => Handle Minion -> MinionCard k -> Hearth k m ()
 transform handle newMinion = logCall 'transform $ do
     getMinion handle .= toBoardMinion handle newMinion
     promptGameEvent $ Transformed handle newMinion
 
 
-enactEffectElect :: (HearthMonad c m) => Elect c AtRandom -> Hearth c m (SimplePickResult AtRandom)
+enactEffectElect :: (HearthMonad k m) => Elect k AtRandom -> Hearth k m (SimplePickResult AtRandom)
 enactEffectElect elect = enactElect elect >>= return . \case
     NotAvailable -> NotAvailable
     Available (AtRandomPick _) -> purePick ()
 
 
-gainArmor :: (HearthMonad c m) => Handle Player -> Armor -> Hearth c m ()
+gainArmor :: (HearthMonad k m) => Handle Player -> Armor -> Hearth k m ()
 gainArmor handle armor = logCall 'gainArmor $ do
     getPlayer handle.playerHero.boardHeroArmor += armor
     promptGameEvent $ GainedArmor handle armor
 
 
-enactRestoreHealth :: (HearthMonad c m) => Handle Character -> Health -> Hearth c m ()
+enactRestoreHealth :: (HearthMonad k m) => Handle Character -> Health -> Hearth k m ()
 enactRestoreHealth character (Health amount) = logCall 'enactRestoreHealth $ do
     actualAmount <- case character of
         MinionCharacter minion -> zoom (getMinion minion.boardMinionDamage) restore
@@ -905,23 +905,23 @@ enactRestoreHealth character (Health amount) = logCall 'enactRestoreHealth $ do
             return $ unDamage $ before - after
 
 
-enactRestoreToFullHealth :: (HearthMonad c m) => Handle Character -> Hearth c m ()
+enactRestoreToFullHealth :: (HearthMonad k m) => Handle Character -> Hearth k m ()
 enactRestoreToFullHealth character = logCall 'enactRestoreToFullHealth $ do
     enactRestoreHealth character $ Health maxBound
 
 
-enactDestroyMinion :: (HearthMonad c m) => Handle Minion -> Hearth c m ()
+enactDestroyMinion :: (HearthMonad k m) => Handle Minion -> Hearth k m ()
 enactDestroyMinion handle = logCall 'enactDestroyMinion $ do
     getMinion handle.boardMinionPendingDestroy .= True
     promptGameEvent $ MinionDestroyed handle
 
 
-enactForEach :: (HearthMonad c m) => HandleList a -> (Handle a -> Effect c) -> Hearth c m (SimplePickResult AtRandom)
+enactForEach :: (HearthMonad k m) => HandleList a -> (Handle a -> Effect k) -> Hearth k m (SimplePickResult AtRandom)
 enactForEach (HandleList _ handles) cont = logCall 'enactForEach $ do
     liftM condensePickResults $ forM handles (enactEffect . cont)
 
 
-sequenceEffects :: (HearthMonad c m) => [Effect c] -> Hearth c m (SimplePickResult AtRandom)
+sequenceEffects :: (HearthMonad k m) => [Effect k] -> Hearth k m (SimplePickResult AtRandom)
 sequenceEffects effects = liftM condensePickResults $ mapM enactEffect effects
 
 
@@ -931,7 +931,7 @@ condensePickResults results = case dropWhile (== purePick ()) results of
     r : _ -> r
 
 
-enactEnchant :: (HearthMonad c m) => Handle a -> AnyEnchantment c a -> Hearth c m ()
+enactEnchant :: (HearthMonad k m) => Handle a -> AnyEnchantment k a -> Hearth k m ()
 enactEnchant = logCall 'enactEnchant $ \case
     SpellHandle _ -> const $ return ()
     h @ PlayerHandle{} -> enactEnchantPlayer h
@@ -940,32 +940,32 @@ enactEnchant = logCall 'enactEnchant $ \case
     h @ MinionCharacter{} -> enactEnchantCharacter h
 
 
-enactEnchantPlayer :: (HearthMonad c m) => Handle Player -> AnyEnchantment c Player -> Hearth c m ()
+enactEnchantPlayer :: (HearthMonad k m) => Handle Player -> AnyEnchantment k Player -> Hearth k m ()
 enactEnchantPlayer handle enchantment = logCall 'enactEnchantPlayer $ do
     getPlayer handle.playerEnchantments %= (++ [enchantment])
 
 
-enactEnchantMinion :: (HearthMonad c m) => Handle Minion -> AnyEnchantment c Minion -> Hearth c m ()
+enactEnchantMinion :: (HearthMonad k m) => Handle Minion -> AnyEnchantment k Minion -> Hearth k m ()
 enactEnchantMinion handle enchantment = logCall 'enactEnchantMinion $ do
     getMinion handle.boardMinionEnchantments %= (++ [enchantment])
 
 
-enactEnchantCharacter :: (HearthMonad c m) => Handle Character -> AnyEnchantment c Character -> Hearth c m ()
+enactEnchantCharacter :: (HearthMonad k m) => Handle Character -> AnyEnchantment k Character -> Hearth k m ()
 enactEnchantCharacter character enchantment = logCall 'enactEnchantCharacter $ case character of
     PlayerCharacter player -> enactEnchantPlayer player $ liftE PlayerEnchantment enchantment
     MinionCharacter player -> enactEnchantMinion player $ liftE MinionEnchantment enchantment
     where
-        liftE :: forall c a. (forall t. Enchantment c t Character -> Enchantment c t a) -> AnyEnchantment c Character -> AnyEnchantment c a
+        liftE :: forall k a. (forall t. Enchantment k t Character -> Enchantment k t a) -> AnyEnchantment k Character -> AnyEnchantment k a
         liftE f = \case
             Limited e -> Limited $ f e
             Continuous e -> Continuous $ f e
 
 
-viewIsDamaged :: BoardMinion c -> Bool
+viewIsDamaged :: BoardMinion k -> Bool
 viewIsDamaged bm = bm^.boardMinionDamage > 0
 
 
-viewMinionAbilities :: (HearthMonad c m) => Handle Minion -> Hearth c m [Ability c Minion]
+viewMinionAbilities :: (HearthMonad k m) => Handle Minion -> Hearth k m [Ability k Minion]
 viewMinionAbilities bmHandle = logCall 'viewMinionAbilities $ do
     bm <- view $ getMinion bmHandle
     return $ bm^.boardMinionAbilities >>= \ability -> case ability of
@@ -975,7 +975,7 @@ viewMinionAbilities bmHandle = logCall 'viewMinionAbilities $ do
         _ -> [ability]
 
 
-viewMinionEnchantments :: (HearthMonad c m) => Handle Minion -> Hearth c m [AnyEnchantment c Minion]
+viewMinionEnchantments :: (HearthMonad k m) => Handle Minion -> Hearth k m [AnyEnchantment k Minion]
 viewMinionEnchantments bmHandle = logCall 'viewMinionEnchantments $ do
     bm <- view $ getMinion bmHandle
     let baseEnchantments = bm^.boardMinionEnchantments
@@ -987,19 +987,19 @@ viewMinionEnchantments bmHandle = logCall 'viewMinionEnchantments $ do
     return $ baseEnchantments ++ map Continuous enrageEnchantments -- TODO: Need to check correct interleaving.
 
 
-viewPlayerEnchantments :: (HearthMonad c m) => Handle Player -> Hearth c m [AnyEnchantment c Player]
+viewPlayerEnchantments :: (HearthMonad k m) => Handle Player -> Hearth k m [AnyEnchantment k Player]
 viewPlayerEnchantments player = logCall 'viewPlayerEnchantments $ do
     view $ getPlayer player.playerEnchantments
 
 
-underAnyEnchantment :: forall a b c. (forall t. Enchantment c t a -> b) -> AnyEnchantment c a -> b
+underAnyEnchantment :: forall a b k. (forall t. Enchantment k t a -> b) -> AnyEnchantment k a -> b
 underAnyEnchantment f = \case
     Continuous e -> f e
     Limited e -> f e
 
 
 class SatisfiesEnchantment a where
-    viewSatisfiesEnchantment :: (HearthMonad c m) => (forall t. Enchantment c t a -> Bool) -> Handle a -> Hearth c m Bool
+    viewSatisfiesEnchantment :: (HearthMonad k m) => (forall t. Enchantment k t a -> Bool) -> Handle a -> Hearth k m Bool
 
 
 instance SatisfiesEnchantment Minion where
@@ -1014,7 +1014,7 @@ instance SatisfiesEnchantment Player where
         return $ any (underAnyEnchantment p) enchantments
 
 
-discoverEnchantment :: (forall t2 a2. Enchantment c t2 a2 -> Bool) -> Enchantment c t a -> Bool
+discoverEnchantment :: (forall t2 a2. Enchantment k t2 a2 -> Bool) -> Enchantment k t a -> Bool
 discoverEnchantment p = \case
     Until _ e -> discoverEnchantment p e
     MinionEnchantment e -> discoverEnchantment p e
@@ -1022,7 +1022,7 @@ discoverEnchantment p = \case
     e -> p e
 
 
-grantsFrozen :: Enchantment c t a -> Bool
+grantsFrozen :: Enchantment k t a -> Bool
 grantsFrozen = \case
     MinionEnchantment e -> grantsFrozen e
     PlayerEnchantment e -> grantsFrozen e
@@ -1047,20 +1047,20 @@ instance IsCharacterHandle CharacterHandle where
     characterHandle = id
 
 
-instance IsCharacterHandle (BoardMinion c) where
+instance IsCharacterHandle (BoardMinion k) where
     characterHandle = characterHandle . _boardMinionHandle
 
 
 -- TODO: Make CharacterTraits not a class and just make it a constraint over a bunch of modular classes
 class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
-    bumpAttackCount :: (HearthMonad c m) => h -> Hearth c m ()
-    viewAttackCount :: (HearthMonad c m) => h -> Hearth c m Int
-    viewMaxAttackCount :: (HearthMonad c m) => h -> Hearth c m Int
-    viewDamage :: (HearthMonad c m) => h -> Hearth c m Damage
-    viewAttack :: (HearthMonad c m) => h -> Hearth c m Attack
-    viewMaxHealth :: (HearthMonad c m) => h -> Hearth c m Health
-    viewSummoningSickness :: (HearthMonad c m) => h -> Hearth c m Bool
-    viewIsFrozen :: (HearthMonad c m) => h -> Hearth c m Bool
+    bumpAttackCount :: (HearthMonad k m) => h -> Hearth k m ()
+    viewAttackCount :: (HearthMonad k m) => h -> Hearth k m Int
+    viewMaxAttackCount :: (HearthMonad k m) => h -> Hearth k m Int
+    viewDamage :: (HearthMonad k m) => h -> Hearth k m Damage
+    viewAttack :: (HearthMonad k m) => h -> Hearth k m Attack
+    viewMaxHealth :: (HearthMonad k m) => h -> Hearth k m Health
+    viewSummoningSickness :: (HearthMonad k m) => h -> Hearth k m Bool
+    viewIsFrozen :: (HearthMonad k m) => h -> Hearth k m Bool
 
 
 instance CharacterTraits PlayerHandle where
@@ -1082,13 +1082,13 @@ instance CharacterTraits PlayerHandle where
         viewSatisfiesEnchantment grantsFrozen
 
 
-auraAbilitiesOf :: [Ability c Minion] -> [Handle Minion -> Aura c]
+auraAbilitiesOf :: [Ability k Minion] -> [Handle Minion -> Aura k]
 auraAbilitiesOf = mapMaybe $ \case
     Aura aura -> Just aura
     _ -> Nothing
 
 
-dynamic :: (HearthMonad c m) => Hearth c m a -> Hearth c m a
+dynamic :: (HearthMonad k m) => Hearth k m a -> Hearth k m a
 dynamic action = logCall 'dynamic $ local id $ do
     -- TODO: This function should not be use recursively. There should be a $logicError guard.
     enactMinionAuras
@@ -1116,13 +1116,13 @@ dynamic action = logCall 'dynamic $ local id $ do
                 enchantments <- viewPlayerEnchantments player
                 forM_ enchantments $ underAnyEnchantment $ applyPlayerEnchantment player
 
-        applyPlayerEnchantment :: (HearthMonad c m) => Handle Player -> Enchantment c t Player -> Hearth c m ()
+        applyPlayerEnchantment :: (HearthMonad k m) => Handle Player -> Enchantment k t Player -> Hearth k m ()
         applyPlayerEnchantment player = \case
             PlayerEnchantment e -> applyCharacterEnchantment (PlayerCharacter player) e
             Until _ enchantment -> applyPlayerEnchantment player enchantment
             Grant _ -> $todo 'dynamic "xxx"
 
-        applyMinionEnchantment :: (HearthMonad c m) => Handle Minion -> Enchantment c t Minion -> Hearth c m ()
+        applyMinionEnchantment :: (HearthMonad k m) => Handle Minion -> Enchantment k t Minion -> Hearth k m ()
         applyMinionEnchantment minion = \case
             MinionEnchantment e -> applyCharacterEnchantment (MinionCharacter minion) e
             StatsScale a h -> do
@@ -1142,7 +1142,7 @@ dynamic action = logCall 'dynamic $ local id $ do
             Until _ enchantment -> applyMinionEnchantment minion enchantment
             DelayedEffect {} -> return ()
 
-        applyCharacterEnchantment :: (HearthMonad c m) => Handle Character -> Enchantment c t Character -> Hearth c m ()
+        applyCharacterEnchantment :: (HearthMonad k m) => Handle Character -> Enchantment k t Character -> Hearth k m ()
         applyCharacterEnchantment character = \case
             Until _ enchantment -> applyCharacterEnchantment character enchantment
             Frozen -> return ()
@@ -1157,7 +1157,7 @@ dynamic action = logCall 'dynamic $ local id $ do
 
 
 
-enactAura :: (HearthMonad c m) => Aura c -> Hearth c m ()
+enactAura :: (HearthMonad k m) => Aura k -> Hearth k m ()
 enactAura = logCall 'enactAura $ \case
     AuraOwnerOf handle cont -> ownerOf handle >>= enactAura . cont
     AuraOpponentOf handle cont -> opponentOf handle >>= enactAura . cont
@@ -1167,23 +1167,23 @@ enactAura = logCall 'enactAura $ \case
     HasAbility handle ability -> enactHasAbility handle ability
 
 
-enactEachMinion :: (HearthMonad c m) => [Requirement Minion] -> (Handle Minion -> Aura c) -> Hearth c m ()
+enactEachMinion :: (HearthMonad k m) => [Requirement Minion] -> (Handle Minion -> Aura k) -> Hearth k m ()
 enactEachMinion requirements cont = logCall 'enactEachMinion $ do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     forM_ minions $ \minion -> do
         whenM (satisfies minion requirements) $ enactAura $ cont minion
 
 
-enactWhile :: (HearthMonad c m) => Handle a -> [Requirement a] -> Aura c -> Hearth c m ()
+enactWhile :: (HearthMonad k m) => Handle a -> [Requirement a] -> Aura k -> Hearth k m ()
 enactWhile handle requirements = logCall 'enactWhile $ whenM (satisfies handle requirements) . enactAura
 
 
-enactHas :: (HearthMonad c m) => Handle Minion -> Enchantment c Continuous Minion -> Hearth c m ()
+enactHas :: (HearthMonad k m) => Handle Minion -> Enchantment k Continuous Minion -> Hearth k m ()
 enactHas handle enchantment = logCall 'enactHas $ do
     getMinion handle.boardMinionEnchantments %= (++ [Continuous enchantment])
 
 
-enactHasAbility :: (HearthMonad c m) => Handle Minion -> Ability c Minion -> Hearth c m ()
+enactHasAbility :: (HearthMonad k m) => Handle Minion -> Ability k Minion -> Hearth k m ()
 enactHasAbility handle ability = logCall 'enactHasAbility $ do
     getMinion handle.boardMinionAbilities %= (++ [ability])
 
@@ -1238,14 +1238,14 @@ instance CharacterTraits CharacterHandle where
         MinionCharacter h -> viewIsFrozen h
 
 
-viewRemainingHealth :: (HearthMonad c m) => Handle Character -> Hearth c m Health
+viewRemainingHealth :: (HearthMonad k m) => Handle Character -> Hearth k m Health
 viewRemainingHealth h = logCall 'viewRemainingHealth $ do
     damage <- viewDamage h
     health <- viewMaxHealth h
     return $ health - Health (unDamage damage)
 
 
-viewSpellDamage :: (HearthMonad c m) => Handle Player -> Hearth c m Int
+viewSpellDamage :: (HearthMonad k m) => Handle Player -> Hearth k m Int
 viewSpellDamage player = logCall 'viewSpellDamage $ do
     minions <- viewListOf $ getPlayer player.playerMinions.traversed.boardMinionHandle
     liftM sum $ forM minions $ \minion -> do
@@ -1255,13 +1255,13 @@ viewSpellDamage player = logCall 'viewSpellDamage $ do
             _ -> Nothing
 
 
-enactRandomMissiles :: (HearthMonad c m) => [Requirement Character] -> Int -> Handle Spell -> Hearth c m ()
+enactRandomMissiles :: (HearthMonad k m) => [Requirement Character] -> Int -> Handle Spell -> Hearth k m ()
 enactRandomMissiles reqs n spell = logCall 'enactRandomMissiles $ do
     modifier <- ownerOf spell >>= dynamic . viewSpellDamage
     enactRandomMissilesPrim reqs (n + modifier) spell
 
 
-enactRandomMissilesPrim :: (HearthMonad c m) => [Requirement Character] -> Int -> Handle Spell -> Hearth c m ()
+enactRandomMissilesPrim :: (HearthMonad k m) => [Requirement Character] -> Int -> Handle Spell -> Hearth k m ()
 enactRandomMissilesPrim reqs n spell = logCall 'enactRandomMissilesPrim $ case n of
     0 -> return ()
     _ -> do
@@ -1275,7 +1275,7 @@ enactRandomMissilesPrim reqs n spell = logCall 'enactRandomMissilesPrim $ case n
                 enactRandomMissilesPrim reqs (n - 1) spell
 
 
-enactDealDamage :: (HearthMonad c m) => Handle Character -> Damage -> DamageSource -> Hearth c m ()
+enactDealDamage :: (HearthMonad k m) => Handle Character -> Damage -> DamageSource -> Hearth k m ()
 enactDealDamage charHandle (Damage baseDamage) source = logCall 'enactDealDamage $ do
     modifier <- case source of
         DamagingSpell spell -> ownerOf spell >>= dynamic . viewSpellDamage
@@ -1284,7 +1284,7 @@ enactDealDamage charHandle (Damage baseDamage) source = logCall 'enactDealDamage
     dealDamagePrim charHandle damage source
 
 
-dealDamagePrim :: (HearthMonad c m) => Handle Character -> Damage -> DamageSource -> Hearth c m ()
+dealDamagePrim :: (HearthMonad k m) => Handle Character -> Damage -> DamageSource -> Hearth k m ()
 dealDamagePrim charHandle damage source = logCall 'dealDamagePrim $ case damage <= 0 of
     True -> return ()
     False -> case charHandle of
@@ -1311,7 +1311,7 @@ dealDamagePrim charHandle damage source = logCall 'dealDamagePrim $ case damage 
                     promptGameEvent $ DealtDamage charHandle damage source
 
 
-silence :: (HearthMonad c m) => Handle Minion -> Hearth c m ()
+silence :: (HearthMonad k m) => Handle Minion -> Hearth k m ()
 silence victim = logCall 'silence $ do
     health <- dynamic $ viewMaxHealth victim
     zoom (getMinion victim) $ do
@@ -1345,7 +1345,7 @@ instance PurePick AtRandom where
     purePick = Available . AtRandomPick
 
 
-enactElect :: (HearthMonad c m, PickFrom s) => Elect c s -> Hearth c m (SimplePickResult s)
+enactElect :: (HearthMonad k m, PickFrom s) => Elect k s -> Hearth k m (SimplePickResult s)
 enactElect = logCall 'enactElect $ \case
     A x -> enactA x
     All x -> enactAll x
@@ -1355,28 +1355,28 @@ enactElect = logCall 'enactElect $ \case
     Choice choices -> enactChoice choices
 
 
-enactChoice :: (HearthMonad c m, PickFrom s) => [Elect c s] -> Hearth c m (SimplePickResult s)
+enactChoice :: (HearthMonad k m, PickFrom s) => [Elect k s] -> Hearth k m (SimplePickResult s)
 enactChoice = logCall 'enactChoice $ pickFrom >=> enactElect' id
 
 
-enactOwnerOf :: (HearthMonad c m, PickFrom s) => Handle a -> (Handle Player -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactOwnerOf :: (HearthMonad k m, PickFrom s) => Handle a -> (Handle Player -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactOwnerOf handle cont = logCall 'enactOwnerOf $ do
     ownerOf handle >>= enactElect . cont
 
 
-enactOpponentOf :: (HearthMonad c m, PickFrom s) => Handle Player -> (Handle Player -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactOpponentOf :: (HearthMonad k m, PickFrom s) => Handle Player -> (Handle Player -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactOpponentOf handle cont = logCall 'enactOpponentOf $ do
     opponentOf handle >>= enactElect . cont
 
 
-enactElectedEffect :: (HearthMonad c m, PickFrom s) => Effect c -> Hearth c m (SimplePickResult s)
+enactElectedEffect :: (HearthMonad k m, PickFrom s) => Effect k -> Hearth k m (SimplePickResult s)
 enactElectedEffect = logCall 'enactElectedEffect $ enactEffect >=> \case
     NotAvailable -> return NotAvailable
     Available (AtRandomPick ()) -> return $ purePick ()
 
 
 class EnactElect s where
-    enactElect' :: (HearthMonad c m) => (a -> Elect c s) -> Available (PickResult s a) -> Hearth c m (SimplePickResult s)
+    enactElect' :: (HearthMonad k m) => (a -> Elect k s) -> Available (PickResult s a) -> Hearth k m (SimplePickResult s)
 
 
 instance EnactElect AtRandom where
@@ -1393,21 +1393,21 @@ instance EnactElect Targeted where
             TargetedPick x -> enactElect $ cont x
 
 
-enactA :: (HearthMonad c m, PickFrom s) => A c s -> Hearth c m (SimplePickResult s)
+enactA :: (HearthMonad k m, PickFrom s) => A k s -> Hearth k m (SimplePickResult s)
 enactA = logCall 'enactA $ \case
     Minion requirements cont -> enactMinion requirements cont
     Player requirements cont -> enactPlayer requirements cont
     Character requirements cont -> enactCharacter requirements cont
 
 
-enactAll :: (HearthMonad c m, PickFrom s) => All c s -> Hearth c m (SimplePickResult s)
+enactAll :: (HearthMonad k m, PickFrom s) => All k s -> Hearth k m (SimplePickResult s)
 enactAll = logCall 'enactAll . \case
     Minions requirements cont -> enactMinions requirements cont
     Players requirements cont -> enactPlayers requirements cont
     Characters requirements cont -> enactCharacters requirements cont
 
 
-enactMinion :: (HearthMonad c m, PickFrom s) => [Requirement Minion] -> (Handle Minion -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactMinion :: (HearthMonad k m, PickFrom s) => [Requirement Minion] -> (Handle Minion -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactMinion requirements cont = logCall 'enactMinion $ do
     pHandles <- getPlayerHandles
     candidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -1416,13 +1416,13 @@ enactMinion requirements cont = logCall 'enactMinion $ do
     restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactPlayer :: (HearthMonad c m, PickFrom s) => [Requirement Player] -> (Handle Player -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactPlayer :: (HearthMonad k m, PickFrom s) => [Requirement Player] -> (Handle Player -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactPlayer requirements cont = logCall 'enactPlayer $ do
     candidates <- getPlayerHandles
     restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactCharacter :: (HearthMonad c m, PickFrom s) => [Requirement Character] -> (Handle Character -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactCharacter :: (HearthMonad k m, PickFrom s) => [Requirement Character] -> (Handle Character -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactCharacter requirements cont = logCall 'enactCharacter $ do
     pHandles <- getPlayerHandles
     minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
@@ -1433,19 +1433,19 @@ enactCharacter requirements cont = logCall 'enactCharacter $ do
     restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
-enactMinions :: (HearthMonad c m, PickFrom s) => [Requirement Minion] -> (HandleList Minion -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactMinions :: (HearthMonad k m, PickFrom s) => [Requirement Minion] -> (HandleList Minion -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactMinions requirements cont = logCall 'enactMinions $ do
     candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     restrict requirements candidates >>= enactElect . cont . handleList
 
 
-enactPlayers :: (HearthMonad c m, PickFrom s) => [Requirement Player] -> (HandleList Player -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactPlayers :: (HearthMonad k m, PickFrom s) => [Requirement Player] -> (HandleList Player -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactPlayers requirements cont = logCall 'enactPlayers $ do
     candidates <- getPlayerHandles
     restrict requirements candidates >>= enactElect . cont . handleList
 
 
-enactCharacters :: (HearthMonad c m, PickFrom s) => [Requirement Character] -> (HandleList Character -> Elect c s) -> Hearth c m (SimplePickResult s)
+enactCharacters :: (HearthMonad k m, PickFrom s) => [Requirement Character] -> (HandleList Character -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactCharacters requirements cont = logCall 'enactCharacters $ do
     playerCandidates <- getPlayerHandles
     minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
@@ -1453,7 +1453,7 @@ enactCharacters requirements cont = logCall 'enactCharacters $ do
     restrict requirements candidates >>= enactElect . cont . handleList
 
 
-restrict :: (HearthMonad c m) => [Requirement a] -> [Handle a] -> Hearth c m [Handle a]
+restrict :: (HearthMonad k m) => [Requirement a] -> [Handle a] -> Hearth k m [Handle a]
 restrict rs hs = flip filterM hs $ \h -> h `satisfies` rs
 
 
@@ -1467,7 +1467,7 @@ fromComparison = \case
 
 
 class CanSatisfy a r | r -> a where
-    satisfies :: (HearthMonad c m) => Handle a -> r -> Hearth c m Bool
+    satisfies :: (HearthMonad k m) => Handle a -> r -> Hearth k m Bool
 
 
 instance CanSatisfy a (Requirement a) where
@@ -1511,93 +1511,93 @@ instance CanSatisfy a [Requirement a] where
     satisfies h rs = allM (satisfies h) rs
 
 
-class Pickable (s :: Selection) c a where
-    promptPick :: NonEmpty a -> PromptPick s c a
-    pickFailError :: Proxy s -> Proxy c -> Proxy a -> HearthError
-    pickGuard :: Proxy s -> Proxy c -> [a] -> a -> Bool
+class Pickable (s :: Selection) k a where
+    promptPick :: NonEmpty a -> PromptPick s k a
+    pickFailError :: Proxy s -> Proxy k -> Proxy a -> HearthError
+    pickGuard :: Proxy s -> Proxy k -> [a] -> a -> Bool
 
 
-instance Pickable s c MinionHandle where
+instance Pickable s k MinionHandle where
     promptPick = PickMinion
     pickFailError _ _ _ = InvalidMinion
     pickGuard _ _ = flip elem
 
 
-instance Pickable s c PlayerHandle where
+instance Pickable s k PlayerHandle where
     promptPick = PickPlayer
     pickFailError _ _ _ = InvalidPlayer
     pickGuard _ _ = flip elem
 
 
-instance Pickable s c CharacterHandle where
+instance Pickable s k CharacterHandle where
     promptPick = PickCharacter
     pickFailError _ _ _ = InvalidCharacter
     pickGuard _ _ = flip elem
 
 
-instance Pickable s c (HandCard c) where
+instance Pickable s k (HandCard k) where
     promptPick = PickHandCard
     pickFailError _ _ _ = InvalidHandCard
     pickGuard _ _ cs c = cardName c `elem` map cardName cs
 
 
-instance Pickable s c (Elect c s) where
+instance Pickable s k (Elect k s) where
     promptPick = PickElect
     pickFailError _ _ _ = InvalidElect
     pickGuard _ _ _ _ = True -- TODO: Make this actually guard
 
 
 class (EnactElect s, PurePick s) => PickFrom s where
-    pickFrom :: forall c m a. (HearthMonad c m, Pickable s c a) => [a] -> Hearth c m (Available (PickResult s a))
+    pickFrom :: forall k m a. (HearthMonad k m, Pickable s k a) => [a] -> Hearth k m (Available (PickResult s a))
 
 
 instance PickFrom AtRandom where
-    pickFrom :: forall c m a. (HearthMonad c m, Pickable AtRandom c a) => [a] -> Hearth c m (Available (PickResult AtRandom a))
+    pickFrom :: forall k m a. (HearthMonad k m, Pickable AtRandom k a) => [a] -> Hearth k m (Available (PickResult AtRandom a))
     pickFrom = logCall 'pickFrom . \case
         [] -> return NotAvailable
         xs -> liftM Available $ do
             snapshot <- gets GameSnapshot
             guardedPrompt (PromptPickAtRandom snapshot $ promptPick $ NonEmpty.fromList xs) $ \case
-                AtRandomPick x -> case pickGuard (Proxy :: Proxy AtRandom) (Proxy :: Proxy c) xs x of
+                AtRandomPick x -> case pickGuard (Proxy :: Proxy AtRandom) (Proxy :: Proxy k) xs x of
                     True -> return True
                     False -> do
-                        prompt $ PromptError $ pickFailError (Proxy :: Proxy AtRandom) (Proxy :: Proxy c) (Proxy :: Proxy a)
+                        prompt $ PromptError $ pickFailError (Proxy :: Proxy AtRandom) (Proxy :: Proxy k) (Proxy :: Proxy a)
                         return False
 
 
 instance PickFrom Targeted where
-    pickFrom :: forall c m a. (HearthMonad c m, Pickable Targeted c a) => [a] -> Hearth c m (Available (PickResult Targeted a))
+    pickFrom :: forall k m a. (HearthMonad k m, Pickable Targeted k a) => [a] -> Hearth k m (Available (PickResult Targeted a))
     pickFrom = logCall 'pickFrom . \case
         [] -> return NotAvailable
         xs -> liftM Available $ do
             snapshot <- gets GameSnapshot
             guardedPrompt (PromptPickTargeted snapshot $ promptPick $ NonEmpty.fromList xs) $ \case
                 AbortTargetedPick -> return True
-                TargetedPick x -> case pickGuard (Proxy :: Proxy Targeted) (Proxy :: Proxy c) xs x of
+                TargetedPick x -> case pickGuard (Proxy :: Proxy Targeted) (Proxy :: Proxy k) xs x of
                     True -> return True
                     False -> do
-                        prompt $ PromptError $ pickFailError (Proxy :: Proxy Targeted) (Proxy :: Proxy c) (Proxy :: Proxy a)
+                        prompt $ PromptError $ pickFailError (Proxy :: Proxy Targeted) (Proxy :: Proxy k) (Proxy :: Proxy a)
                         return False
 
 
-playCommon :: (HearthMonad c m) => Handle Player -> HandCard c -> Hearth c m Result
+playCommon :: (HearthMonad k m) => Handle Player -> HandCard k -> Hearth k m Result
 playCommon handle card = logCall 'playCommon $ removeFromHand handle card >>= \case
     False -> return $ Failure "Could not play card because it is not in hand."
     True -> payCost handle $ costOf card
 
 
-costOf :: HandCard c -> Cost
+costOf :: HandCard k -> Cost
 costOf = \case
     HandCardMinion minion -> minion^.minionCost
     HandCardSpell spell -> spell^.spellCost
 
 
-payCost :: (HearthMonad c m) => Handle Player -> Cost -> Hearth c m Result
+payCost :: (HearthMonad k m) => Handle Player -> Cost -> Hearth k m Result
 payCost who = logCall 'payCost $  \case
     ManaCost mana -> payManaCost who mana
 
 
-payManaCost :: (HearthMonad c m) => Handle Player -> Mana -> Hearth c m Result
+payManaCost :: (HearthMonad k m) => Handle Player -> Mana -> Hearth k m Result
 payManaCost who (Mana cost) = logCall 'payManaCost $ zoom (getPlayer who) $ do
     totalMana <- view playerTotalManaCrystals
     emptyMana <- view playerEmptyManaCrystals
@@ -1609,7 +1609,7 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoom (getPlayer who) $ do
             return Success
 
 
-clearDeadMinions :: (HearthMonad c m) => Hearth c m ()
+clearDeadMinions :: (HearthMonad k m) => Hearth k m ()
 clearDeadMinions = logCall 'clearDeadMinions $ do
     snap <- gets GameSnapshot
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
@@ -1629,7 +1629,7 @@ comesAfter x y = \case
     _ -> False
 
 
-areAdjacent :: (HearthMonad c m) => Handle Minion -> Handle Minion -> Hearth c m Bool
+areAdjacent :: (HearthMonad k m) => Handle Minion -> Handle Minion -> Hearth k m Bool
 areAdjacent handle1 handle2 = do
     minionsByPlayer <- viewListOf $ gamePlayers.traversed.playerMinions
     return $ flip any minionsByPlayer $ \minions -> let
@@ -1637,63 +1637,63 @@ areAdjacent handle1 handle2 = do
         in comesAfter handle1 handle2 handles || comesAfter handle2 handle1 handles
 
 
-removeMinion :: (HearthMonad c m) => Handle Minion -> Hearth c m ()
+removeMinion :: (HearthMonad k m) => Handle Minion -> Hearth k m ()
 removeMinion minion = do
     owner <- ownerOf minion
     getPlayer owner.playerMinions %= filter (\bm -> bm^.boardMinionHandle /= minion)
 
 
-removeSpell :: (HearthMonad c m) => Handle Spell -> Hearth c m ()
+removeSpell :: (HearthMonad k m) => Handle Spell -> Hearth k m ()
 removeSpell spell = do
     owner <- ownerOf spell
     getPlayer owner.playerSpells %= filter (\s -> s^.castSpellHandle /= spell)
 
 
-viewAbility :: (HearthMonad c m) => (Ability c Minion -> Bool) -> Handle Minion -> Hearth c m Bool
+viewAbility :: (HearthMonad k m) => (Ability k Minion -> Bool) -> Handle Minion -> Hearth k m Bool
 viewAbility predicate bmHandle = logCall 'viewAbility $ do
     abilities <- viewMinionAbilities bmHandle
     return $ any predicate abilities
 
 
-viewWindfury :: (HearthMonad c m) => Handle Minion -> Hearth c m Bool
+viewWindfury :: (HearthMonad k m) => Handle Minion -> Hearth k m Bool
 viewWindfury = logCall 'viewWindfury $ viewAbility $ \case
     Windfury -> True
     _ -> False
 
 
-viewTaunt :: (HearthMonad c m) => Handle Minion -> Hearth c m Bool
+viewTaunt :: (HearthMonad k m) => Handle Minion -> Hearth k m Bool
 viewTaunt = logCall 'viewTaunt $ viewAbility $ \case
     Taunt -> True
     _ -> False
 
 
-viewCharge :: (HearthMonad c m) => Handle Minion -> Hearth c m Bool
+viewCharge :: (HearthMonad k m) => Handle Minion -> Hearth k m Bool
 viewCharge = logCall 'viewCharge $ viewAbility $ \case
     Charge -> True
     _ -> False
 
 
-viewHasTauntMinions :: (HearthMonad c m) => Handle Player -> Hearth c m Bool
+viewHasTauntMinions :: (HearthMonad k m) => Handle Player -> Hearth k m Bool
 viewHasTauntMinions player = logCall 'viewHasTauntMinions $ do
     view (getPlayer player.playerMinions) >>= anyM (viewTaunt . _boardMinionHandle)
 
 
-isAlly :: (Ownable a, HearthMonad c m) => a -> Hearth c m Bool
+isAlly :: (Ownable a, HearthMonad k m) => a -> Hearth k m Bool
 isAlly bm = do
     owner <- ownerOf bm
     active <- getActivePlayerHandle
     return $ owner == active
 
 
-isEnemy :: (Ownable a, HearthMonad c m) => a -> Hearth c m Bool
+isEnemy :: (Ownable a, HearthMonad k m) => a -> Hearth k m Bool
 isEnemy = liftM not . isAlly
 
 
-viewRemainingAttacks :: (CharacterTraits a, HearthMonad c m) => a -> Hearth c m Int
+viewRemainingAttacks :: (CharacterTraits a, HearthMonad k m) => a -> Hearth k m Int
 viewRemainingAttacks c = logCall 'viewRemainingAttacks $ liftM2 (\x y -> max 0 $ x - y) (viewMaxAttackCount c) (viewAttackCount c)
 
 
-isLegalAttackSetup :: (HearthMonad c m) => Handle Character -> Handle Character -> Hearth c m Result
+isLegalAttackSetup :: (HearthMonad k m) => Handle Character -> Handle Character -> Hearth k m Result
 isLegalAttackSetup attacker defender = logCall 'isLegalAttackSetup $ dynamic $ do
     let viewDefenderTaunt = case defender of
             PlayerCharacter _ -> return False
@@ -1735,7 +1735,7 @@ isLegalAttackSetup attacker defender = logCall 'isLegalAttackSetup $ dynamic $ d
                                             False -> return Success
 
 
-enactAttack :: (HearthMonad c m) => Handle Character -> Handle Character -> Hearth c m Result
+enactAttack :: (HearthMonad k m) => Handle Character -> Handle Character -> Hearth k m Result
 enactAttack attacker defender = logCall 'enactAttack $ do
     isLegalAttackSetup attacker defender >>= \case
         Failure msg -> return $ Failure msg
@@ -1751,7 +1751,7 @@ enactAttack attacker defender = logCall 'enactAttack $ do
                 return Success
 
 
-replaceMinionByHandle :: (HearthMonad c m) => BoardMinion c -> Hearth c m ()
+replaceMinionByHandle :: (HearthMonad k m) => BoardMinion k -> Hearth k m ()
 replaceMinionByHandle bm' = logCall 'replaceMinionByHandle $ do
     owner <- ownerOf $ bm'^.boardMinionHandle
     getPlayer owner.playerMinions %= \bms -> let
@@ -1759,7 +1759,7 @@ replaceMinionByHandle bm' = logCall 'replaceMinionByHandle $ do
         in front ++ [bm'] ++ end
     
 
-loseDivineShield :: BoardMinion c -> Maybe (BoardMinion c)
+loseDivineShield :: BoardMinion k -> Maybe (BoardMinion k)
 loseDivineShield bm = let
     abilities = bm^.boardMinionAbilities
     abilities' = flip filter abilities $ \case
@@ -1770,7 +1770,7 @@ loseDivineShield bm = let
         False -> Just $ bm & boardMinionAbilities .~ abilities'
 
 
-viewEventListeners :: (HearthMonad c m) => Hearth c m [EventListener c]
+viewEventListeners :: (HearthMonad k m) => Hearth k m [EventListener k]
 viewEventListeners = logCall 'viewEventListeners $ do
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     minionListeners <- liftM concat $ forM minions $ \minion -> do
@@ -1782,11 +1782,11 @@ viewEventListeners = logCall 'viewEventListeners $ do
     return $ effectObservers ++ minionListeners
 
 
-processEvent :: (HearthMonad c m) => (EventListener c -> Hearth c m ()) -> Hearth c m ()
+processEvent :: (HearthMonad k m) => (EventListener k -> Hearth k m ()) -> Hearth k m ()
 processEvent f = dynamic viewEventListeners >>= mapM_ f
 
 
-handleGameEvent :: (HearthMonad c m) => GameEvent c -> Hearth c m ()
+handleGameEvent :: (HearthMonad k m) => GameEvent k -> Hearth k m ()
 handleGameEvent = \case
     PlayedSpell _ spell -> processEvent $ \case
         SpellIsCast listener -> run $ listener spell

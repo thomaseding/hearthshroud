@@ -196,7 +196,7 @@ instance LocalQuiet Console where
         return x
 
 
-instance LocalQuiet (Hearth c Console) where
+instance LocalQuiet (Hearth k Console) where
     localQuiet m = do
         v <- lift $ view $ logState.verbosity
         lift $ logState.verbosity .= Quiet
@@ -471,11 +471,11 @@ showHeroName :: HeroName -> String
 showHeroName = show
 
 
-handCardName' :: HandCard c -> String
+handCardName' :: HandCard k -> String
 handCardName' = showCardName . cardName
 
 
-deckCardName' :: DeckCard c -> String
+deckCardName' :: DeckCard k -> String
 deckCardName' = showCardName . cardName
 
 
@@ -514,7 +514,7 @@ elemBy f x = \case
 
 class MakePick s where
     mkPick :: (a -> a -> Bool) -> (SignedInt -> Hearth Showy Console (Maybe a)) -> GameSnapshot Showy -> NonEmpty a -> Console (PickResult s a)
-    pickElect :: GameSnapshot c -> NonEmpty (Elect Showy s) -> Console (PickResult s (Elect Showy s))
+    pickElect :: GameSnapshot k -> NonEmpty (Elect Showy s) -> Console (PickResult s (Elect Showy s))
 
 
 instance MakePick AtRandom where
@@ -690,7 +690,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 return $ Deck $ map toDeckCard $ take classCount classCards' ++ take neutralCount neutralCards'
 
 
-cardsByClass :: (UserConstraint c) => Class -> [Card c]
+cardsByClass :: (UserConstraint k) => Class -> [Card k]
 cardsByClass clazz = flip filter cardUniverse $ \card ->
     cardMeta card^.cardMetaClass == clazz
 
@@ -699,17 +699,17 @@ class GetCardMeta a where
     cardMeta :: a -> CardMeta
 
 
-instance GetCardMeta (Card c) where
+instance GetCardMeta (Card k) where
     cardMeta = \case
         CardMinion x -> cardMeta x
         CardSpell x -> cardMeta x
 
 
-instance GetCardMeta (MinionCard c) where
+instance GetCardMeta (MinionCard k) where
     cardMeta = _minionMeta
 
 
-instance GetCardMeta (SpellCard c) where
+instance GetCardMeta (SpellCard k) where
     cardMeta = _spellMeta
 
 
@@ -721,7 +721,7 @@ isCollectible :: (GetCardMeta a) => a -> Bool
 isCollectible = (Collectible ==) . _cardMetaCollectibility . cardMeta
 
 
-fireblast :: HeroPower c
+fireblast :: HeroPower k
 fireblast = HeroPower {
     _heroPowerName = Fireblast,
     _heroPowerCost = ManaCost 2,
@@ -730,7 +730,7 @@ fireblast = HeroPower {
             Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
 
 
-lifeTap :: HeroPower c
+lifeTap :: HeroPower k
 lifeTap = HeroPower {
     _heroPowerName = LifeTap,
     _heroPowerCost = ManaCost 2,

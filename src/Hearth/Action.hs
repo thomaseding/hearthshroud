@@ -17,12 +17,12 @@ import Hearth.Model
 
 
 data Action :: (* -> Constraint) -> * where
-    ActionPlayerConceded :: Handle Player -> Action c
-    ActionEndTurn :: Action c
-    ActionPlayMinion :: HandCard c -> BoardIndex -> Action c
-    ActionPlaySpell :: HandCard c -> Action c
-    ActionAttack :: Handle Character -> Handle Character -> Action c
-    ActionHeroPower :: Action c
+    ActionPlayerConceded :: Handle Player -> Action k
+    ActionEndTurn :: Action k
+    ActionPlayMinion :: HandCard k -> BoardIndex -> Action k
+    ActionPlaySpell :: HandCard k -> Action k
+    ActionAttack :: Handle Character -> Handle Character -> Action k
+    ActionHeroPower :: Action k
 
 
 

@@ -18,7 +18,7 @@ import Hearth.CardName
 
 
 class ToCard a where
-    toCard :: a c -> Card c
+    toCard :: a k -> Card k
 
 
 instance ToCard MinionCard where
@@ -37,17 +37,17 @@ instance Uncollectible CardMeta where
     uncollectible meta = meta { _cardMetaCollectibility = Uncollectible }
 
 
-instance Uncollectible (Card c) where
+instance Uncollectible (Card k) where
     uncollectible = \case
         CardMinion x -> CardMinion $ uncollectible x
         CardSpell x -> CardSpell $ uncollectible x
 
 
-instance Uncollectible (MinionCard c) where
+instance Uncollectible (MinionCard k) where
     uncollectible minion = minion { _minionMeta = uncollectible $ _minionMeta minion }
 
 
-instance Uncollectible (SpellCard c) where
+instance Uncollectible (SpellCard k) where
     uncollectible spell = spell { _spellMeta = uncollectible $ _spellMeta spell }
 
 
@@ -59,7 +59,7 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability c Minion] -> MinionCard c
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability k Minion] -> MinionCard k
 mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionCost = ManaCost mana,
     _minionTypes = Set.fromList types,
@@ -69,7 +69,7 @@ mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionMeta = mkMeta f rarity clazz name }
 
 
-mkSpell' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> SpellEffect c -> SpellCard c
+mkSpell' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> SpellEffect k -> SpellCard k
 mkSpell' f rarity clazz name mana effect = SpellCard {
     _spellCost = ManaCost mana,
     _spellEffect = effect,
@@ -78,7 +78,7 @@ mkSpell' f rarity clazz name mana effect = SpellCard {
 
 class CharacterLike a where
     asCharacter :: Handle a -> Handle Character
-    fromCharacterEnchantment :: Enchantment c t Character -> Enchantment c t a
+    fromCharacterEnchantment :: Enchantment k t Character -> Enchantment k t a
 
 
 instance CharacterLike Player where
@@ -116,15 +116,15 @@ instance AsDamageSource Spell where
     asDamageSource = DamagingSpell
 
 
-damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect c
+damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect k
 damages source victim amount = DealDamage (asCharacter victim) amount (asDamageSource source)
 
 
-when :: Condition -> Effect c -> Effect c
+when :: Condition -> Effect k -> Effect k
 when cond effect = If cond effect DoNothing
 
 
-statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment c Continuous a
+statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment k Continuous a
 statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
 
 

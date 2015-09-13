@@ -27,19 +27,19 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-handColumn :: (HearthMonad c m) => Hand c -> Hearth c m [SGRString]
+handColumn :: (HearthMonad k m) => Hand k -> Hearth k m [SGRString]
 handColumn (Hand cs) = return $ let
     cs' = map (uncurry cardColumn) $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 
 
-cardColumn :: Int -> HandCard c -> [SGRString]
+cardColumn :: Int -> HandCard k -> [SGRString]
 cardColumn idx = \case
     HandCardMinion minion -> minionColumn idx minion
     HandCardSpell spell -> spellColumn idx spell
 
 
-minionColumn :: Int -> MinionCard c -> [SGRString]
+minionColumn :: Int -> MinionCard k -> [SGRString]
 minionColumn idx minion = let
     nameColor = case hasDivineShield minion of
         True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
@@ -63,7 +63,7 @@ minionColumn idx minion = let
     in [header, "    " ++ stats]
 
 
-spellColumn :: Int -> SpellCard c -> [SGRString]
+spellColumn :: Int -> SpellCard k -> [SGRString]
 spellColumn idx spell = let
     nameColor = sgrColor (Vivid, Green)
     name = nameColor ++ getSpellName spell
@@ -76,15 +76,15 @@ spellColumn idx spell = let
     in [header, "    Spell"]
 
 
-getSpellName :: SpellCard c -> SGRString
+getSpellName :: SpellCard k -> SGRString
 getSpellName = fromString . showCardName . cardName
 
 
-getMinionName :: MinionCard c -> SGRString
+getMinionName :: MinionCard k -> SGRString
 getMinionName = fromString . showCardName . cardName
 
 
-hasDivineShield :: MinionCard c -> Bool
+hasDivineShield :: MinionCard k -> Bool
 hasDivineShield minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case
@@ -92,7 +92,7 @@ hasDivineShield minion = let
         _ -> False
 
 
-hasTaunt :: MinionCard c -> Bool
+hasTaunt :: MinionCard k -> Bool
 hasTaunt minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case

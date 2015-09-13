@@ -39,25 +39,25 @@ type Pair a = (a, a)
 --------------------------------------------------------------------------------
 
 
-newtype Hearth' (c :: * -> Constraint) st m a = Hearth {
+newtype Hearth' (k :: * -> Constraint) st m a = Hearth {
     unHearth :: StateT st m a
 } deriving (Functor, Applicative, Monad, MonadState st, MonadIO, MonadTrans)
 
 
-instance (Monad m) => MonadReader st (Hearth' c st m) where
+instance (Monad m) => MonadReader st (Hearth' k st m) where
     ask = get
     local = stateLocal
 
 
-type Hearth (c :: * -> Constraint) = Hearth' c (GameState c)
-type HearthMonad' c m = (MonadPrompt (HearthPrompt c) m)
-type HearthMonad c m = (UserConstraint c, HearthMonad' c m)
+type Hearth (k :: * -> Constraint) = Hearth' k (GameState k)
+type HearthMonad' k m = (MonadPrompt (HearthPrompt k) m)
+type HearthMonad k m = (UserConstraint k, HearthMonad' k m)
 
 
-type instance Zoomed (Hearth' c st m) = Focusing m
+type instance Zoomed (Hearth' k st m) = Focusing m
 
 
-instance Monad m => Zoom (Hearth' c st m) (Hearth' c st' m) st st' where
+instance Monad m => Zoom (Hearth' k st m) (Hearth' k st' m) st st' where
     zoom l = Hearth . zoom l . unHearth
 
 
@@ -68,7 +68,7 @@ class LogCall a where
 --------------------------------------------------------------------------------
 
 
-instance (HearthMonad' c m) => LogCall (Hearth' c st m a) where
+instance (HearthMonad' k m) => LogCall (Hearth' k st m a) where
     logCall funcName m = do
         lift $ prompt $ PromptDebugEvent $ FunctionEntered funcName
         x <- m
@@ -76,11 +76,11 @@ instance (HearthMonad' c m) => LogCall (Hearth' c st m a) where
         return x
 
 
-instance (HearthMonad' c m) => LogCall (a -> Hearth' c st m z) where
+instance (HearthMonad' k m) => LogCall (a -> Hearth' k st m z) where
     logCall msg f = logCall msg . f
 
 
-instance (HearthMonad' c m) => LogCall (a -> b -> Hearth' c st m z) where
+instance (HearthMonad' k m) => LogCall (a -> b -> Hearth' k st m z) where
     logCall msg f = logCall msg . f
 
 
@@ -91,7 +91,7 @@ instance (HearthMonad' k m) => LogCall (a -> b -> c -> Hearth' k st m z) where
 --------------------------------------------------------------------------------
 
 
-data PlayerData c = PlayerData (Hero c) (Deck c)
+data PlayerData k = PlayerData (Hero k) (Deck k)
     deriving (Typeable)
 
 
@@ -99,7 +99,7 @@ data PlayerData c = PlayerData (Hero c) (Deck c)
 
 
 class ToCard a where
-    toCard :: a c -> Card c
+    toCard :: a k -> Card k
 
 
 instance ToCard HandCard where
@@ -118,7 +118,7 @@ instance ToCard DeckCard where
 
 
 class ToHandCard a where
-    toHandCard :: a c -> HandCard c
+    toHandCard :: a k -> HandCard k
 
 
 instance ToHandCard Card where
@@ -135,7 +135,7 @@ instance ToHandCard DeckCard where
 
 
 class ToDeckCard a where
-    toDeckCard :: a c -> DeckCard c
+    toDeckCard :: a k -> DeckCard k
 
 
 instance ToDeckCard Card where

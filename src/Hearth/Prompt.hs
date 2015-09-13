@@ -52,22 +52,22 @@ data instance PickResult Targeted a
 
 
 data HearthPrompt :: (* -> Constraint) -> * -> * where
-    PromptDebugEvent :: DebugEvent -> HearthPrompt c ()
-    PromptError :: HearthError -> HearthPrompt c ()
-    PromptGameEvent :: GameSnapshot c -> GameEvent c -> HearthPrompt c ()
-    PromptAction :: GameSnapshot c -> HearthPrompt c (Action c)
-    PromptShuffle :: [a] -> HearthPrompt c [a]
-    PromptMulligan :: Handle Player -> [HandCard c] -> HearthPrompt c [HandCard c]
-    PromptPickAtRandom :: GameSnapshot c -> PromptPick AtRandom c a -> HearthPrompt c (PickResult AtRandom a)
-    PromptPickTargeted :: GameSnapshot c -> PromptPick Targeted c a -> HearthPrompt c (PickResult Targeted a)
+    PromptDebugEvent :: DebugEvent -> HearthPrompt k ()
+    PromptError :: HearthError -> HearthPrompt k ()
+    PromptGameEvent :: GameSnapshot k -> GameEvent k -> HearthPrompt k ()
+    PromptAction :: GameSnapshot k -> HearthPrompt k (Action k)
+    PromptShuffle :: [a] -> HearthPrompt k [a]
+    PromptMulligan :: Handle Player -> [HandCard k] -> HearthPrompt k [HandCard k]
+    PromptPickAtRandom :: GameSnapshot k -> PromptPick AtRandom k a -> HearthPrompt k (PickResult AtRandom a)
+    PromptPickTargeted :: GameSnapshot k -> PromptPick Targeted k a -> HearthPrompt k (PickResult Targeted a)
 
 
 data PromptPick :: Selection -> (* -> Constraint) -> * -> * where
-    PickHandCard :: NonEmpty (HandCard c) -> PromptPick s c (HandCard c)
-    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s c (Handle Minion)
-    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s c (Handle Player)
-    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s c (Handle Character)
-    PickElect :: NonEmpty (Elect c s) -> PromptPick s c (Elect c s)
+    PickHandCard :: NonEmpty (HandCard k) -> PromptPick s k (HandCard k)
+    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s k (Handle Minion)
+    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s k (Handle Player)
+    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s k (Handle Character)
+    PickElect :: NonEmpty (Elect k s) -> PromptPick s k (Elect k s)
 
 
 

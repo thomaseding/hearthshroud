@@ -19,7 +19,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-heroPowerColumn :: PlayerObject c -> [SGRString]
+heroPowerColumn :: PlayerObject k -> [SGRString]
 heroPowerColumn player = let
     hero = player^.playerHero
     count = hero^.boardHeroPowerCount
