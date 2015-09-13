@@ -16,7 +16,7 @@ type HearthMonad k m = (UserConstraint k, MonadPrompt (HeartPrompt k) m)
 Hearth.Engine.runHearth :: (HearthMonad m) => Pair (PlayerData k) -> m GameResult
 ```
 
-The `k` constraint is used to make your own evaluators of the Hearthshroud card DSL much simpler to write. It has type `k :: (* -> Constraint)` If you don't write your own evaluators, then you could leave this value to be generic (or satisfy it with whatever you want).
+The `k` constraint is used to make your own evaluators of the Hearthshroud card DSL much simpler to write. It has kind `k :: (* -> Constraint)` If you don't write your own evaluators, then you could leave this value to be generic (or satisfy it with whatever you want).
 
 For an example on how `k` could be used, refer to `Hearth.ShowCard`. Here it fills `k` with a type class to generate handles of type `Handle a` (a GADT which allows `a` to be exactly one of `Spell`, `Minion`, `Player`, `Character`). When attempting to use `GenHandle a` for an `a` given by some input type `Handle a`, it cannot narrow the choice of `a` to the only possible values. Substituting `k`with `GenHandle` (which the code alias to `Showy`), we now get our instance proven inside the DSL.
 
