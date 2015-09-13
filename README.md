@@ -11,12 +11,15 @@ Hearthshroud is one of two things:
 Library uses a monadic API which drives the game engine for any `HearthMonad`:
 ```haskell
 -- MonadPrompt @ https://hackage.haskell.org/package/MonadPrompt
-type HearthMonad m = MonadPrompt HeartPrompt m
-Hearth.Engine.runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
+type UserConstraint k = (k Spell, k Minion, k Player, k Character)
+type HearthMonad k m = (UserConstraint k, MonadPrompt (HeartPrompt k) m)
+Hearth.Engine.runHearth :: (HearthMonad m) => Pair (PlayerData k) -> m GameResult
 ```
 
+The `k` constraint is used to make your own evaluators of the Hearthshroud card DSL much simpler to write. It has type `k :: (* -> Constraint)` If you don't write your own evaluators, then you could leave this value to be generic (or satisfy it with whatever you want).
+
 #####Design Choices
- * Model cards (and abilities, effects, etc.) as a pure data AST.
+ * Model cards (and abilities, effects, etc.) as a pure data AST. (The card DSL.)
  * Model enforces game constraints at the type level.
 
 #####Design Implications 
