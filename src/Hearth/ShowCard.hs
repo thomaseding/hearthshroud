@@ -94,15 +94,6 @@ genNumberedHandle str = do
     genHandle $ str ++ "_" ++ show n
 
 
-proxiedGenHandle :: Handle a -> String -> ShowCard (Handle a)
-proxiedGenHandle = \case
-    SpellHandle {} -> genHandle
-    MinionHandle {} -> genHandle
-    PlayerHandle {} -> genHandle
-    MinionCharacter {} -> genHandle
-    PlayerCharacter {} -> genHandle
-
-
 --------------------------------------------------------------------------------
 
 
@@ -547,13 +538,13 @@ showDestroyMinion minion = do
     return $ "Destroy " ++ minionStr
 
 
-showForEach :: HandleList a -> (Handle a -> Effect Showy) -> ShowCard String
+showForEach :: (Showy a) => HandleList a -> (Handle a -> Effect Showy) -> ShowCard String
 showForEach (HandleList userData handles) cont = case cast userData of
     Just () -> case handles of
         [] -> showEffect DoNothing
-        proxy : _ -> do
+        _ -> do
             handlesStr <- liftM itemize $ mapM readHandle handles
-            representative <- proxiedGenHandle proxy =<< readAlgebraicSymbol =<< genAlgebraicSymbol
+            representative <- genHandle =<< readAlgebraicSymbol =<< genAlgebraicSymbol
             representativeStr <- readHandle representative
             effectStr <- showEffect $ cont representative
             return $ "ForEach [" ++ handlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
