@@ -13,30 +13,36 @@ module Hearth.Client.Console.Render.PlayerColumn (
 --------------------------------------------------------------------------------
 
 
-import Control.Lens
 import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.Render.BoardHeroColumn
 import Hearth.Client.Console.Render.DeckColumn
 import Hearth.Client.Console.Render.HeroPowerColumn
 import Hearth.Client.Console.Render.ManaColumn
+import Hearth.Client.Console.Render.WeaponColumn
 import Hearth.Client.Console.SGRString
 
 
 --------------------------------------------------------------------------------
 
 
-playerColumn :: (HearthMonad k m) => PlayerObject k -> Hearth k m [SGRString]
+playerColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
 playerColumn player = do
-    bhc <- boardHeroColumn player
+    deckCol <- deckColumn player
+    manaCol <- manaColumn player
+    heroCol <- boardHeroColumn player
+    heroPowerCol <- heroPowerColumn player
+    weaponCol <- weaponColumn player
     return $ concat [
-        deckColumn $ player^.playerDeck,
+        deckCol,
         txt "",
-        manaColumn player,
+        manaCol,
         txt "",
-        heroPowerColumn player,
+        heroPowerCol,
         txt "",
-        bhc ]
+        heroCol,
+        txt "",
+        weaponCol ]
     where
         txt str = [str]
 

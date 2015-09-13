@@ -43,18 +43,21 @@ instance GetCardName (Card k) where
     cardName = \case
         CardMinion x -> cardName x
         CardSpell x -> cardName x
+        CardWeapon x -> cardName x
 
 
 instance GetCardName (DeckCard k) where
     cardName = \case
         DeckCardMinion x -> cardName x
         DeckCardSpell x -> cardName x
+        DeckCardWeapon x -> cardName x
 
 
 instance GetCardName (HandCard k) where
     cardName = \case
         HandCardMinion x -> cardName x
         HandCardSpell x -> cardName x
+        HandCardWeapon x -> cardName x
 
 
 instance GetCardName (MinionCard k) where
@@ -63,6 +66,10 @@ instance GetCardName (MinionCard k) where
 
 instance GetCardName (SpellCard k) where
     cardName = cardName . _spellMeta
+
+
+instance GetCardName (WeaponCard k) where
+    cardName = cardName . _weaponMeta
 
 
 instance GetCardName CardMeta where

@@ -76,6 +76,10 @@ instance GenHandle Spell where
     genHandle = liftM SpellHandle . rawGenHandle
 
 
+instance GenHandle Weapon where
+    genHandle = liftM WeaponHandle . rawGenHandle
+
+
 instance GenHandle Minion where
     genHandle = liftM MinionHandle . rawGenHandle
 
@@ -237,6 +241,7 @@ showCost card = let
     cost = case card of
         HandCardMinion minion -> _minionCost minion
         HandCardSpell spell -> _spellCost spell
+        HandCardWeapon weapon -> _weaponCost weapon
     in case cost of
         ManaCost (Mana mana) -> "(" ++ show mana ++ ")"
 
@@ -245,6 +250,7 @@ boxText :: HandCard Showy -> String
 boxText = runShowCard . liftM (unlines . filter (not . null) . lines) . \case
     HandCardMinion minion -> showAbilities $ _minionAbilities minion
     HandCardSpell spell -> genHandle this >>= showElect . _spellEffect spell
+    HandCardWeapon weapon -> showAbilities $ _weaponAbilities weapon
 
 
 --------------------------------------------------------------------------------

@@ -87,6 +87,7 @@ data BasicCardName
     | KoboldGeomancer
     | Kor'kronElite
     | Leokk
+    | Light'sJustice
     | LordOfTheArena
     | MagmaRager
     | MarkOfTheWild

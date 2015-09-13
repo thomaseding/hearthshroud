@@ -29,6 +29,10 @@ instance ToCard SpellCard where
     toCard = CardSpell
 
 
+instance ToCard WeaponCard where
+    toCard = CardWeapon
+
+
 class Uncollectible a where
     uncollectible :: a -> a
 
@@ -41,6 +45,7 @@ instance Uncollectible (Card k) where
     uncollectible = \case
         CardMinion x -> CardMinion $ uncollectible x
         CardSpell x -> CardSpell $ uncollectible x
+        CardWeapon x -> CardWeapon $ uncollectible x
 
 
 instance Uncollectible (MinionCard k) where
@@ -49,6 +54,10 @@ instance Uncollectible (MinionCard k) where
 
 instance Uncollectible (SpellCard k) where
     uncollectible spell = spell { _spellMeta = uncollectible $ _spellMeta spell }
+
+
+instance Uncollectible (WeaponCard k) where
+    uncollectible weapon = weapon { _weaponMeta = uncollectible $ _weaponMeta weapon }
 
 
 mkMeta :: (name -> CardName) -> Rarity -> Class -> name -> CardMeta
@@ -67,6 +76,15 @@ mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionHealth = health,
     _minionAbilities = abilities,
     _minionMeta = mkMeta f rarity clazz name }
+
+
+mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability k Weapon] -> WeaponCard k
+mkWeapon' f rarity clazz name mana attack durability abilities = WeaponCard {
+    _weaponCost = ManaCost mana,
+    _weaponAttack = attack,
+    _weaponDurability = durability,
+    _weaponAbilities = abilities,
+    _weaponMeta = mkMeta f rarity clazz name }
 
 
 mkSpell' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> SpellEffect k -> SpellCard k

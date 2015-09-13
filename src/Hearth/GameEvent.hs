@@ -27,6 +27,7 @@ data GameEvent :: (* -> Constraint) -> * where
     UsedHeroPower :: Handle Player -> HeroPower k -> GameEvent k
     PlayedMinion :: Handle Player -> Handle Minion -> GameEvent k
     PlayedSpell :: Handle Player -> Handle Spell -> GameEvent k
+    PlayedWeapon :: Handle Player -> Handle Weapon -> GameEvent k
     DealtDamage :: Handle Character -> Damage -> DamageSource -> GameEvent k
     HealthRestored :: Handle Character -> Health -> GameEvent k
     GainedArmor :: Handle Player -> Armor -> GameEvent k

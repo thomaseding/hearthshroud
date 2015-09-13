@@ -23,19 +23,23 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-boardHeroColumn :: (HearthMonad k m) => PlayerObject k -> Hearth k m [SGRString]
-boardHeroColumn player = do
-    let pHandle = player^.playerHandle
-        hero = player^.playerHero
-    health <- dynamic $ viewRemainingHealth $ PlayerCharacter pHandle
+boardHeroColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+boardHeroColumn player = dynamic $ do
+    Attack attack <- viewAttack player
+    Health health <- viewRemainingHealth $ PlayerCharacter player
+    Armor armor <- view $ getPlayer player.playerHero.boardHeroArmor
     return $ concat [
+        txt "Attack",
+        txt "------",
+        toTxt attack,
+        txt "",
         txt "Health",
         txt "------",
-        toTxt $ unHealth health,
+        toTxt health,
         txt "",
         txt "Armor",
         txt "-----",
-        toTxt $ unArmor $ hero^.boardHeroArmor ]
+        toTxt armor ]
     where
         txt str = [sgrColor (Dull, Green) ++ str]
         toTxt x = [sgrColor (Vivid, Green) ++ sgrShow x]

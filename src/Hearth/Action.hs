@@ -21,6 +21,7 @@ data Action :: (* -> Constraint) -> * where
     ActionEndTurn :: Action k
     ActionPlayMinion :: HandCard k -> BoardIndex -> Action k
     ActionPlaySpell :: HandCard k -> Action k
+    ActionPlayWeapon :: HandCard k -> Action k
     ActionAttack :: Handle Character -> Handle Character -> Action k
     ActionHeroPower :: Action k
 

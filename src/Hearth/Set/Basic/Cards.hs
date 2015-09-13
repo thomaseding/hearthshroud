@@ -93,6 +93,7 @@ cards = let x = toCard in [
     x koboldGeomancer,
     x kor'kronElite,
     x leokk,
+    x light'sJustice,
     x lordOfTheArena,
     x magmaRager,
     x markOfTheWild,
@@ -169,6 +170,10 @@ mkMinion = mkMinion' BasicCardName Free
 
 mkSpell :: (UserConstraint k) => Class -> BasicCardName -> Mana -> SpellEffect k -> SpellCard k
 mkSpell = mkSpell' BasicCardName Free
+
+
+mkWeapon :: (UserConstraint k) => Class -> BasicCardName -> Mana -> Attack -> Durability -> [Ability k Weapon] -> WeaponCard k
+mkWeapon = mkWeapon' BasicCardName Free
 
 
 --------------------------------------------------------------------------------
@@ -665,6 +670,10 @@ leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
         AuraOwnerOf this $ \you ->
             EachMinion [Not this, OwnedBy you] $ \minion ->
                 Has minion $ statsDelta 1 0 ]
+
+
+light'sJustice :: (UserConstraint k) => WeaponCard k
+light'sJustice = mkWeapon Paladin Light'sJustice 1 1 4 []
 
 
 lordOfTheArena :: (UserConstraint k) => MinionCard k

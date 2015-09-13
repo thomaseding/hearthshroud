@@ -37,6 +37,7 @@ cardColumn :: Int -> HandCard k -> [SGRString]
 cardColumn idx = \case
     HandCardMinion minion -> minionColumn idx minion
     HandCardSpell spell -> spellColumn idx spell
+    HandCardWeapon weapon -> weaponColumn idx weapon
 
 
 minionColumn :: Int -> MinionCard k -> [SGRString]
@@ -47,7 +48,7 @@ minionColumn idx minion = let
     (tauntL, tauntR) = case hasTaunt minion of
         True -> ("[", ">")
         False -> ("", "")
-    name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
+    name = nameColor ++ tauntL ++ getName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
     mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case minion^.minionCost of
         ManaCost (Mana m) -> m)
     attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
@@ -63,10 +64,29 @@ minionColumn idx minion = let
     in [header, "    " ++ stats]
 
 
+weaponColumn :: Int -> WeaponCard k -> [SGRString]
+weaponColumn idx weapon = let
+    nameColor = sgrColor (Vivid, Green)
+    name = nameColor ++ getName weapon
+    mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case weapon^.weaponCost of
+        ManaCost (Mana m) -> m)
+    attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ weapon^.weaponAttack)
+    durabilityColor = (Vivid, Black)
+    durability = sgrColor durabilityColor ++ sgrShow (unDurability $ weapon^.weaponDurability)
+    index = let
+        pad = if idx < 10 then " " else ""
+        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
+    header = index ++ name ++ " " ++ mana
+    stats = let
+        c = sgrColor (Dull, White)
+        in attack ++ c ++ "/" ++ durability
+    in [header, "    " ++ stats]
+
+
 spellColumn :: Int -> SpellCard k -> [SGRString]
 spellColumn idx spell = let
     nameColor = sgrColor (Vivid, Green)
-    name = nameColor ++ getSpellName spell
+    name = nameColor ++ getName spell
     mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case spell^.spellCost of
         ManaCost (Mana m) -> m)
     index = let
@@ -76,12 +96,8 @@ spellColumn idx spell = let
     in [header, "    Spell"]
 
 
-getSpellName :: SpellCard k -> SGRString
-getSpellName = fromString . showCardName . cardName
-
-
-getMinionName :: MinionCard k -> SGRString
-getMinionName = fromString . showCardName . cardName
+getName :: (GetCardName a) => a -> SGRString
+getName = fromString . showCardName . cardName
 
 
 hasDivineShield :: MinionCard k -> Bool

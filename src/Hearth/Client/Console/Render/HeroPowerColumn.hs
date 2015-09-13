@@ -1,3 +1,5 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -11,6 +13,7 @@ module Hearth.Client.Console.Render.HeroPowerColumn (
 
 
 import Control.Lens
+import Hearth.Engine
 import Hearth.Model
 import Hearth.Client.Console.SGRString
 import System.Console.ANSI
@@ -19,8 +22,12 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-heroPowerColumn :: PlayerObject k -> [SGRString]
-heroPowerColumn player = let
+heroPowerColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+heroPowerColumn player = view $ getPlayer player.to heroPowerColumn'
+
+
+heroPowerColumn' :: PlayerObject k -> [SGRString]
+heroPowerColumn' player = let
     hero = player^.playerHero
     count = hero^.boardHeroPowerCount
     powerStr = case count of

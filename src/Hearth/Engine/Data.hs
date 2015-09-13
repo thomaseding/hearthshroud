@@ -106,12 +106,14 @@ instance ToCard HandCard where
     toCard = \case
         HandCardMinion minion -> CardMinion minion
         HandCardSpell spell -> CardSpell spell
+        HandCardWeapon weapon -> CardWeapon weapon
 
 
 instance ToCard DeckCard where
     toCard = \case
         DeckCardMinion minion -> CardMinion minion
         DeckCardSpell spell -> CardSpell spell
+        DeckCardWeapon weapon -> CardWeapon weapon
 
 
 --------------------------------------------------------------------------------
@@ -125,6 +127,7 @@ instance ToHandCard Card where
     toHandCard = \case
         CardMinion minion -> HandCardMinion minion
         CardSpell spell -> HandCardSpell spell
+        CardWeapon weapon -> HandCardWeapon weapon
 
 
 instance ToHandCard DeckCard where
@@ -142,6 +145,7 @@ instance ToDeckCard Card where
     toDeckCard = \case
         CardMinion minion -> DeckCardMinion minion
         CardSpell spell -> DeckCardSpell spell
+        CardWeapon weapon -> DeckCardWeapon weapon
 
 
 instance ToDeckCard HandCard where

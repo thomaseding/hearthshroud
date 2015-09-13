@@ -71,6 +71,10 @@ newtype Damage = Damage { unDamage :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
+newtype Durability = Durability { unDurability :: Int }
+    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
+
+
 pattern MaxHandSize = 10
 pattern MaxManaCrystals = 10
 pattern MaxBoardMinionsPerPlayer = 7
@@ -94,6 +98,7 @@ instance Ord RawHandle where
 
 
 data Spell deriving (Typeable)
+data Weapon deriving (Typeable)
 data Minion deriving (Typeable)
 data Player deriving (Typeable)
 data Character deriving (Typeable)
@@ -104,6 +109,7 @@ type UserConstraint (k :: (* -> Constraint)) = (k Spell, k Minion, k Player, k C
 
 data Handle :: * -> * where
     SpellHandle :: RawHandle -> Handle Spell
+    WeaponHandle :: RawHandle -> Handle Weapon
     MinionHandle :: RawHandle -> Handle Minion
     PlayerHandle :: RawHandle -> Handle Player
     MinionCharacter :: Handle Minion -> Handle Character
@@ -111,9 +117,10 @@ data Handle :: * -> * where
     deriving (Typeable)
 
 
-mapHandle :: (Handle Spell -> b) -> (Handle Minion -> b) -> (Handle Player -> b) -> (Handle Character -> b) -> (Handle a -> b)
-mapHandle spell minion player character = \case
+mapHandle :: (Handle Spell -> b) -> (Handle Weapon -> b) -> (Handle Minion -> b) -> (Handle Player -> b) -> (Handle Character -> b) -> (Handle a -> b)
+mapHandle spell weapon minion player character = \case
     h @ SpellHandle {} -> spell h
+    h @ WeaponHandle {} -> weapon h
     h @ MinionHandle {} -> minion h
     h @ PlayerHandle {} -> player h
     h @ MinionCharacter {} -> character h
@@ -123,6 +130,7 @@ mapHandle spell minion player character = \case
 applyRawHandle :: (RawHandle -> b) -> Handle a -> b
 applyRawHandle f = \case
     SpellHandle h -> f h
+    WeaponHandle h -> f h
     MinionHandle h -> f h
     PlayerHandle h -> f h
     MinionCharacter h -> applyRawHandle f h
@@ -142,6 +150,7 @@ instance CastHandle Spell where
 instance CastHandle Character where
     castHandle = \case
         SpellHandle {} -> Nothing
+        WeaponHandle {} -> Nothing
         h @ MinionHandle {} -> Just $ MinionCharacter h
         h @ PlayerHandle {} -> Just $ PlayerCharacter h
         h @ MinionCharacter {} -> Just h
@@ -158,12 +167,6 @@ instance Eq (Handle a) where
 
 instance Ord (Handle a) where
     (<=) = on (<=) $ applyRawHandle id
-
-
-type SpellHandle = Handle Spell
-type MinionHandle = Handle Minion
-type PlayerHandle = Handle Player
-type CharacterHandle = Handle Character
 
 
 data HandleList :: * -> * where
@@ -188,6 +191,7 @@ instance HasUserData (Handle a) where
     getUserData = applyRawHandle getUserData
     setUserData = \case
         SpellHandle h -> SpellHandle . setUserData h
+        WeaponHandle h -> WeaponHandle . setUserData h
         MinionHandle h -> MinionHandle . setUserData h
         PlayerHandle h -> PlayerHandle . setUserData h
         MinionCharacter h -> MinionCharacter . setUserData h
@@ -455,6 +459,24 @@ data CastSpell k = CastSpell {
 } deriving (Typeable)
 
 
+data WeaponCard k = WeaponCard {
+    _weaponCost :: Cost,
+    _weaponAttack :: Attack,
+    _weaponDurability :: Durability,
+    _weaponAbilities :: [Ability k Weapon],
+    _weaponMeta :: CardMeta
+} deriving (Typeable)
+
+
+data BoardWeapon k = BoardWeapon {
+    _boardWeaponDurability :: Durability,
+    _boardWeaponEnchantments :: [AnyEnchantment k Weapon],
+    _boardWeaponAbilities :: [Ability k Weapon],
+    _boardWeaponHandle :: Handle Weapon,
+    _boardWeapon :: WeaponCard k
+} deriving (Typeable)
+
+
 data MinionCard k = MinionCard {
     _minionCost :: Cost,
     _minionTypes :: Set MinionType,
@@ -508,18 +530,21 @@ data BoardHero k = BoardHero {
 data HandCard :: (* -> Constraint) -> * where
     HandCardMinion :: MinionCard k -> HandCard k
     HandCardSpell :: SpellCard k -> HandCard k
+    HandCardWeapon :: WeaponCard k -> HandCard k
     deriving (Typeable)
 
 
 data DeckCard :: (* -> Constraint) -> * where
     DeckCardMinion :: MinionCard k -> DeckCard k
     DeckCardSpell :: SpellCard k -> DeckCard k
+    DeckCardWeapon :: WeaponCard k -> DeckCard k
     deriving (Typeable)
 
 
 data Card :: (* -> Constraint) -> * where
     CardMinion :: MinionCard k -> Card k
     CardSpell :: SpellCard k -> Card k
+    CardWeapon :: WeaponCard k -> Card k
     deriving (Typeable)
 
 
@@ -538,6 +563,7 @@ data PlayerObject k = PlayerObject {
     _playerDeck :: Deck k,
     _playerExcessDrawCount :: Int,
     _playerHand :: Hand k,
+    _playerWeapon :: Maybe (BoardWeapon k),
     _playerMinions :: [BoardMinion k],
     _playerSpells :: [CastSpell k],
     _playerEnchantments :: [AnyEnchantment k Player],
@@ -573,6 +599,8 @@ data GameResult :: * where
 makeLenses ''CardMeta
 makeLenses ''SpellCard
 makeLenses ''CastSpell
+makeLenses ''WeaponCard
+makeLenses ''BoardWeapon
 makeLenses ''MinionCard
 makeLenses ''BoardMinion
 makeLenses ''HeroPower
