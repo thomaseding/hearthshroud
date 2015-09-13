@@ -96,6 +96,7 @@ cards = let x = toCard in [
     x markOfTheWild,
     x mechanicalDragonling,
     x mindBlast,
+    x mindControl,
     x mirrorImage_minion,
     x mirrorImage_spell,
     x misha,
@@ -684,6 +685,14 @@ mindBlast = mkSpell Priest MindBlast 2 $ \this ->
             Effect $ (this `damages` opponent) 5
 
 
+mindControl :: Spell
+mindControl = mkSpell Priest MindControl 10 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            A $ Minion [OwnedBy opponent] $ \victim ->
+                Effect $ TakeControl you victim
+
+
 mirrorImage_minion :: Minion
 mirrorImage_minion = uncollectible $ mkMinion Mage MirrorImage_Minion [] 1 0 2 [
     Taunt ]
@@ -919,7 +928,7 @@ soulfire = mkSpell Warlock Soulfire 1 $ \this ->
         A $ Character [] $ \victim ->
             Effect $ Sequence [
                 (this `damages` victim) 4,
-                DiscardsAtRandom you ]
+                DiscardAtRandom you ]
 
 
 sprint :: Spell
@@ -971,7 +980,7 @@ succubus :: Minion
 succubus = mkMinion Warlock Succubus [Demon] 2 4 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ DiscardsAtRandom you ]
+            Effect $ DiscardAtRandom you ]
 
 
 swipe :: Spell

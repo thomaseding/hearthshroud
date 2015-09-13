@@ -736,7 +736,7 @@ enactEffect = logCall 'enactEffect . \case
     DealDamage victim damage source -> enactDealDamage victim damage source >> return success
     Enchant handle enchantment -> enactEnchant handle enchantment >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
-    DestroyMinion handle -> destroyMinion handle >> return success
+    DestroyMinion handle -> enactDestroyMinion handle >> return success
     RestoreHealth handle amount -> restoreHealth handle amount >> return success
     Transform handle minion -> transform handle minion >> return success
     Silence handle -> silence handle >> return success
@@ -746,13 +746,30 @@ enactEffect = logCall 'enactEffect . \case
     PutInHand player card -> enactPutInHand player card >> return success
     Summon player minion loc -> enactSummon player minion loc >> return success
     RandomMissiles reqs n spell -> enactRandomMissiles reqs n spell >> return success
-    DiscardsAtRandom player -> enactDiscardsAtRandom player >> return success
+    DiscardAtRandom player -> enactDiscardAtRandom player >> return success
+    TakeControl player minion -> enactTakeControl player minion >> return success
     where
         success = purePick ()
 
 
-enactDiscardsAtRandom :: (HearthMonad m) => Handle Player -> Hearth m ()
-enactDiscardsAtRandom player = logCall 'enactDiscardsAtRandom $ do
+enactTakeControl :: (HearthMonad m) => Handle Player -> Handle Minion -> Hearth m ()
+enactTakeControl newOwner victim = logCall 'enactTakeControl $ do
+    oldOwner <- ownerOf victim
+    case oldOwner == newOwner of
+        True -> return ()
+        False -> do
+            view (getPlayer newOwner.playerMinions.to length) >>= \case
+                MaxBoardMinionsPerPlayer -> enactDestroyMinion victim
+                _ -> do
+                    victimMinion <- view $ getMinion victim
+                    getPlayer oldOwner.playerMinions %= filter (not . isVictim)
+                    getPlayer newOwner.playerMinions %= (++ [victimMinion])
+    where
+        isVictim = (victim ==) . _boardMinionHandle
+
+
+enactDiscardAtRandom :: (HearthMonad m) => Handle Player -> Hearth m ()
+enactDiscardAtRandom player = logCall 'enactDiscardAtRandom $ do
     Hand cards <- view $ getPlayer player.playerHand
     pickFrom cards >>= \case
         NotAvailable -> return ()
@@ -887,8 +904,8 @@ restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
             return $ unDamage $ before - after
 
 
-destroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()
-destroyMinion handle = logCall 'destroyMinion $ do
+enactDestroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()
+enactDestroyMinion handle = logCall 'enactDestroyMinion $ do
     getMinion handle.boardMinionPendingDestroy .= True
     promptGameEvent $ MinionDestroyed handle
 

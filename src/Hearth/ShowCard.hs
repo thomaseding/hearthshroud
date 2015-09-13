@@ -405,13 +405,21 @@ showEffect = \case
     PutInHand player card -> showPutInHand player card
     Summon player minion loc -> showSummon player minion loc
     RandomMissiles reqs n spell -> showRandomMissiles reqs n spell
-    DiscardsAtRandom player -> showDiscardsAtRandom player
+    DiscardAtRandom player -> showDiscardAtRandom player
+    TakeControl player minion -> showTakeControl player minion
 
 
-showDiscardsAtRandom :: Handle Player -> ShowCard String
-showDiscardsAtRandom player = do
+showTakeControl :: Handle Player -> Handle Minion -> ShowCard String
+showTakeControl player minion = do
     playerStr <- readHandle player
-    return $ playerStr ++ " discards a card at random"
+    minionStr <- readHandle minion
+    return $ playerStr ++ " take(s) control of " ++ minionStr
+
+
+showDiscardAtRandom :: Handle Player -> ShowCard String
+showDiscardAtRandom player = do
+    playerStr <- readHandle player
+    return $ playerStr ++ " discard(s) a card at random"
 
 
 showRandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> ShowCard String

@@ -91,6 +91,7 @@ data BasicCardName
     | MarkOfTheWild
     | MechanicalDragonling
     | MindBlast
+    | MindControl
     | MirrorImage_Minion
     | MirrorImage_Spell
     | Misha
