@@ -397,6 +397,7 @@ showEffect = \case
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
     DestroyMinion handle -> showDestroyMinion handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
+    RestoreToFullHealth handle -> showRestoreToFullHealth handle
     Transform handle minion -> showTransform handle minion
     Silence handle -> showSilence handle
     GainArmor handle amount -> showGainArmor handle amount
@@ -527,7 +528,13 @@ showRestoreHealth :: Handle Character -> Health -> ShowCard String
 showRestoreHealth character health = do
     healthStr <- readHealth health
     characterStr <- readHandle character
-    return $ "Restore " ++ healthStr ++ " health on " ++ characterStr
+    return $ characterStr ++ " restores " ++ healthStr ++ " health"
+
+
+showRestoreToFullHealth :: Handle Character -> ShowCard String
+showRestoreToFullHealth character = do
+    characterStr <- readHandle character
+    return $ "Restore " ++ characterStr ++ " to full health"
 
 
 showDestroyMinion :: Handle Minion -> ShowCard String

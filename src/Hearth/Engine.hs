@@ -737,7 +737,8 @@ enactEffect = logCall 'enactEffect . \case
     Enchant handle enchantment -> enactEnchant handle enchantment >> return success
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
     DestroyMinion handle -> enactDestroyMinion handle >> return success
-    RestoreHealth handle amount -> restoreHealth handle amount >> return success
+    RestoreHealth character amount -> enactRestoreHealth character amount >> return success
+    RestoreToFullHealth character -> enactRestoreToFullHealth character >> return success
     Transform handle minion -> transform handle minion >> return success
     Silence handle -> silence handle >> return success
     GainArmor handle armor -> gainArmor handle armor >> return success
@@ -888,20 +889,24 @@ gainArmor handle armor = logCall 'gainArmor $ do
     promptGameEvent $ GainedArmor handle armor
 
 
-restoreHealth :: (HearthMonad m) => Handle Character -> Health -> Hearth m ()
-restoreHealth charHandle (Health amount) = logCall 'restoreHealth $ do
-    actualAmount <- case charHandle of
-        MinionCharacter handle -> zoom (getMinion handle.boardMinionDamage) restoreM
-        PlayerCharacter handle -> zoom (getPlayer handle.playerHero.boardHeroDamage) restoreM
+enactRestoreHealth :: (HearthMonad m) => Handle Character -> Health -> Hearth m ()
+enactRestoreHealth character (Health amount) = logCall 'enactRestoreHealth $ do
+    actualAmount <- case character of
+        MinionCharacter minion -> zoom (getMinion minion.boardMinionDamage) restore
+        PlayerCharacter player -> zoom (getPlayer player.playerHero.boardHeroDamage) restore
     case actualAmount of
         0 -> return ()
-        _ -> promptGameEvent $ HealthRestored charHandle (Health actualAmount)
+        _ -> promptGameEvent $ HealthRestored character (Health actualAmount)
     where
-        restore = max 0 . (subtract $ Damage amount)
-        restoreM = do
+        restore = do
             before <- view id
-            after <- id <%= restore
+            after <- id <%= max 0 . (subtract $ Damage amount)
             return $ unDamage $ before - after
+
+
+enactRestoreToFullHealth :: (HearthMonad m) => Handle Character -> Hearth m ()
+enactRestoreToFullHealth character = logCall 'enactRestoreToFullHealth $ do
+    enactRestoreHealth character $ Health maxBound
 
 
 enactDestroyMinion :: (HearthMonad m) => Handle Minion -> Hearth m ()

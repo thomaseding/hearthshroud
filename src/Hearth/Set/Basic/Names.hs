@@ -16,7 +16,8 @@ import Data.Data
 
 
 data BasicCardName
-    = AnimalCompanion
+    = AncestralHealing
+    | AnimalCompanion
     | ArcaneExplosion
     | ArcaneIntellect
     | ArcaneMissiles

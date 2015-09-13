@@ -21,6 +21,7 @@ import qualified Hearth.Set.Basic.Names as Basic
 
 cards :: [Card]
 cards = let x = toCard in [
+    x ancestralHealing,
     x animalCompanion,
     x arcaneExplosion,
     x arcaneIntellect,
@@ -170,6 +171,14 @@ mkSpell = mkSpell' BasicCardName Free
 
 
 --------------------------------------------------------------------------------
+
+
+ancestralHealing :: Spell
+ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
+    A $ Minion [] $ \minion ->
+        Effect $ Sequence [
+            RestoreToFullHealth $ MinionCharacter minion,
+            Enchant minion $ Continuous $ Grant Taunt ]
 
 
 animalCompanion :: Spell

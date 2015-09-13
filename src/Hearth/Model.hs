@@ -290,6 +290,7 @@ data Effect :: * where
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
     DestroyMinion :: Handle Minion -> Effect
     RestoreHealth :: Handle Character -> Health -> Effect
+    RestoreToFullHealth :: Handle Character -> Effect
     Transform :: Handle Minion -> Minion -> Effect
     Silence :: Handle Minion -> Effect
     GainArmor :: Handle Player -> Armor -> Effect
