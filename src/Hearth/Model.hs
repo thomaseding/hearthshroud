@@ -104,7 +104,7 @@ data Player deriving (Typeable)
 data Character deriving (Typeable)
 
 
-type UserConstraint (k :: (* -> Constraint)) = (k Spell, k Minion, k Player, k Character)
+type UserConstraint (k :: (* -> Constraint)) = (k Spell, k Weapon, k Minion, k Player, k Character)
 
 
 data Handle :: * -> * where
@@ -266,6 +266,7 @@ data Elect :: (* -> Constraint) -> Selection -> * where
 
 
 data A :: (* -> Constraint) -> Selection -> * where
+    Weapon :: [Requirement Weapon] -> (Handle Weapon -> Elect k s) -> A k s
     Minion :: [Requirement Minion] -> (Handle Minion -> Elect k s) -> A k s
     Player :: [Requirement Player] -> (Handle Player -> Elect k s) -> A k s
     Character :: [Requirement Character] -> (Handle Character -> Elect k s) -> A k s
@@ -386,6 +387,7 @@ data Enchantment :: (* -> Constraint) -> * -> * -> * where
     SwapStats :: Enchantment k Continuous Minion
     Grant :: (k a) => Ability k a -> Enchantment k Continuous a
     Frozen :: Enchantment k Continuous Character
+    AttackDelta :: Attack -> Enchantment k Continuous Weapon
     deriving (Typeable)
 
 

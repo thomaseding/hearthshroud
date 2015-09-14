@@ -30,6 +30,7 @@ data HearthError
     = InvalidMulligan
     | InvalidShuffle
     | InvalidHandCard
+    | InvalidWeapon
     | InvalidMinion
     | InvalidPlayer
     | InvalidCharacter
@@ -64,6 +65,7 @@ data HearthPrompt :: (* -> Constraint) -> * -> * where
 
 data PromptPick :: Selection -> (* -> Constraint) -> * -> * where
     PickHandCard :: NonEmpty (HandCard k) -> PromptPick s k (HandCard k)
+    PickWeapon :: NonEmpty (Handle Weapon) -> PromptPick s k (Handle Weapon)
     PickMinion :: NonEmpty (Handle Minion) -> PromptPick s k (Handle Minion)
     PickPlayer :: NonEmpty (Handle Player) -> PromptPick s k (Handle Player)
     PickCharacter :: NonEmpty (Handle Character) -> PromptPick s k (Handle Character)

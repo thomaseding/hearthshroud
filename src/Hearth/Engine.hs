@@ -1081,6 +1081,11 @@ viewPlayerEnchantments player = logCall 'viewPlayerEnchantments $ do
     view $ getPlayer player.playerEnchantments
 
 
+viewWeaponEnchantments :: (HearthMonad k m) => Handle Weapon -> Hearth k m [AnyEnchantment k Weapon]
+viewWeaponEnchantments weapon = logCall 'viewWeaponEnchantments $ do
+    view $ getWeapon weapon.boardWeaponEnchantments
+
+
 underAnyEnchantment :: forall a b k. (forall t. Enchantment k t a -> b) -> AnyEnchantment k a -> b
 underAnyEnchantment f = \case
     Continuous e -> f e
@@ -1157,6 +1162,11 @@ instance IsCharacterHandle (BoardMinion k) where
 
 
 -- TODO: Make CharacterTraits not a class and just make it a constraint over a bunch of modular classes
+instance IsCharacterHandle (PlayerObject k) where
+    characterHandle = characterHandle . _playerHandle
+
+
+-- TODO: Make CharacterTraits not a class and just make it a constraint over a bunch of modular classes
 class (Ownable h, IsCharacterHandle h) => CharacterTraits h where
     bumpAttackCount :: (HearthMonad k m) => h -> Hearth k m ()
     viewAttackCount :: (HearthMonad k m) => h -> Hearth k m Int
@@ -1202,26 +1212,36 @@ dynamic action = logCall 'dynamic $ local id $ do
     enactMinionAuras
     applyMinionEnchantments
     applyPlayerEnchantments
-    --applyWeaponEnchantments TODO
+    applyWeaponEnchantments
     applyPlayerWeapons
     action
     where
-        getAllMinions :: (HearthMonad k m) => Hearth k m [Handle Minion]
-        getAllMinions = viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+        viewAllMinions :: (HearthMonad k m) => Hearth k m [Handle Minion]
+        viewAllMinions = viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
+
+        viewAllWeapons :: (HearthMonad k m) => Hearth k m [Handle Weapon]
+        viewAllWeapons = viewListOf $ gamePlayers.traversed.playerWeapon.traversed.boardWeaponHandle
 
         enactMinionAuras :: (HearthMonad k m) => Hearth k m ()
         enactMinionAuras = do
-            minions <- getAllMinions
+            minions <- viewAllMinions
             forM_ minions $ \minion -> do
                 auras <- liftM auraAbilitiesOf $ viewMinionAbilities minion
                 forM_ auras $ enactAura . ($ minion)
 
         applyMinionEnchantments :: (HearthMonad k m) => Hearth k m ()
         applyMinionEnchantments = do
-            minions <- getAllMinions
+            minions <- viewAllMinions
             forM_ minions $ \minion -> do
                 enchantments <- viewMinionEnchantments minion
                 forM_ enchantments $ underAnyEnchantment $ applyMinionEnchantment minion
+
+        applyWeaponEnchantments :: (HearthMonad k m) => Hearth k m ()
+        applyWeaponEnchantments = do
+            weapons <- viewAllWeapons
+            forM_ weapons $ \weapon -> do
+                enchantments <- viewWeaponEnchantments weapon
+                forM_ enchantments $ underAnyEnchantment $ applyWeaponEnchantment weapon
 
         applyPlayerEnchantments :: (HearthMonad k m) => Hearth k m ()
         applyPlayerEnchantments = do
@@ -1229,6 +1249,12 @@ dynamic action = logCall 'dynamic $ local id $ do
             forM_ players $ \player -> do
                 enchantments <- viewPlayerEnchantments player
                 forM_ enchantments $ underAnyEnchantment $ applyPlayerEnchantment player
+
+        applyWeaponEnchantment :: (HearthMonad k m) => Handle Weapon -> Enchantment k t Weapon -> Hearth k m ()
+        applyWeaponEnchantment weapon = \case
+            Until _ enchantment -> applyWeaponEnchantment weapon enchantment
+            AttackDelta attack -> getWeapon weapon.boardWeapon.weaponAttack += attack
+            Grant _ -> $todo 'dynamic "xxx"
 
         applyPlayerEnchantment :: (HearthMonad k m) => Handle Player -> Enchantment k t Player -> Hearth k m ()
         applyPlayerEnchantment player = \case
@@ -1517,6 +1543,7 @@ instance EnactElect Targeted where
 
 enactA :: (HearthMonad k m, PickFrom s) => A k s -> Hearth k m (SimplePickResult s)
 enactA = logCall 'enactA $ \case
+    Weapon requirements cont -> enactWeapon requirements cont
     Minion requirements cont -> enactMinion requirements cont
     Player requirements cont -> enactPlayer requirements cont
     Character requirements cont -> enactCharacter requirements cont
@@ -1529,12 +1556,15 @@ enactAll = logCall 'enactAll . \case
     Characters requirements cont -> enactCharacters requirements cont
 
 
+enactWeapon :: (HearthMonad k m, PickFrom s) => [Requirement Weapon] -> (Handle Weapon -> Elect k s) -> Hearth k m (SimplePickResult s)
+enactWeapon requirements cont = logCall 'enactWeapon $ do
+    candidates <- viewListOf $ gamePlayers.traversed.playerWeapon.traversed.to _boardWeaponHandle
+    restrict requirements candidates >>= pickFrom >>= enactElect' cont
+
+
 enactMinion :: (HearthMonad k m, PickFrom s) => [Requirement Minion] -> (Handle Minion -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactMinion requirements cont = logCall 'enactMinion $ do
-    pHandles <- getPlayerHandles
-    candidates <- liftM concat $ forM pHandles $ \pHandle -> do
-        bms <- view $ getPlayer pHandle.playerMinions
-        return $ map (\bm -> bm^.boardMinionHandle) bms
+    candidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.to _boardMinionHandle
     restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
@@ -1546,12 +1576,9 @@ enactPlayer requirements cont = logCall 'enactPlayer $ do
 
 enactCharacter :: (HearthMonad k m, PickFrom s) => [Requirement Character] -> (Handle Character -> Elect k s) -> Hearth k m (SimplePickResult s)
 enactCharacter requirements cont = logCall 'enactCharacter $ do
-    pHandles <- getPlayerHandles
-    minionCandidates <- liftM concat $ forM pHandles $ \pHandle -> do
-        bms <- view $ getPlayer pHandle.playerMinions
-        return $ map (\bm -> MinionCharacter $ bm^.boardMinionHandle) bms
-    let playerCandidates = map PlayerCharacter pHandles
-        candidates = playerCandidates ++ minionCandidates
+    playerCandidates <- viewListOf $ gamePlayers.traversed.to characterHandle
+    minionCandidates <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.to characterHandle
+    let candidates = playerCandidates ++ minionCandidates
     restrict requirements candidates >>= pickFrom >>= enactElect' cont
 
 
@@ -1637,6 +1664,12 @@ class Pickable (s :: Selection) k a where
     promptPick :: NonEmpty a -> PromptPick s k a
     pickFailError :: Proxy s -> Proxy k -> Proxy a -> HearthError
     pickGuard :: Proxy s -> Proxy k -> [a] -> a -> Bool
+
+
+instance Pickable s k (Handle Weapon) where
+    promptPick = PickWeapon
+    pickFailError _ _ _ = InvalidWeapon
+    pickGuard _ _ = flip elem
 
 
 instance Pickable s k (Handle Minion) where

@@ -22,8 +22,10 @@ data BasicCardName
     | ArcaneIntellect
     | ArcaneMissiles
     | ArcaneShot
+    | ArcaniteReaper
     | Archmage
     | Assassinate
+    | Assassin'sBlade
     | Backstab
     | BlessingOfKings
     | BlessingOfMight
@@ -42,6 +44,7 @@ data BasicCardName
     | Corruption
     | DalaranMage
     | DarkscaleHealer
+    | DeadlyPoison
     | DeadlyShot
     | DivineSpirit
     | DragonlingMechanic
@@ -148,6 +151,7 @@ data BasicCardName
     | WarGolem
     | WaterElemental
     | Whirlwind
+    | WickedKnife
     | WildGrowth
     | Windfury
     | Windspeaker

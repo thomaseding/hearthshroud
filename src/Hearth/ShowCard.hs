@@ -587,9 +587,18 @@ showChoice choices = do
 
 showA :: (IsSelection s) => A Showy s -> ShowCard String
 showA = \case
+    Weapon requirements cont -> showWeapon requirements cont
     Minion requirements cont -> showMinion requirements cont
     Player requirements cont -> showPlayer requirements cont
     Character requirements cont -> showCharacter requirements cont
+
+
+showWeapon :: forall s. (IsSelection s) => [Requirement Weapon] -> (Handle Weapon -> Elect Showy s) -> ShowCard String
+showWeapon requirements cont = do
+    requirementsStr <- showRequirements requirements
+    let sel = showSelection (Proxy :: Proxy s)
+    handle <- genNumberedHandle $ sel ++ "WEAPON[" ++ requirementsStr ++ "]"
+    showElect $ cont handle
 
 
 showPlayer :: forall s. (IsSelection s) => [Requirement Player] -> (Handle Player -> Elect Showy s) -> ShowCard String
@@ -777,6 +786,7 @@ showEnchantment = \case
     SwapStats -> return "Swapped attack and health"
     Grant ability -> showAbility ability >>= \str -> return $ "Grant " ++ str
     Frozen -> return "Frozen"
+    AttackDelta (Attack x) -> return $ "+" ++ show x ++ " Attack"
 
 
 showDelayedEffect :: TimePoint -> Effect Showy -> ShowCard String

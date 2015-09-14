@@ -508,6 +508,7 @@ instance MonadPrompt (HearthPrompt Showy) Console where
 handlePromptPick :: (MakePick s) => GameSnapshot Showy -> PromptPick s Showy a -> Console (PickResult s a)
 handlePromptPick snapshot = \case
     PickHandCard xs -> pickHandCard snapshot xs
+    PickWeapon xs -> pickWeapon snapshot xs
     PickMinion xs -> pickMinion snapshot xs
     PickPlayer xs -> pickPlayer snapshot xs
     PickCharacter xs -> pickCharacter snapshot xs
@@ -572,6 +573,10 @@ pickHandCard :: (MakePick s) => GameSnapshot Showy -> NonEmpty (HandCard Showy) 
 pickHandCard = mkPick eq fetchHandCard
     where
         eq = (==) `on` cardName
+
+
+pickWeapon :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Weapon) -> Console (PickResult s (Handle Weapon))
+pickWeapon = mkPick (==) fetchWeaponHandle
 
 
 pickMinion :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Minion) -> Console (PickResult s (Handle Minion))
@@ -1092,6 +1097,16 @@ fetchPlayerHandle (SignedInt sign idx) = case idx of
     0 -> liftM Just $ case sign of
         Positive -> getActivePlayerHandle
         Negative -> getNonActivePlayerHandle
+    _ -> return Nothing
+
+
+fetchWeaponHandle :: SignedInt -> Hearth Showy Console (Maybe (Handle Weapon))
+fetchWeaponHandle (SignedInt sign idx) = case idx of
+    0 -> do
+        player <- case sign of
+            Positive -> getActivePlayerHandle
+            Negative -> getNonActivePlayerHandle
+        view $ getPlayer player.playerWeapon.to (fmap _boardWeaponHandle)
     _ -> return Nothing
 
 

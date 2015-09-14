@@ -28,8 +28,10 @@ cards = let x = toCard in [
     x arcaneIntellect,
     x arcaneMissiles,
     x arcaneShot,
+    x arcaniteReaper,
     x archmage,
     x assassinate,
+    x assassin'sBlade,
     x backstab,
     x blessingOfKings,
     x blessingOfMight,
@@ -48,6 +50,7 @@ cards = let x = toCard in [
     x corruption,
     x dalaranMage,
     x darkscaleHealer,
+    x deadlyPoison,
     x deadlyShot,
     x divineSpirit,
     x dragonlingMechanic,
@@ -154,6 +157,7 @@ cards = let x = toCard in [
     x waterElemental,
     x warGolem,
     x whirlwind,
+    x wickedKnife,
     x wildGrowth,
     x windfury,
     x windspeaker,
@@ -224,6 +228,10 @@ arcaneShot = mkSpell Hunter ArcaneShot 1 $ \this ->
         Effect $ (this `damages` target) 2
 
 
+arcaniteReaper :: (UserConstraint k) => WeaponCard k
+arcaniteReaper = mkWeapon Warrior ArcaniteReaper 5 5 2 []
+
+
 archmage :: (UserConstraint k) => MinionCard k
 archmage = mkMinion Neutral Archmage [] 6 4 7 [
     SpellDamage 1 ]
@@ -233,6 +241,10 @@ assassinate :: (UserConstraint k) => SpellCard k
 assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ DestroyMinion target
+
+
+assassin'sBlade :: (UserConstraint k) => WeaponCard k
+assassin'sBlade = mkWeapon Rogue Assassin'sBlade 5 3 4 []
 
 
 backstab :: (UserConstraint k) => SpellCard k
@@ -348,6 +360,13 @@ darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
             All $ Characters [OwnedBy you] $ \friendlies ->
                 Effect $ ForEach friendlies $ \friendly ->
                     RestoreHealth friendly 2 ]
+
+
+deadlyPoison :: (UserConstraint k) => SpellCard k
+deadlyPoison = mkSpell Rogue DeadlyPoison 1 $ \this ->
+    OwnerOf this $ \you ->
+        A $ Weapon [OwnedBy you] $ \weapon ->
+            Effect $ Enchant weapon $ Continuous $ AttackDelta 2
 
 
 deadlyShot :: (UserConstraint k) => SpellCard k
@@ -1072,6 +1091,10 @@ whirlwind = mkSpell Warrior Whirlwind 1 $ \this ->
     All $ Minions [] $ \minions ->
         Effect $ ForEach minions $ \minion ->
             (this `damages` minion) 1
+
+
+wickedKnife :: (UserConstraint k) => WeaponCard k
+wickedKnife = uncollectible $ mkWeapon Rogue WickedKnife 1 1 2 []
 
 
 wildGrowth :: (UserConstraint k) => SpellCard k
