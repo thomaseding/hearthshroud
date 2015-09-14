@@ -301,6 +301,7 @@ data Effect :: (* -> Constraint) -> * where
     Enchant :: (k a) => Handle a -> AnyEnchantment k a -> Effect k
     GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect k
     DestroyMinion :: Handle Minion -> Effect k
+    DestroyWeapon :: Handle Weapon -> Effect k
     RestoreHealth :: Handle Character -> Health -> Effect k
     RestoreToFullHealth :: Handle Character -> Effect k
     Transform :: Handle Minion -> MinionCard k -> Effect k

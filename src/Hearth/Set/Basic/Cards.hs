@@ -22,6 +22,7 @@ import qualified Hearth.Set.Basic.Names as Basic
 
 cards :: (UserConstraint k) => [Card k]
 cards = let x = toCard in [
+    x acidicSwampOoze,
     x ancestralHealing,
     x animalCompanion,
     x arcaneExplosion,
@@ -181,6 +182,15 @@ mkWeapon = mkWeapon' BasicCardName Free
 
 
 --------------------------------------------------------------------------------
+
+
+acidicSwampOoze :: (UserConstraint k) => MinionCard k
+acidicSwampOoze = mkMinion Neutral AcidicSwampOoze [] 2 3 2 [
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            OpponentOf you $ \opponent ->
+                A $ Weapon [OwnedBy opponent] $ \weapon ->
+                    Effect $ DestroyWeapon weapon ]
 
 
 ancestralHealing :: (UserConstraint k) => SpellCard k

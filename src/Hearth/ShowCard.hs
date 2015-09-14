@@ -396,7 +396,8 @@ showEffect = \case
     DealDamage victim damage source -> showDealDamage victim damage source
     Enchant handle enchantments -> showEnchant handle enchantments
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
-    DestroyMinion handle -> showDestroyMinion handle
+    DestroyMinion handle -> showDestroy handle
+    DestroyWeapon handle -> showDestroy handle
     RestoreHealth handle amount -> showRestoreHealth handle amount
     RestoreToFullHealth handle -> showRestoreToFullHealth handle
     Transform handle minion -> showTransform handle minion
@@ -538,10 +539,10 @@ showRestoreToFullHealth character = do
     return $ "Restore " ++ characterStr ++ " to full health"
 
 
-showDestroyMinion :: Handle Minion -> ShowCard String
-showDestroyMinion minion = do
-    minionStr <- readHandle minion
-    return $ "Destroy " ++ minionStr
+showDestroy :: Handle a -> ShowCard String
+showDestroy handle = do
+    handleStr <- readHandle handle
+    return $ "Destroy " ++ handleStr
 
 
 showForEach :: (Showy a) => HandleList a -> (Handle a -> Effect Showy) -> ShowCard String

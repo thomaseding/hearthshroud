@@ -16,7 +16,8 @@ import Data.Data
 
 
 data BasicCardName
-    = AncestralHealing
+    = AcidicSwampOoze
+    | AncestralHealing
     | AnimalCompanion
     | ArcaneExplosion
     | ArcaneIntellect
