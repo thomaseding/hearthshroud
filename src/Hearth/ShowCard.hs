@@ -698,6 +698,7 @@ showRequirement = \case
     AdjacentTo handle -> readHandle handle >>= \str -> return ("ADJACENT_TO " ++ str)
     HasMaxManaCrystals -> return "HAS_MAX_MANA_CRYSTALS"
     HasType minionType -> return $ "is " ++ show minionType
+    HasCharge -> return "HAS_CHARGE"
     HasMinion reqs -> do
         reqsStr <- showRequirements reqs
         return $ "HAS_MINION" ++ reqsStr

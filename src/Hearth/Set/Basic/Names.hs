@@ -150,6 +150,7 @@ data BasicCardName
     | Voidwalker
     | VoodooDoctor
     | WarGolem
+    | WarsongCommander
     | WaterElemental
     | Whirlwind
     | WickedKnife

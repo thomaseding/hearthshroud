@@ -243,6 +243,7 @@ data Requirement :: * -> * where
     AdjacentTo :: Handle Minion -> Requirement Minion
     HasMaxManaCrystals :: Requirement Player
     HasType :: MinionType -> Requirement Minion
+    HasCharge :: Requirement Minion
     HasMinion :: [Requirement Minion] -> Requirement Player
 
 

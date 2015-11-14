@@ -155,8 +155,9 @@ cards = let x = toCard in [
     x tundraRhino,
     x voidwalker,
     x voodooDoctor,
-    x waterElemental,
     x warGolem,
+    x warsongCommander,
+    x waterElemental,
     x whirlwind,
     x wickedKnife,
     x wildGrowth,
@@ -1085,15 +1086,23 @@ voodooDoctor = mkMinion Neutral VoodooDoctor [] 1 2 1 [
             Effect $ RestoreHealth character 2 ]
 
 
+warGolem :: (UserConstraint k) => MinionCard k
+warGolem = mkMinion Neutral WarGolem [] 7 7 7 []
+
+
+warsongCommander :: (UserConstraint k) => MinionCard k
+warsongCommander = mkMinion Warrior WarsongCommander [] 3 2 3 [
+    Aura $ \this ->
+        AuraOwnerOf this $ \you ->
+            EachMinion [OwnedBy you, HasCharge] $ \minion ->
+                Has minion $ statsDelta 1 0 ]
+
+
 waterElemental :: (UserConstraint k) => MinionCard k
 waterElemental = mkMinion Mage WaterElemental [] 4 3 6 [
     Whenever $ \this ->
         DamageIsDealt $ \victim _ source ->
             Effect $ when (this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
-
-
-warGolem :: (UserConstraint k) => MinionCard k
-warGolem = mkMinion Neutral WarGolem [] 7 7 7 []
 
 
 whirlwind :: (UserConstraint k) => SpellCard k

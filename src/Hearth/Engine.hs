@@ -1652,6 +1652,7 @@ instance CanSatisfy a (Requirement a) where
                 MaxManaCrystals -> liftM (== 0) $ view playerTemporaryManaCrystals
                 _ -> return False
         HasType minionType -> view $ getMinion candidate.boardMinion.minionTypes.to (Set.member minionType)
+        HasCharge -> dynamic $ viewCharge candidate
         HasMinion reqs -> do
             minions <- viewListOf $ getPlayer candidate.playerMinions.traversed.boardMinionHandle
             anyM (`satisfies` reqs) minions
