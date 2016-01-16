@@ -148,6 +148,7 @@ steadyShot = HeroPower {
             Effect $ (you `damages` opponent) 2 }
 
 
+-- TODO: Not this simple. Needs to select from non-owned totems.
 totemicCall :: (UserConstraint k) => HeroPower k
 totemicCall = HeroPower {
     _heroPowerName = TotemicCall,
