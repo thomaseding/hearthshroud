@@ -631,13 +631,13 @@ consoleOptions = do
 
 
 main :: IO ()
-main = finally runTestGame $ do
+main = finally mainImpl $ do
     setSGR [SetColor Background Dull Black]
     setSGR [SetColor Foreground Dull White]
 
 
-runTestGame :: IO ()
-runTestGame = flip evalStateT st $ unConsole $ do
+mainImpl :: IO ()
+mainImpl = flip evalStateT st $ unConsole $ do
     args <- liftIO getArgs
     case runOptions consoleOptions args of
         Left (ParseFailed msg _ _) -> complain msg
@@ -647,17 +647,7 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 view gameSeed >>= \case
                     [] -> complain "Need to initialize game seed."
                     _ : _ : _ -> complain "Must initialize game seed with exactly one value."
-                    [seed] -> do
-                        liftIO $ setStdGen $ mkStdGen seed
-                        let tag name attrs = openTag name attrs >> closeTag name
-                        tag "gameSeed" [("value", show seed)]
-                        deck1 <- newDeck Mage
-                        deck2 <- newDeck Warlock
-                        _ <- runHearth (player1 deck1, player2 deck2)
-                        liftIO clearScreen
-                        window <- liftIO getWindowSize
-                        renewLogWindow window 0
-                        liftIO enterToContinue
+                    [seed] -> runHearthClient seed
     where
         complain msg = liftIO $ do
             putStrLn $ unlines [msg, ""]
@@ -676,6 +666,21 @@ runTestGame = flip evalStateT st $ unConsole $ do
                 _tagDepth = 0,
                 _useShortTag = False,
                 _verbosity = defaultVerbosity } }
+
+
+runHearthClient :: Int -> Console ()
+runHearthClient seed = do
+    liftIO $ setStdGen $ mkStdGen seed
+    let tag name attrs = openTag name attrs >> closeTag name
+    tag "gameSeed" [("value", show seed)]
+    deck1 <- newDeck Mage
+    deck2 <- newDeck Warlock
+    _ <- runHearth (player1 deck1, player2 deck2)
+    liftIO clearScreen
+    window <- liftIO getWindowSize
+    renewLogWindow window 0
+    liftIO enterToContinue
+    where
         hero name power = Hero {
             _heroAttack = 0,
             _heroHealth = 30,
