@@ -810,6 +810,7 @@ enactEffect = logCall 'enactEffect . \case
     GainManaCrystals handle amount crystalState -> gainManaCrystals handle amount crystalState >> return success
     DestroyMinion handle -> enactDestroyMinion handle >> return success
     DestroyWeapon handle -> enactDestroyWeapon handle >> return success
+    EquipWeapon handle weapon -> equipWeapon handle weapon >> return success
     RestoreHealth character amount -> enactRestoreHealth character amount >> return success
     RestoreToFullHealth character -> enactRestoreToFullHealth character >> return success
     Transform handle minion -> transform handle minion >> return success

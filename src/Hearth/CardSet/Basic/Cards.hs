@@ -4,6 +4,12 @@
 
 module Hearth.CardSet.Basic.Cards (
     cards,
+    healingTotem,
+    searingTotem,
+    silverHandRecruit,
+    stoneclawTotem,
+    wickedKnife,
+    wrathOfAirTotem,
 ) where
 
 

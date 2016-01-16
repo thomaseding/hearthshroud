@@ -16,15 +16,15 @@ import Data.Data
 
 
 data HeroName
-    = Malfurion
-    | Rexxar
-    | Jaina
-    | Uther
-    | Anduin
-    | Valeera
-    | Thrall
-    | Gul'dan
+    = Anduin
     | Garrosh
+    | Gul'dan
+    | Jaina
+    | Malfurion
+    | Rexxar
+    | Thrall
+    | Uther
+    | Valeera
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 

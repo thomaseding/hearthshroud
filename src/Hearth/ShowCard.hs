@@ -398,6 +398,7 @@ showEffect = \case
     GainManaCrystals handle amount crystalState -> showGainManaCrystals handle amount crystalState
     DestroyMinion handle -> showDestroy handle
     DestroyWeapon handle -> showDestroy handle
+    EquipWeapon handle weapon -> showEquipWeapon handle weapon
     RestoreHealth handle amount -> showRestoreHealth handle amount
     RestoreToFullHealth handle -> showRestoreToFullHealth handle
     Transform handle minion -> showTransform handle minion
@@ -410,6 +411,13 @@ showEffect = \case
     RandomMissiles reqs n spell -> showRandomMissiles reqs n spell
     DiscardAtRandom player -> showDiscardAtRandom player
     TakeControl player minion -> showTakeControl player minion
+
+
+showEquipWeapon :: Handle Player -> WeaponCard Showy -> ShowCard String
+showEquipWeapon player weapon = do
+    playerStr <- readHandle player
+    let weaponName = showCardName $ cardName weapon
+    return $ playerStr ++ " equip(s) " ++ weaponName
 
 
 showTakeControl :: Handle Player -> Handle Minion -> ShowCard String
@@ -435,9 +443,9 @@ showRandomMissiles reqs n spell = do
 showSummon :: Handle Player -> MinionCard Showy -> BoardLocation -> ShowCard String
 showSummon player minion loc = do
     playerStr <- readHandle player
-    let minionStr = showCardName $ cardName minion
+    let minionName = showCardName $ cardName minion
     locStr <- showBoardLocation loc
-    return $ playerStr ++ " summon " ++ minionStr ++ " " ++ locStr
+    return $ playerStr ++ " summon(s) " ++ minionName ++ " " ++ locStr
 
 
 showBoardLocation :: BoardLocation -> ShowCard String

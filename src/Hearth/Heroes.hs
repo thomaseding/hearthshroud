@@ -2,14 +2,23 @@
 
 
 module Hearth.Heroes (
-    jaina,
+    anduin,
+    garrosh,
     gul'dan,
+    jaina,
+    malfurion,
+    rexxar,
+    thrall,
+    uther,
+    valeera,
 ) where
 
 
 --------------------------------------------------------------------------------
 
 
+import Hearth.Authoring.Combinators
+import Hearth.CardSet.Basic.Cards
 import Hearth.HeroName
 import Hearth.HeroPowerName
 import Hearth.Model
@@ -26,12 +35,62 @@ mkSimpleHero name power = Hero {
     _heroName = name }
 
 
-jaina :: (UserConstraint k) => Hero k
-jaina = mkSimpleHero Jaina fireblast
+--------------------------------------------------------------------------------
+
+
+anduin :: (UserConstraint k) => Hero k
+anduin = mkSimpleHero Anduin lesserHeal
+
+
+garrosh :: (UserConstraint k) => Hero k
+garrosh = mkSimpleHero Garrosh armorUp
 
 
 gul'dan :: (UserConstraint k) => Hero k
 gul'dan = mkSimpleHero Gul'dan lifeTap
+
+
+jaina :: (UserConstraint k) => Hero k
+jaina = mkSimpleHero Jaina fireblast
+
+
+malfurion :: (UserConstraint k) => Hero k
+malfurion = mkSimpleHero Malfurion shapeshift
+
+
+rexxar :: (UserConstraint k) => Hero k
+rexxar = mkSimpleHero Rexxar steadyShot
+
+
+thrall :: (UserConstraint k) => Hero k
+thrall = mkSimpleHero Thrall totemicCall
+
+
+uther :: (UserConstraint k) => Hero k
+uther = mkSimpleHero Uther reinforce
+
+
+valeera :: (UserConstraint k) => Hero k
+valeera = mkSimpleHero Valeera daggerMastery
+
+
+--------------------------------------------------------------------------------
+
+
+armorUp :: (UserConstraint k) => HeroPower k
+armorUp = HeroPower {
+    _heroPowerName = ArmorUp,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        Effect $ GainArmor you 2 }
+
+
+daggerMastery :: (UserConstraint k) => HeroPower k
+daggerMastery = HeroPower {
+    _heroPowerName = DaggerMastery,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        Effect $ EquipWeapon you wickedKnife }
 
 
 fireblast :: (UserConstraint k) => HeroPower k
@@ -43,6 +102,15 @@ fireblast = HeroPower {
             Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
 
 
+lesserHeal :: (UserConstraint k) => HeroPower k
+lesserHeal = HeroPower {
+    _heroPowerName = LesserHeal,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \_ ->
+        A $ Character [] $ \target ->
+            Effect $ RestoreHealth target 2 }
+
+
 lifeTap :: (UserConstraint k) => HeroPower k
 lifeTap = HeroPower {
     _heroPowerName = LifeTap,
@@ -51,6 +119,46 @@ lifeTap = HeroPower {
         Effect $ Sequence [
             DrawCards you 1,
             DealDamage (PlayerCharacter you) 2 (DamagingCharacter $ PlayerCharacter you) ]}
+
+
+reinforce :: (UserConstraint k) => HeroPower k
+reinforce = HeroPower {
+    _heroPowerName = Reinforce,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        Effect $ Summon you silverHandRecruit Rightmost }
+
+
+shapeshift :: (UserConstraint k) => HeroPower k
+shapeshift = HeroPower {
+    _heroPowerName = Shapeshift,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        Effect $ Sequence [
+            Enchant you $ Limited $ Until EndOfTurn $ statsDelta 1 0,
+            GainArmor you 1 ]}
+
+
+steadyShot :: (UserConstraint k) => HeroPower k
+steadyShot = HeroPower {
+    _heroPowerName = SteadyShot,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        OpponentOf you $ \opponent ->
+            Effect $ (you `damages` opponent) 2 }
+
+
+totemicCall :: (UserConstraint k) => HeroPower k
+totemicCall = HeroPower {
+    _heroPowerName = TotemicCall,
+    _heroPowerCost = ManaCost 2,
+    _heroPowerEffect = \you ->
+        Effect $ Elect $ Choice $ map (\minion -> Effect $ (you `Summon` minion) Rightmost) [
+            healingTotem,
+            searingTotem,
+            stoneclawTotem,
+            wrathOfAirTotem ]}
+
 
 
 
