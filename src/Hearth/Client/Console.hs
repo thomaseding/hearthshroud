@@ -56,6 +56,7 @@ import Hearth.CardName
 import Hearth.DebugEvent
 import Hearth.Engine hiding (scopedPhase)
 import Hearth.GameEvent
+import Hearth.Heroes
 import Hearth.HeroName
 import Hearth.HeroPowerName
 import Hearth.Model hiding (And, Or)
@@ -628,6 +629,8 @@ consoleOptions = do
         liftIO randomIO >>= \seed -> gameSeed %= (seed :)
     addOption (kw ["-C", "--no-class-restriction"] `text` "Deck cards are not restricted by class.")
         (classRestriction .= False)
+    --addOption (kw ["--queue"] `argText` "PLAYER [CARD]" `text` "Stacks PLAYER's deck with [CARD]. PLAYER must be 1 or 2.") $
+    --    \p (List cs) -> gamePlayerQueue p cs
 
 
 main :: IO ()
@@ -681,13 +684,8 @@ runHearthClient seed = do
     renewLogWindow window 0
     liftIO enterToContinue
     where
-        hero name power = Hero {
-            _heroAttack = 0,
-            _heroHealth = 30,
-            _heroPower = power,
-            _heroName = name }
-        player1 = PlayerData (hero Jaina fireblast)
-        player2 = PlayerData (hero Gul'dan lifeTap)
+        player1 = PlayerData jaina
+        player2 = PlayerData gul'dan
         newDeck clazz = view classRestriction >>= \case
             False -> liftIO $ do
                 cards <- shuffleM $ filter isCollectible cardUniverse
@@ -736,25 +734,6 @@ instance GetCardMeta CardMeta where
 
 isCollectible :: (GetCardMeta a) => a -> Bool
 isCollectible = (Collectible ==) . _cardMetaCollectibility . cardMeta
-
-
-fireblast :: HeroPower k
-fireblast = HeroPower {
-    _heroPowerName = Fireblast,
-    _heroPowerCost = ManaCost 2,
-    _heroPowerEffect = \you ->
-        A $ Character [] $ \target ->
-            Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
-
-
-lifeTap :: HeroPower k
-lifeTap = HeroPower {
-    _heroPowerName = LifeTap,
-    _heroPowerCost = ManaCost 2,
-    _heroPowerEffect = \you -> 
-        Effect $ Sequence [
-            DrawCards you 1,
-            DealDamage (PlayerCharacter you) 2 (DamagingCharacter $ PlayerCharacter you) ]}
 
 
 getWindowSize :: IO (Window Int)
