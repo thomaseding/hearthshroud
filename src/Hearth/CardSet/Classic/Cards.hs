@@ -2,7 +2,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 
-module Hearth.Set.Classic.Cards (
+module Hearth.CardSet.Classic.Cards (
     cards,
 ) where
 
@@ -11,10 +11,10 @@ module Hearth.Set.Classic.Cards (
 
 
 import Hearth.Authoring.Combinators
-import Hearth.Model
 import Hearth.CardName
-import Hearth.Set.Classic.Names hiding (Silence)
-import qualified Hearth.Set.Classic.Names as Classic
+import Hearth.CardSet.Classic.Names hiding (Silence)
+import qualified Hearth.CardSet.Classic.Names as Classic
+import Hearth.Model
 
 
 --------------------------------------------------------------------------------

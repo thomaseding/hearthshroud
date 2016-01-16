@@ -44,11 +44,11 @@ import qualified Data.Set as Set
 import Hearth.Action
 import Hearth.CardName
 import Hearth.Cards (cardByName, cardName)
+import Hearth.CardSet.Basic.Names (BasicCardName(TheCoin))
 import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.Model
 import Hearth.Prompt
-import Hearth.Set.Basic.Names (BasicCardName(TheCoin))
 
 
 --------------------------------------------------------------------------------

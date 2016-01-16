@@ -11,8 +11,8 @@ module Hearth.CardName where
 
 
 import Data.Data
-import Hearth.Set.Basic.Names
-import Hearth.Set.Classic.Names
+import Hearth.CardSet.Basic.Names
+import Hearth.CardSet.Classic.Names
 
 
 --------------------------------------------------------------------------------

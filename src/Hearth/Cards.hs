@@ -14,8 +14,8 @@ import Data.List
 import Data.Ord
 import Hearth.CardName
 import Hearth.Model
-import qualified Hearth.Set.Basic.Cards as Basic
-import qualified Hearth.Set.Classic.Cards as Classic
+import qualified Hearth.CardSet.Basic.Cards as Basic
+import qualified Hearth.CardSet.Classic.Cards as Classic
 
 
 --------------------------------------------------------------------------------

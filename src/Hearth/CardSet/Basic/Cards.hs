@@ -2,7 +2,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 
-module Hearth.Set.Basic.Cards (
+module Hearth.CardSet.Basic.Cards (
     cards,
 ) where
 
@@ -12,9 +12,9 @@ module Hearth.Set.Basic.Cards (
 
 import Hearth.Authoring.Combinators
 import Hearth.CardName
+import Hearth.CardSet.Basic.Names hiding (Charge, Windfury)
+import qualified Hearth.CardSet.Basic.Names as Basic
 import Hearth.Model
-import Hearth.Set.Basic.Names hiding (Charge, Windfury)
-import qualified Hearth.Set.Basic.Names as Basic
 
 
 --------------------------------------------------------------------------------
