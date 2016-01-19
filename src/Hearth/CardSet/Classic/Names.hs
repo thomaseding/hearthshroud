@@ -18,6 +18,7 @@ import Data.Data
 data ClassicCardName
     = Abomination
     | AbusiveSergeant
+    | Al'AkirTheWindlord
     | AldorPeacekeeper
     | AmaniBerserker
     | ArcaneGolem
@@ -25,23 +26,34 @@ data ClassicCardName
     | ArgentProtector
     | ArgentSquire
     | Armorsmith
+    | Ashbringer
+    | AzureDrake
     | BattleRage
     | BigGameHunter
+    | Bite
     | BlessedChampion
+    | Blizzard
+    | BloodmageThalnos
     | Brawl
     | CircleOfHealing
     | ColdlightOracle
     | CrazedAlchemist
     | CruelTaskmaster
+    | DarkIronDwarf
     | DireWolfAlpha
     | EarthenRingFarseer
     | EarthShock
+    | EmeraldDrake
     | Equality
     | FenCreeper
     | FlameImp
     | GadgetzanAuctioneer
+    | Gnoll
     | GrommashHellscream
+    | Gruul
+    | Hogger
     | HolyFire
+    | Infernal
     | InjuredBlademaster
     | InnerRage
     | IronbeakOwl
@@ -62,13 +74,17 @@ data ClassicCardName
     | Silence
     | SilvermoonGuardian
     | SiphonSoul
+    | SoulOfTheForest
     | Spellbreaker
     | StampedingKodo
     | Starfall
     | Sunwalker
     | TaurenWarrior
     | TempleEnforcer
+    | TirionFordring
+    | Treant_SoulOfTheForest
     | TwistingNether
+    | WindfuryHarpy
     | Wisp
     | Wrath
     deriving (Show, Eq, Ord, Enum, Data, Typeable)

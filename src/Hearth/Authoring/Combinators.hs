@@ -146,6 +146,10 @@ statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment k Continuous 
 statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
 
 
+freeze :: (CharacterLike a) => Handle a -> Effect k
+freeze = Freeze . asCharacter
+
+
 
 
 

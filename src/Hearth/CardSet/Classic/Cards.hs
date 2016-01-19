@@ -24,6 +24,7 @@ cards :: (UserConstraint k) => [Card k]
 cards = let x = toCard in [
     x abomination,
     x abusiveSergeant,
+    x al'AkirTheWindlord,
     x aldorPeacekeeper,
     x amaniBerserker,
     x arcaneGolem,
@@ -31,23 +32,34 @@ cards = let x = toCard in [
     x argentProtector,
     x argentSquire,
     x armorsmith,
+    x ashbringer,
+    x azureDrake,
     x battleRage,
     x bigGameHunter,
+    x bite,
     x blessedChampion,
+    x blizzard,
+    x bloodmageThalnos,
     x brawl,
     x circleOfHealing,
     x coldlightOracle,
     x crazedAlchemist,
     x cruelTaskmaster,
+    x darkIronDwarf,
     x direWolfAlpha,
     x earthenRingFarseer,
     x earthShock,
+    x emeraldDrake,
     x equality,
     x fenCreeper,
     x flameImp,
     x gadgetzanAuctioneer,
+    x gnoll,
     x grommashHellscream,
+    x gruul,
     x holyFire,
+    x hogger,
+    x infernal,
     x injuredBlademaster,
     x innerRage,
     x ironbeakOwl,
@@ -68,13 +80,17 @@ cards = let x = toCard in [
     x silence,
     x silvermoonGuardian,
     x siphonSoul,
+    x soulOfTheForest,
     x spellbreaker,
     x stampedingKodo,
     x starfall,
     x sunwalker,
     x taurenWarrior,
     x templeEnforcer,
+    x tirionFordring,
+    x treant_soulOfTheForest,
     x twistingNether,
+    x windfuryHarpy,
     x wisp,
     x wrath ]
 
@@ -88,6 +104,10 @@ mkMinion = mkMinion' ClassicCardName
 
 mkSpell :: (UserConstraint k) => Rarity -> Class -> ClassicCardName -> Mana -> SpellEffect k -> SpellCard k
 mkSpell = mkSpell' ClassicCardName
+
+
+mkWeapon :: (UserConstraint k) => Rarity -> Class -> ClassicCardName -> Mana -> Attack -> Durability -> [Ability k Weapon] -> WeaponCard k
+mkWeapon = mkWeapon' ClassicCardName
 
 
 --------------------------------------------------------------------------------
@@ -113,6 +133,14 @@ amaniBerserker :: (UserConstraint k) => MinionCard k
 amaniBerserker = mkMinion Common Neutral AmaniBerserker [] 2 2 3 [
     Enrage [] [
         statsDelta 3 0 ]]
+
+
+al'AkirTheWindlord :: (UserConstraint k) => MinionCard k
+al'AkirTheWindlord = mkMinion Legendary Shaman Al'AkirTheWindlord [] 8 3 5 [
+    Windfury,
+    Charge,
+    DivineShield,
+    Taunt ]
 
 
 aldorPeacekeeper :: (UserConstraint k) => MinionCard k
@@ -160,6 +188,18 @@ armorsmith = mkMinion Rare Warrior Armorsmith [] 2 1 4 [
                 Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
 
 
+ashbringer :: (UserConstraint k) => WeaponCard k
+ashbringer = uncollectible $ mkWeapon Legendary Paladin Ashbringer 5 5 3 []
+
+
+azureDrake :: (UserConstraint k) => MinionCard k
+azureDrake = mkMinion Rare Neutral AzureDrake [Dragon] 5 4 4 [
+    SpellDamage 1,
+    Battlecry $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1 ]
+
+
 battleRage :: (UserConstraint k) => SpellCard k
 battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
     OwnerOf this $ \you ->
@@ -175,10 +215,36 @@ bigGameHunter = mkMinion Epic Neutral BigGameHunter [] 3 4 2 [
             Effect $ DestroyMinion target ]
 
 
+bite :: (UserConstraint k) => SpellCard k
+bite = mkSpell Rare Druid Bite 4 $ \this ->
+    OwnerOf this $ \you ->
+        Effect $ Sequence [
+            Enchant you $ Limited $ Until EndOfTurn $ statsDelta 4 0,
+            GainArmor you 4 ]
+
+
 blessedChampion :: (UserConstraint k) => SpellCard k
 blessedChampion = mkSpell Rare Paladin BlessedChampion 5 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ StatsScale 2 1
+
+
+blizzard :: (UserConstraint k) => SpellCard k
+blizzard = mkSpell Rare Mage Blizzard 6 $ \this ->
+    OwnerOf this $ \you ->
+        OpponentOf you $ \opponent ->
+            All $ Minions [OwnedBy opponent] $ \victims ->
+                Effect $ ForEach victims $ \victim -> Sequence [
+                    (this `damages` victim) 2,
+                    freeze victim ]
+
+
+bloodmageThalnos :: (UserConstraint k) => MinionCard k
+bloodmageThalnos = mkMinion Legendary Neutral BloodmageThalnos [] 2 1 1 [
+    SpellDamage 1,
+    Deathrattle $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1 ]
 
 
 brawl :: (UserConstraint k) => SpellCard k
@@ -223,6 +289,13 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster [] 2 2 2 [
                 Enchant target $ Continuous $ statsDelta 2 0 ]]
 
 
+darkIronDwarf :: (UserConstraint k) => MinionCard k
+darkIronDwarf = mkMinion Common Neutral DarkIronDwarf [] 4 4 4 [
+    Battlecry $ \this ->
+        A $ Minion [Not this] $ \target ->
+            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
+
+
 direWolfAlpha :: (UserConstraint k) => MinionCard k
 direWolfAlpha = mkMinion Common Neutral DireWolfAlpha [Beast] 2 2 2 [
     Aura $ \this ->
@@ -243,6 +316,10 @@ earthShock = mkSpell Common Shaman EarthShock 1 $ \this ->
         Effect $ Sequence [
             Silence target,
             (this `damages` target) 1 ]
+
+
+emeraldDrake :: (UserConstraint k) => MinionCard k
+emeraldDrake = uncollectible $ mkMinion Free Hunter EmeraldDrake [Dragon] 4 7 6 []
 
 
 equality :: (UserConstraint k) => SpellCard k
@@ -272,11 +349,31 @@ gadgetzanAuctioneer = mkMinion Rare Neutral GadgetzanAuctioneer [] 6 4 4 [
                 Effect $ when (spell `Satisfies` [OwnedBy you]) $ DrawCards you 1 ]
 
 
+gnoll :: (UserConstraint k) => MinionCard k
+gnoll = uncollectible $ mkMinion Free Neutral Gnoll [] 2 2 2 [
+    Taunt ]
+
+
 grommashHellscream :: (UserConstraint k) => MinionCard k
 grommashHellscream = mkMinion Legendary Warrior GrommashHellscream [] 8 4 9 [
     Charge,
     Enrage [] [
         statsDelta 6 0 ]]
+
+
+gruul :: (UserConstraint k) => MinionCard k
+gruul = mkMinion Legendary Neutral Gruul [] 8 7 7 [
+    Whenever $ \this ->
+        EndOfTurnEvent $ \_ ->
+            Effect $ Enchant this $ Continuous $ statsDelta 1 1 ]
+
+
+hogger :: (UserConstraint k) => MinionCard k
+hogger = mkMinion Legendary Neutral Hogger [] 6 4 4 [
+    Whenever $ \this ->
+        EndOfTurnEvent $ \player ->
+            OwnerOf this $ \you ->
+                Effect $ (you `Summon` gnoll) Rightmost ]
 
 
 holyFire :: (UserConstraint k) => SpellCard k
@@ -286,6 +383,10 @@ holyFire = mkSpell Rare Priest HolyFire 6 $ \this ->
             Effect $ Sequence [
                 (this `damages` target) 5,
                 RestoreHealth (PlayerCharacter you) 5 ]
+
+
+infernal :: (UserConstraint k) => MinionCard k
+infernal = uncollectible $ mkMinion Common Warlock Infernal [Demon] 6 6 6 []
 
 
 injuredBlademaster :: (UserConstraint k) => MinionCard k
@@ -434,6 +535,16 @@ siphonSoul = mkSpell Rare Warlock SiphonSoul 6 $ \this ->
                 RestoreHealth (PlayerCharacter you) 3 ]
 
 
+soulOfTheForest :: (UserConstraint k) => SpellCard k
+soulOfTheForest = mkSpell Common Druid SoulOfTheForest 4 $ \this ->
+    OwnerOf this $ \you ->
+        All $ Minions [OwnedBy you] $ \minions ->
+            Effect $ ForEach minions $ \minion ->
+                Enchant minion $ Continuous $ Grant $ Deathrattle $ \this' ->
+                    OwnerOf this' $ \owner ->
+                        Effect $ (owner `Summon` treant_soulOfTheForest) Rightmost
+
+
 spellbreaker :: (UserConstraint k) => MinionCard k
 spellbreaker = mkMinion Common Neutral Spellbreaker [] 4 4 3 [
     Battlecry $ \this ->
@@ -483,11 +594,29 @@ templeEnforcer = mkMinion Common Priest TempleEnforcer [] 6 6 6 [
                 Effect $ Enchant target $ Continuous $ statsDelta 0 3 ]
 
 
+tirionFordring :: (UserConstraint k) => MinionCard k
+tirionFordring = mkMinion Legendary Paladin TirionFordring [] 8 6 6 [
+    DivineShield,
+    Taunt,
+    Deathrattle $ \this ->
+        OwnerOf this $ \you ->
+            Effect $ EquipWeapon you ashbringer ]
+
+
+treant_soulOfTheForest :: (UserConstraint k) => MinionCard k
+treant_soulOfTheForest = uncollectible $ mkMinion Free Druid Treant_SoulOfTheForest [] 1 2 2 []
+
+
 twistingNether :: (UserConstraint k) => SpellCard k
 twistingNether = mkSpell Epic Warlock TwistingNether 8 $ \_ ->
     All $ Minions [] $ \minions ->
         Effect $ ForEach minions $ \minion ->
             DestroyMinion minion
+
+
+windfuryHarpy :: (UserConstraint k) => MinionCard k
+windfuryHarpy = mkMinion Common Neutral WindfuryHarpy [] 6 4 5 [
+    Windfury ]
 
 
 wisp :: (UserConstraint k) => MinionCard k
