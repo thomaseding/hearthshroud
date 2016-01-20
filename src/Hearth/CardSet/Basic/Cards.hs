@@ -427,7 +427,7 @@ dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
 elvenArcher :: (UserConstraint k) => MinionCard k
 elvenArcher = mkMinion Neutral ElvenArcher [] 1 1 1 [
     Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
@@ -463,7 +463,7 @@ fireball = mkSpell Mage Fireball 4 $ \this ->
 fireElemental :: (UserConstraint k) => MinionCard k
 fireElemental = mkMinion Shaman FireElemental [] 6 6 5 [
     Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 3 ]
 
 
@@ -686,7 +686,7 @@ ironbarkProtector = mkMinion Druid IronbarkProtector [] 8 8 8 [
 ironforgeRifleman :: (UserConstraint k) => MinionCard k
 ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
     Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
@@ -936,7 +936,7 @@ shatteredSunCleric :: (UserConstraint k) => MinionCard k
 shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            A $ Minion [OwnedBy you, Not this] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ Enchant target $ Continuous $ statsDelta 1 1 ]
 
 
@@ -1014,7 +1014,7 @@ stonetuskBoar = mkMinion Neutral StonetuskBoar [Beast] 1 1 1 [
 stormpikeCommando :: (UserConstraint k) => MinionCard k
 stormpikeCommando = mkMinion Neutral StormpikeCommando [] 5 4 2 [
     Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 2 ]
 
 
@@ -1087,8 +1087,8 @@ voidwalker = mkMinion Warlock Voidwalker [Demon] 1 1 3 [
 
 voodooDoctor :: (UserConstraint k) => MinionCard k
 voodooDoctor = mkMinion Neutral VoodooDoctor [] 1 2 1 [
-    Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \character ->
+    Battlecry $ \_ ->
+        A $ Character [] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
@@ -1140,7 +1140,7 @@ windspeaker :: (UserConstraint k) => MinionCard k
 windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            A $ Minion [Not this, OwnedBy you] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ Enchant target $ Continuous $ Grant Windfury ]
 
 

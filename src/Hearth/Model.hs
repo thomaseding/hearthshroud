@@ -585,6 +585,7 @@ data GameState (k :: * -> Constraint) = GameState {
     _gameHandleSeed :: Int,
     _gamePlayerTurnOrder :: [Handle Player],
     _gameEffectObservers :: [EventListener k],
+    _gameBattlecryMinion :: Maybe (Handle Minion),  -- Used to disable targeting the battlecry minion.
     _gamePlayers :: [PlayerObject k]
 } deriving (Typeable)
 

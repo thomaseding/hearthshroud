@@ -122,15 +122,15 @@ abomination :: (UserConstraint k) => MinionCard k
 abomination = mkMinion Rare Neutral Abomination [] 5 4 4 [
     Taunt,
     Deathrattle $ \this ->
-        All $ Characters [Not (MinionCharacter this)] $ \victims ->
+        All $ Characters [] $ \victims ->
             Effect $ ForEach victims $ \victim ->
                 (this `damages` victim) 2 ]
 
 
 abusiveSergeant :: (UserConstraint k) => MinionCard k
 abusiveSergeant = mkMinion Common Neutral AbusiveSergeant [] 1 2 1 [
-    Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [] $ \target ->
             Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
 
 
@@ -181,7 +181,7 @@ argentProtector :: (UserConstraint k) => MinionCard k
 argentProtector = mkMinion Common Paladin ArgentProtector [] 2 2 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            A $ Minion [OwnedBy you, Not this] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ Enchant target $ Continuous $ Grant DivineShield ]
 
 
@@ -230,8 +230,8 @@ battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
 
 bigGameHunter :: (UserConstraint k) => MinionCard k
 bigGameHunter = mkMinion Epic Neutral BigGameHunter [] 3 4 2 [
-    Battlecry $ \this ->
-        A $ Minion [Not this, RequireMinion (WithAttack GreaterEqual 7)] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [RequireMinion (WithAttack GreaterEqual 7)] $ \target ->
             Effect $ DestroyMinion target ]
 
 
@@ -295,15 +295,15 @@ coldlightOracle = mkMinion Rare Neutral ColdlightOracle [Murloc] 3 2 2[
 
 crazedAlchemist :: (UserConstraint k) => MinionCard k
 crazedAlchemist = mkMinion Rare Neutral CrazedAlchemist [] 2 2 2 [
-    Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [] $ \target ->
             Effect $ Enchant target $ Continuous SwapStats ]
 
 
 cruelTaskmaster :: (UserConstraint k) => MinionCard k
 cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster [] 2 2 2 [
     Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+        A $ Minion [] $ \target ->
             Effect $ Sequence [
                 (this `damages` target) 1,
                 Enchant target $ Continuous $ statsDelta 2 0 ]]
@@ -311,8 +311,8 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster [] 2 2 2 [
 
 darkIronDwarf :: (UserConstraint k) => MinionCard k
 darkIronDwarf = mkMinion Common Neutral DarkIronDwarf [] 4 4 4 [
-    Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [] $ \target ->
             Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
 
 
@@ -325,8 +325,8 @@ direWolfAlpha = mkMinion Common Neutral DireWolfAlpha [Beast] 2 2 2 [
 
 earthenRingFarseer :: (UserConstraint k) => MinionCard k
 earthenRingFarseer = mkMinion Common Neutral EarthenRingFarseer [] 3 3 3 [
-    Battlecry $ \this ->
-        A $ Character [Not (MinionCharacter this)] $ \character ->
+    Battlecry $ \_ ->
+        A $ Character [] $ \character ->
             Effect $ RestoreHealth character 3 ]
 
 
@@ -363,8 +363,8 @@ flameImp = mkMinion Common Warlock FlameImp [Demon] 1 3 2 [
 
 frostElemental :: (UserConstraint k) => MinionCard k
 frostElemental = mkMinion Common Neutral FrostElemental [] 6 5 5 [
-    Battlecry $ \this ->
-        A $ Character [Not $ MinionCharacter this] $ \victim ->
+    Battlecry $ \_ ->
+        A $ Character [] $ \victim ->
             Effect $ Freeze victim ]
 
 
@@ -432,8 +432,8 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
 
 ironbeakOwl :: (UserConstraint k) => MinionCard k
 ironbeakOwl = mkMinion Common Neutral IronbeakOwl [Beast] 2 2 1 [
-    Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [] $ \target ->
             Effect $ Silence target ]
 
 
@@ -590,8 +590,8 @@ soulOfTheForest = mkSpell Common Druid SoulOfTheForest 4 $ \this ->
 
 spellbreaker :: (UserConstraint k) => MinionCard k
 spellbreaker = mkMinion Common Neutral Spellbreaker [] 4 4 3 [
-    Battlecry $ \this ->
-        A $ Minion [Not this] $ \target ->
+    Battlecry $ \_ ->
+        A $ Minion [] $ \target ->
             Effect $ Silence target ]
 
 
@@ -633,7 +633,7 @@ templeEnforcer :: (UserConstraint k) => MinionCard k
 templeEnforcer = mkMinion Common Priest TempleEnforcer [] 6 6 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            A $ Minion [OwnedBy you, Not this] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ Enchant target $ Continuous $ statsDelta 0 3 ]
 
 
