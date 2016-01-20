@@ -52,6 +52,7 @@ data AttackFailedReason :: * where
     OutOfAttacks :: AttackFailedReason
     TauntsExist :: AttackFailedReason
     AttackerIsFrozen :: AttackFailedReason
+    AttackerCan'tAttack :: AttackFailedReason
     deriving (Show, Typeable)
 
 

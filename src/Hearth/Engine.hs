@@ -1814,6 +1814,12 @@ viewAbility predicate bmHandle = logCall 'viewAbility $ do
     return $ any predicate abilities
 
 
+viewCan'tAttack :: (HearthMonad k m) => Handle Minion -> Hearth k m Bool
+viewCan'tAttack = logCall 'viewCan'tAttack $ viewAbility $ \case
+    Can'tAttack -> True
+    _ -> False
+
+
 viewWindfury :: (HearthMonad k m) => Handle Minion -> Hearth k m Bool
 viewWindfury = logCall 'viewWindfury $ viewAbility $ \case
     Windfury -> True
@@ -1857,41 +1863,49 @@ isLegalAttackSetup attacker defender = logCall 'isLegalAttackSetup $ dynamic $ d
     let viewDefenderTaunt = case defender of
             PlayerCharacter _ -> return False
             MinionCharacter m -> viewTaunt m
+        viewAttackerCan'tAttack = case attacker of
+            PlayerCharacter _ -> return False
+            MinionCharacter m -> viewCan'tAttack m
     isAlly attacker >>= \case
         False -> do
             promptGameEvent $ AttackFailed AttackWithEnemy
             return $ Failure "Can't attack with an enemy character."
         True -> do
-            attack <- viewAttack attacker
-            case attack <= 0 of
+            viewAttackerCan'tAttack >>= \case
                 True -> do
-                    promptGameEvent $ AttackFailed ZeroAttack
-                    return $ Failure "Can't attack with a zero attack minion"
-                False -> isEnemy defender >>= \case
-                    False -> do
-                        promptGameEvent $ AttackFailed DefendWithFriendly
-                        return $ Failure "Can't attack into a friendly character."
-                    True -> viewSummoningSickness attacker >>= \case
+                    promptGameEvent $ AttackFailed AttackerCan'tAttack
+                    return $ Failure "Attacker can't attack."
+                False -> do
+                    attack <- viewAttack attacker
+                    case attack <= 0 of
                         True -> do
-                            promptGameEvent $ AttackFailed DoesNotHaveCharge
-                            return $ Failure "Minion needs charge to attack."
-                        False -> viewRemainingAttacks attacker >>= \case
-                            0 -> do
-                                promptGameEvent $ AttackFailed OutOfAttacks
-                                return $ Failure "Character is out of attacks."
-                            _ -> viewIsFrozen attacker >>= \case
+                            promptGameEvent $ AttackFailed ZeroAttack
+                            return $ Failure "Can't attack with a zero attack minion."
+                        False -> isEnemy defender >>= \case
+                            False -> do
+                                promptGameEvent $ AttackFailed DefendWithFriendly
+                                return $ Failure "Can't attack into a friendly character."
+                            True -> viewSummoningSickness attacker >>= \case
                                 True -> do
-                                    promptGameEvent $ AttackFailed AttackerIsFrozen
-                                    return $ Failure "Attacker is frozen."
-                                False -> viewDefenderTaunt >>= \case
-                                    True -> return Success
-                                    False -> do
-                                        defenderController <- ownerOf defender
-                                        viewHasTauntMinions defenderController >>= \case
-                                            True -> do
-                                                promptGameEvent $ AttackFailed TauntsExist
-                                                return $ Failure "Must attack a minion with taunt."
-                                            False -> return Success
+                                    promptGameEvent $ AttackFailed DoesNotHaveCharge
+                                    return $ Failure "Minion needs charge to attack."
+                                False -> viewRemainingAttacks attacker >>= \case
+                                    0 -> do
+                                        promptGameEvent $ AttackFailed OutOfAttacks
+                                        return $ Failure "Character is out of attacks."
+                                    _ -> viewIsFrozen attacker >>= \case
+                                        True -> do
+                                            promptGameEvent $ AttackFailed AttackerIsFrozen
+                                            return $ Failure "Attacker is frozen."
+                                        False -> viewDefenderTaunt >>= \case
+                                            True -> return Success
+                                            False -> do
+                                                defenderController <- ownerOf defender
+                                                viewHasTauntMinions defenderController >>= \case
+                                                    True -> do
+                                                        promptGameEvent $ AttackFailed TauntsExist
+                                                        return $ Failure "Must attack a minion with taunt."
+                                                    False -> return Success
 
 
 enactAttack :: (HearthMonad k m) => Handle Character -> Handle Character -> Hearth k m Result

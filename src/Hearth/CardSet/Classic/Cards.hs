@@ -27,6 +27,7 @@ cards = let x = toCard in [
     x al'AkirTheWindlord,
     x aldorPeacekeeper,
     x amaniBerserker,
+    x ancientWatcher,
     x arcaneGolem,
     x argentCommander,
     x argentProtector,
@@ -34,6 +35,7 @@ cards = let x = toCard in [
     x armorsmith,
     x ashbringer,
     x azureDrake,
+    x baronGeddon,
     x battleRage,
     x bigGameHunter,
     x bite,
@@ -53,6 +55,7 @@ cards = let x = toCard in [
     x equality,
     x fenCreeper,
     x flameImp,
+    x frostElemental,
     x gadgetzanAuctioneer,
     x gnoll,
     x grommashHellscream,
@@ -66,6 +69,7 @@ cards = let x = toCard in [
     x layOnHands,
     x leperGnome,
     x lootHoarder,
+    x malygos,
     x markOfNature,
     x massDispel,
     x mogu'shanWarden,
@@ -74,6 +78,7 @@ cards = let x = toCard in [
     x pitLord,
     x priestessOfElune,
     x pyroblast,
+    x ragnarosTheFirelord,
     x rampage,
     x scarletCrusader,
     x shieldbearer,
@@ -152,6 +157,11 @@ aldorPeacekeeper = mkMinion Rare Paladin AldorPeacekeeper [] 3 3 3 [
                     Effect $ Enchant target $ Continuous $ ChangeStat (Left 1) ]
 
 
+ancientWatcher :: (UserConstraint k) => MinionCard k
+ancientWatcher = mkMinion Rare Neutral AncientWatcher [] 2 4 5 [
+    Can'tAttack ]
+
+
 arcaneGolem :: (UserConstraint k) => MinionCard k
 arcaneGolem = mkMinion Rare Neutral ArcaneGolem [] 3 4 2 [
     Charge,
@@ -198,6 +208,16 @@ azureDrake = mkMinion Rare Neutral AzureDrake [Dragon] 5 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
+
+
+baronGeddon :: (UserConstraint k) => MinionCard k
+baronGeddon = mkMinion Legendary Neutral BaronGeddon [] 7 7 5 [
+    Whenever $ \this ->
+        EndOfTurnEvent $ \player ->
+            OwnerOf this $ \you ->
+                Effect $ when (player `Satisfies` [Is you]) $ Elect $ All $ Characters [Not $ MinionCharacter this] $ \characters ->
+                    Effect $ ForEach characters $ \character ->
+                        (this `damages` character) 2 ]
 
 
 battleRage :: (UserConstraint k) => SpellCard k
@@ -341,6 +361,13 @@ flameImp = mkMinion Common Warlock FlameImp [Demon] 1 3 2 [
             Effect $ (this `damages` you) 3 ]
 
 
+frostElemental :: (UserConstraint k) => MinionCard k
+frostElemental = mkMinion Common Neutral FrostElemental [] 6 5 5 [
+    Battlecry $ \this ->
+        A $ Character [Not $ MinionCharacter this] $ \victim ->
+            Effect $ Freeze victim ]
+
+
 gadgetzanAuctioneer :: (UserConstraint k) => MinionCard k
 gadgetzanAuctioneer = mkMinion Rare Neutral GadgetzanAuctioneer [] 6 4 4 [
     Whenever $ \this ->
@@ -373,7 +400,7 @@ hogger = mkMinion Legendary Neutral Hogger [] 6 4 4 [
     Whenever $ \this ->
         EndOfTurnEvent $ \player ->
             OwnerOf this $ \you ->
-                Effect $ (you `Summon` gnoll) Rightmost ]
+                Effect $ when (player `Satisfies` [Is you]) $ (you `Summon` gnoll) Rightmost ]
 
 
 holyFire :: (UserConstraint k) => SpellCard k
@@ -432,6 +459,11 @@ lootHoarder = mkMinion Common Neutral LootHoarder [] 2 2 1 [
     Deathrattle $ \this ->
         OwnerOf this $ \you ->
             Effect $ DrawCards you 1 ]
+
+
+malygos :: (UserConstraint k) => MinionCard k
+malygos = mkMinion Legendary Neutral Malygos [Dragon] 9 4 12 [
+    SpellDamage 5 ]
 
 
 markOfNature :: (UserConstraint k) => SpellCard k
@@ -497,6 +529,17 @@ pyroblast :: (UserConstraint k) => SpellCard k
 pyroblast = mkSpell Epic Mage Pyroblast 10 $ \this ->
     A $ Character [] $ \target ->
         Effect $ (this `damages` target) 10
+
+
+ragnarosTheFirelord :: (UserConstraint k) => MinionCard k
+ragnarosTheFirelord = mkMinion Legendary Neutral RagnarosTheFirelord [] 8 8 8 [
+    Can'tAttack,
+    Whenever $ \this ->
+        EndOfTurnEvent $ \player ->
+            OwnerOf this $ \you ->
+                OpponentOf you $ \opponent ->
+                    Effect $ when (player `Satisfies` [Is you]) $ Elect $ A $ Character [OwnedBy opponent] $ \enemy ->
+                        Effect $ (this `damages` enemy) 8 ]
 
 
 rampage :: (UserConstraint k) => SpellCard k

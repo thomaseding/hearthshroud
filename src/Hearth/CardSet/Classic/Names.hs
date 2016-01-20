@@ -21,6 +21,7 @@ data ClassicCardName
     | Al'AkirTheWindlord
     | AldorPeacekeeper
     | AmaniBerserker
+    | AncientWatcher
     | ArcaneGolem
     | ArgentCommander
     | ArgentProtector
@@ -28,6 +29,7 @@ data ClassicCardName
     | Armorsmith
     | Ashbringer
     | AzureDrake
+    | BaronGeddon
     | BattleRage
     | BigGameHunter
     | Bite
@@ -47,6 +49,7 @@ data ClassicCardName
     | Equality
     | FenCreeper
     | FlameImp
+    | FrostElemental
     | GadgetzanAuctioneer
     | Gnoll
     | GrommashHellscream
@@ -60,6 +63,7 @@ data ClassicCardName
     | LayOnHands
     | LeperGnome
     | LootHoarder
+    | Malygos
     | MarkOfNature
     | MassDispel
     | Mogu'shanWarden
@@ -68,6 +72,7 @@ data ClassicCardName
     | PitLord
     | PriestessOfElune
     | Pyroblast
+    | RagnarosTheFirelord
     | Rampage
     | ScarletCrusader
     | Shieldbearer

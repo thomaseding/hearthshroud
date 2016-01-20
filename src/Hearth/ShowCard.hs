@@ -272,6 +272,7 @@ showAbility = \case
     Taunt -> return "Taunt"
     SpellDamage n -> return $ "Spell Damage +" ++ show n
     Windfury -> return "Windfury"
+    Can'tAttack -> return "Can't Attack"
 
 
 showAuraAbility :: (Showy a) => (Handle a -> Aura Showy) -> ShowCard String

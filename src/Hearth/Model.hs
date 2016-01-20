@@ -347,6 +347,7 @@ data Ability :: (* -> Constraint) -> * -> * where
     Taunt :: Ability k Minion
     SpellDamage :: Int -> Ability k a
     Windfury :: Ability k Minion
+    Can'tAttack :: Ability k Minion
     deriving (Typeable)
 
 
