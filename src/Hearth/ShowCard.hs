@@ -207,7 +207,7 @@ type Showy = GenHandle
 
 showCard :: HandCard Showy -> String
 showCard card = let
-    name = showName card
+    name = showCardName $ cardName card
     cost = showCost card
     bt = boxText card
     mStats = case card of
@@ -228,12 +228,6 @@ showCard card = let
         . lines
         . unlines
         $ [ name ++ " " ++ cost, bt, stats ]
-
-
-showName :: HandCard Showy -> String
-showName card = case cardName card of
-    BasicCardName name -> show name
-    ClassicCardName name -> show name
 
 
 showCost :: HandCard Showy -> String
