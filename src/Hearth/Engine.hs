@@ -42,9 +42,9 @@ import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
 import qualified Data.Set as Set
 import Hearth.Action
-import Hearth.CardName
-import Hearth.Cards (cardByName, cardName)
-import Hearth.CardSet.Basic.Names (BasicCardName(TheCoin))
+import Hearth.Authoring.Combinators (toCard)
+import Hearth.Cards (cardName)
+import Hearth.CardSet.Basic.Cards (theCoin)
 import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.Model
@@ -85,14 +85,15 @@ runQuery snapshot query = evalStateT (unHearth query') $ snapshot^.snapshotGameS
         query' = logCall 'runQuery query
 
 
-runHearth :: (HearthMonad k m) => Pair (PlayerData k) -> m GameResult
-runHearth = evalStateT (unHearth runHearth') . mkGameState
+runHearth :: (HearthMonad k m) => Universe k -> Pair (PlayerData k) -> m GameResult
+runHearth u = evalStateT (unHearth runHearth') . mkGameState u
 
 
-mkGameState :: Pair (PlayerData k) -> GameState k
-mkGameState (p1, p2) = let
+mkGameState :: Universe k -> Pair (PlayerData k) -> GameState k
+mkGameState u (p1, p2) = let
     ps = [p1, p2]
     in GameState {
+        _gameUniverse = u,
         _gameTurn = Turn 1,
         _gameHandleSeed = length ps,
         _gamePlayerTurnOrder = [],
@@ -322,8 +323,7 @@ initHand handle = logCall 'initHand $ do
     case isFirst of
         True -> return ()
         False -> let
-            theCoin = toHandCard $ cardByName $ BasicCardName TheCoin
-            in getPlayer handle.playerHand.handCards %= (theCoin :)
+            in getPlayer handle.playerHand.handCards %= ((toHandCard $ toCard $ theCoin) :)
 
 
 drawCards :: (HearthMonad k m) => Handle Player -> Int -> Hearth k m [HandCard k]

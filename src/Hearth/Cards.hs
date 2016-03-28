@@ -11,7 +11,6 @@ module Hearth.Cards where
 
 import Control.Error.TH
 import Data.List
-import Data.Ord
 import Hearth.CardName
 import Hearth.Model
 import qualified Hearth.CardSet.Basic.Cards as Basic
@@ -21,15 +20,15 @@ import qualified Hearth.CardSet.Classic.Cards as Classic
 --------------------------------------------------------------------------------
 
 
-cardUniverse :: (UserConstraint k) => [Card k]
-cardUniverse = sortBy (comparing $ dropWhile (/= ' ') . showCardName . cardName) $ concat [
+entireUniverse :: (UserConstraint k) => Universe k
+entireUniverse = Universe $ concat [
     Basic.cards,
     Classic.cards ]
 
 
-cardByName :: (UserConstraint k) => CardName -> Card k
-cardByName name = let
-    mCard = flip find cardUniverse $ \card -> cardName card == name
+cardByName :: (UserConstraint k) => Universe k -> CardName -> Card k
+cardByName (Universe cards) name = let
+    mCard = flip find cards $ \card -> cardName card == name
     in case mCard of 
         Just card -> card
         Nothing -> $logicError 'cardByName $ "Card does not exist: " ++ showCardName name

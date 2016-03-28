@@ -24,6 +24,7 @@ import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
 import GHC.Prim (Constraint)
+import Hearth.Authoring.Combinators
 import Hearth.DebugEvent
 import Hearth.Model
 import Hearth.Prompt
@@ -93,27 +94,6 @@ instance (HearthMonad' k m) => LogCall (a -> b -> c -> Hearth' k st m z) where
 
 data PlayerData k = PlayerData (Hero k) (Deck k)
     deriving (Typeable)
-
-
---------------------------------------------------------------------------------
-
-
-class ToCard a where
-    toCard :: a k -> Card k
-
-
-instance ToCard HandCard where
-    toCard = \case
-        HandCardMinion minion -> CardMinion minion
-        HandCardSpell spell -> CardSpell spell
-        HandCardWeapon weapon -> CardWeapon weapon
-
-
-instance ToCard DeckCard where
-    toCard = \case
-        DeckCardMinion minion -> CardMinion minion
-        DeckCardSpell spell -> CardSpell spell
-        DeckCardWeapon weapon -> CardWeapon weapon
 
 
 --------------------------------------------------------------------------------

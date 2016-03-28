@@ -678,7 +678,7 @@ runHearthClient seed = do
     tag "gameSeed" [("value", show seed)]
     deck1 <- newDeck Mage
     deck2 <- newDeck Warlock
-    _ <- runHearth (player1 deck1, player2 deck2)
+    _ <- runHearth entireUniverse (player1 deck1, player2 deck2)
     liftIO clearScreen
     window <- liftIO getWindowSize
     renewLogWindow window 0
@@ -688,7 +688,7 @@ runHearthClient seed = do
         player2 = PlayerData gul'dan
         newDeck clazz = view classRestriction >>= \case
             False -> liftIO $ do
-                cards <- shuffleM $ filter isCollectible cardUniverse
+                cards <- shuffleM $ filter isCollectible $ unUniverse entireUniverse
                 return $ Deck $ map toDeckCard $ take 30 cards
             True -> liftIO $ do
                 let classCount = 15
@@ -701,7 +701,7 @@ runHearthClient seed = do
 
 
 cardsByClass :: (UserConstraint k) => Class -> [Card k]
-cardsByClass clazz = flip filter cardUniverse $ \card ->
+cardsByClass clazz = flip filter (unUniverse entireUniverse) $ \card ->
     cardMeta card^.cardMetaClass == clazz
 
 

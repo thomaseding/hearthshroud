@@ -8,6 +8,7 @@ module Hearth.CardSet.Basic.Cards (
     searingTotem,
     silverHandRecruit,
     stoneclawTotem,
+    theCoin,
     wickedKnife,
     wrathOfAirTotem,
 ) where
@@ -403,8 +404,7 @@ divineSpirit = mkSpell Priest DivineSpirit 2 $ \_ ->
 dragonlingMechanic :: (UserConstraint k) => MinionCard k
 dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
-            Effect $ (Summon mechanicalDragonling) $ RightOf this ]
+        Effect $ (Summon mechanicalDragonling) $ RightOf this ]
 
 
 drainLife :: (UserConstraint k) => SpellCard k
@@ -806,8 +806,7 @@ murlocScout = uncollectible $ mkMinion Neutral MurlocScout [Murloc] 0 1 1 []
 murlocTidehunter :: (UserConstraint k) => MinionCard k
 murlocTidehunter = mkMinion Neutral MurlocTidehunter [Murloc] 2 2 1 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
-            Effect $ (Summon murlocScout) $ RightOf this ]
+        Effect $ (Summon murlocScout) $ RightOf this ]
 
 
 nightblade :: (UserConstraint k) => MinionCard k
@@ -868,8 +867,7 @@ raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
 razorfenHunter :: (UserConstraint k) => MinionCard k
 razorfenHunter = mkMinion Neutral RazorfenHunter [] 3 2 3 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
-            Effect $ (Summon boar) $ RightOf this ]
+        Effect $ (Summon boar) $ RightOf this ]
 
 
 recklessRocketeer :: (UserConstraint k) => MinionCard k

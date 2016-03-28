@@ -33,6 +33,20 @@ instance ToCard WeaponCard where
     toCard = CardWeapon
 
 
+instance ToCard HandCard where
+    toCard = \case
+        HandCardMinion minion -> CardMinion minion
+        HandCardSpell spell -> CardSpell spell
+        HandCardWeapon weapon -> CardWeapon weapon
+
+
+instance ToCard DeckCard where
+    toCard = \case
+        DeckCardMinion minion -> CardMinion minion
+        DeckCardSpell spell -> CardSpell spell
+        DeckCardWeapon weapon -> CardWeapon weapon
+
+
 class Uncollectible a where
     uncollectible :: a -> a
 

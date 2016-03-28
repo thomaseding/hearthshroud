@@ -435,6 +435,14 @@ data Class :: * where
     deriving (Show, Eq, Ord)
 
 
+data Universe :: (* -> Constraint) -> * where
+    Universe :: [Card k] -> Universe k
+
+
+unUniverse :: Universe k -> [Card k]
+unUniverse (Universe u) = u
+
+
 data Collectibility :: * where
     Collectible :: Collectibility
     Uncollectible :: Collectibility
@@ -581,6 +589,7 @@ data PlayerObject k = PlayerObject {
 
 
 data GameState (k :: * -> Constraint) = GameState {
+    _gameUniverse :: Universe k,
     _gameTurn :: Turn,
     _gameHandleSeed :: Int,
     _gamePlayerTurnOrder :: [Handle Player],
