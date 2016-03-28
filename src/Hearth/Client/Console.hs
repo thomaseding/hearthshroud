@@ -117,6 +117,14 @@ instance Parseable SignedInt where
         _ -> Nothing
 
 
+instance Parseable CardName where
+    parse = simpleParse $ \str -> case readMaybe str of
+        Just name -> Just $ BasicCardName name
+        Nothing -> case readMaybe str of
+            Just name -> Just $ ClassicCardName name
+            Nothing -> Nothing
+
+
 data NonParseable = NonParseable
     deriving (Data, Typeable)
 
@@ -151,7 +159,8 @@ data ConsoleState = ConsoleState {
     _pendingTargets :: [SignedInt],
     _targetsSnapshot :: GameSnapshot Showy,
     _isAutoplay :: Bool,
-    _logState :: LogState
+    _logState :: LogState,
+    _stackedCards :: [Card Showy]
 } deriving ()
 makeLenses ''ConsoleState
 
@@ -492,7 +501,7 @@ instance MonadPrompt (HearthPrompt Showy) Console where
         PromptError e -> promptError e
         PromptGameEvent snapshot e -> gameEvent snapshot e
         PromptAction snapshot -> getAction snapshot
-        PromptShuffle xs -> liftIO $ shuffleM xs
+        PromptShuffle xs -> return xs --liftIO $ shuffleM xs
         PromptPickAtRandom snapshot p -> handlePromptPick snapshot p
         PromptPickTargeted snapshot p -> handlePromptPick snapshot p
         PromptMulligan _ xs -> return xs
@@ -629,8 +638,10 @@ consoleOptions = do
         liftIO randomIO >>= \seed -> gameSeed %= (seed :)
     addOption (kw ["-C", "--no-class-restriction"] `text` "Deck cards are not restricted by class.")
         (classRestriction .= False)
-    --addOption (kw ["--queue"] `argText` "PLAYER [CARD]" `text` "Stacks PLAYER's deck with [CARD]. PLAYER must be 1 or 2.") $
-    --    \p (List cs) -> gamePlayerQueue p cs
+    addOption (kw ["-c", "--card"] `argText` "[CARD]" `text` "Stacks PLAYER's deck with [CARD]. PLAYER must be 1 or 2.") $
+        \(List cs) -> let
+            cs' = map (cardByName entireUniverse) cs
+            in stackedCards %= (cs' ++)
 
 
 main :: IO ()
@@ -656,6 +667,7 @@ mainImpl = flip evalStateT st $ unConsole $ do
             putStrLn $ unlines [msg, ""]
             printProgramHelp
         st = ConsoleState {
+            _stackedCards = [],
             _gameSeed = [],
             _exitWithoutMessage = False,
             _classRestriction = True,
@@ -676,8 +688,9 @@ runHearthClient seed = do
     liftIO $ setStdGen $ mkStdGen seed
     let tag name attrs = openTag name attrs >> closeTag name
     tag "gameSeed" [("value", show seed)]
-    deck1 <- newDeck Mage
-    deck2 <- newDeck Warlock
+    stacked <- view stackedCards
+    deck1 <- newDeck stacked Mage
+    deck2 <- newDeck [] Warlock
     _ <- runHearth entireUniverse (player1 deck1, player2 deck2)
     liftIO clearScreen
     window <- liftIO getWindowSize
@@ -686,18 +699,21 @@ runHearthClient seed = do
     where
         player1 = PlayerData jaina
         player2 = PlayerData gul'dan
-        newDeck clazz = view classRestriction >>= \case
-            False -> liftIO $ do
-                cards <- shuffleM $ filter isCollectible $ unUniverse entireUniverse
-                return $ Deck $ map toDeckCard $ take 30 cards
-            True -> liftIO $ do
-                let classCount = 15
-                    neutralCount = 30 - min classCount (length classCards)
-                    classCards = filter isCollectible $ cardsByClass clazz
-                    neutralCards = filter isCollectible $ cardsByClass Neutral
-                classCards' <- shuffleM classCards
-                neutralCards' <- shuffleM neutralCards
-                return $ Deck $ map toDeckCard $ take classCount classCards' ++ take neutralCount neutralCards'
+        newDeck :: [Card Showy] -> Class -> Console (Deck Showy)
+        newDeck stacked clazz = view classRestriction >>= \strict -> do
+            cards <- case strict of
+                False -> liftIO $ do
+                    cards <- shuffleM $ filter isCollectible $ unUniverse entireUniverse
+                    return $ take 30 cards
+                True -> liftIO $ do
+                    let classCount = 15
+                        neutralCount = 30 - min classCount (length classCards)
+                        classCards = filter isCollectible $ cardsByClass clazz
+                        neutralCards = filter isCollectible $ cardsByClass Neutral
+                    classCards' <- shuffleM classCards
+                    neutralCards' <- shuffleM neutralCards
+                    shuffleM $ take classCount classCards' ++ take neutralCount neutralCards'
+            return $ Deck $ take 30 $ map toDeckCard (stacked ++ cards)
 
 
 cardsByClass :: (UserConstraint k) => Class -> [Card k]

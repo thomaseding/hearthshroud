@@ -159,7 +159,7 @@ data BasicCardName
     | Windspeaker
     | WolfRider
     | WrathOfAirTotem
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
+    deriving (Show, Read, Eq, Ord, Enum, Data, Typeable)
 
 
 

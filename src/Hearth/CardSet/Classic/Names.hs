@@ -92,7 +92,7 @@ data ClassicCardName
     | WindfuryHarpy
     | Wisp
     | Wrath
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
+    deriving (Show, Read, Eq, Ord, Enum, Data, Typeable)
 
 
 
