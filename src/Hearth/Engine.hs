@@ -825,7 +825,7 @@ enactEffect = logCall 'enactEffect . \case
     Freeze handle -> freeze handle >> return success
     Observing effect listener -> enactObserving effect listener
     PutInHand player card -> enactPutInHand player card >> return success
-    Summon player minion loc -> enactSummon player minion loc >> return success
+    Summon minion loc -> enactSummon minion loc >> return success
     RandomMissiles reqs n spell -> enactRandomMissiles reqs n spell >> return success
     DiscardAtRandom player -> enactDiscardAtRandom player >> return success
     TakeControl player minion -> enactTakeControl player minion >> return success
@@ -878,12 +878,16 @@ boardIndexOf minion = logCall 'boardIndexOf $ do
         Nothing -> $logicError 'boardIndexOf "xxx"
 
 
-enactSummon :: (HearthMonad k m) => Handle Player -> MinionCard k -> BoardLocation -> Hearth k m ()
-enactSummon player minion loc = do
-    idx <- case loc of
-        RightOf m -> boardIndexOf m >>= return . \case
-            BoardIndex n -> BoardIndex $ n + 1
-        Rightmost -> liftM BoardIndex $ getMinionCount player
+enactSummon :: (HearthMonad k m) => MinionCard k -> BoardLocation -> Hearth k m ()
+enactSummon minion loc = do
+    (player, idx) <- case loc of
+        RightOf m -> do
+            owner <- ownerOf m
+            boardIndexOf m >>= return . \case
+                BoardIndex n -> (owner, BoardIndex $ n + 1)
+        Rightmost player -> do
+            idx <- liftM BoardIndex $ getMinionCount player
+            return $ (player, idx)
     _ <- summon player minion idx
     return ()
 

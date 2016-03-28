@@ -126,7 +126,7 @@ reinforce = HeroPower {
     _heroPowerName = Reinforce,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
-        Effect $ Summon you silverHandRecruit Rightmost }
+        Effect $ Summon silverHandRecruit $ Rightmost you }
 
 
 shapeshift :: (UserConstraint k) => HeroPower k
@@ -154,7 +154,7 @@ totemicCall = HeroPower {
     _heroPowerName = TotemicCall,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
-        Effect $ Elect $ Choice $ map (\minion -> Effect $ (you `Summon` minion) Rightmost) [
+        Effect $ Elect $ Choice $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             healingTotem,
             searingTotem,
             stoneclawTotem,

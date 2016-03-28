@@ -408,7 +408,7 @@ showEffect = \case
     Freeze handle -> showFreeze handle
     Observing effect listener -> showObserving effect listener
     PutInHand player card -> showPutInHand player card
-    Summon player minion loc -> showSummon player minion loc
+    Summon minion loc -> showSummon minion loc
     RandomMissiles reqs n spell -> showRandomMissiles reqs n spell
     DiscardAtRandom player -> showDiscardAtRandom player
     TakeControl player minion -> showTakeControl player minion
@@ -441,12 +441,11 @@ showRandomMissiles reqs n spell = do
     return $ show n ++ " RandomMissiles from " ++ spellStr ++ " targeting " ++ reqsStr ++ " characters"
 
 
-showSummon :: Handle Player -> MinionCard Showy -> BoardLocation -> ShowCard String
-showSummon player minion loc = do
-    playerStr <- readHandle player
+showSummon :: MinionCard Showy -> BoardLocation -> ShowCard String
+showSummon minion loc = do
     let minionName = showCardName $ cardName minion
     locStr <- showBoardLocation loc
-    return $ playerStr ++ " summon(s) " ++ minionName ++ " " ++ locStr
+    return $ "summon " ++ minionName ++ " " ++ locStr
 
 
 showBoardLocation :: BoardLocation -> ShowCard String
@@ -454,7 +453,9 @@ showBoardLocation = \case
     RightOf minion -> do
         minionStr <- readHandle minion
         return $ "to the right of " ++ minionStr
-    Rightmost -> return "rightmost board position"
+    Rightmost player -> do
+        str <- readHandle player
+        return $ "to the rightmost of " ++ str
 
 
 showPutInHand :: Handle Player -> Card Showy -> ShowCard String

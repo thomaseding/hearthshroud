@@ -211,7 +211,7 @@ ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
 animalCompanion :: (UserConstraint k) => SpellCard k
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Elect $ Choice $ map (\minion -> Effect $ (you `Summon` minion) Rightmost) [
+        Effect $ Elect $ Choice $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             huffer,
             leokk,
             misha ]
@@ -404,7 +404,7 @@ dragonlingMechanic :: (UserConstraint k) => MinionCard k
 dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ (you `Summon` mechanicalDragonling) $ RightOf this ]
+            Effect $ (Summon mechanicalDragonling) $ RightOf this ]
 
 
 drainLife :: (UserConstraint k) => SpellCard k
@@ -756,7 +756,7 @@ mirrorImage_minion = uncollectible $ mkMinion Mage MirrorImage_Minion [] 1 0 2 [
 mirrorImage_spell :: (UserConstraint k) => SpellCard k
 mirrorImage_spell = mkSpell Mage MirrorImage_Spell 1 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Sequence $ replicate 2 $ (you `Summon` mirrorImage_minion) Rightmost
+        Effect $ Sequence $ replicate 2 $ (Summon mirrorImage_minion) $ Rightmost you
 
 
 misha :: (UserConstraint k) => MinionCard k
@@ -807,7 +807,7 @@ murlocTidehunter :: (UserConstraint k) => MinionCard k
 murlocTidehunter = mkMinion Neutral MurlocTidehunter [Murloc] 2 2 1 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ (you `Summon` murlocScout) $ RightOf this ]
+            Effect $ (Summon murlocScout) $ RightOf this ]
 
 
 nightblade :: (UserConstraint k) => MinionCard k
@@ -869,7 +869,7 @@ razorfenHunter :: (UserConstraint k) => MinionCard k
 razorfenHunter = mkMinion Neutral RazorfenHunter [] 3 2 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            Effect $ (you `Summon` boar) $ RightOf this ]
+            Effect $ (Summon boar) $ RightOf this ]
 
 
 recklessRocketeer :: (UserConstraint k) => MinionCard k

@@ -287,7 +287,7 @@ data DamageSource :: * where
 
 data BoardLocation :: * where
     RightOf :: Handle Minion -> BoardLocation
-    Rightmost :: BoardLocation
+    Rightmost :: Handle Player -> BoardLocation
 
 
 data Effect :: (* -> Constraint) -> * where
@@ -312,7 +312,7 @@ data Effect :: (* -> Constraint) -> * where
     Freeze :: Handle Character -> Effect k
     Observing :: Effect k -> EventListener k -> Effect k
     PutInHand :: Handle Player -> Card k -> Effect k
-    Summon :: Handle Player -> MinionCard k -> BoardLocation -> Effect k
+    Summon :: MinionCard k -> BoardLocation -> Effect k
     RandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> Effect k
     DiscardAtRandom :: Handle Player -> Effect k
     TakeControl :: Handle Player -> Handle Minion -> Effect k

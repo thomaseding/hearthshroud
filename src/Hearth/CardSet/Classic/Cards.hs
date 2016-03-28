@@ -400,7 +400,7 @@ hogger = mkMinion Legendary Neutral Hogger [] 6 4 4 [
     Whenever $ \this ->
         EndOfTurnEvent $ \player ->
             OwnerOf this $ \you ->
-                Effect $ when (player `Satisfies` [Is you]) $ (you `Summon` gnoll) Rightmost ]
+                Effect $ when (player `Satisfies` [Is you]) $ (Summon gnoll) $ Rightmost you ]
 
 
 holyFire :: (UserConstraint k) => SpellCard k
@@ -585,7 +585,7 @@ soulOfTheForest = mkSpell Common Druid SoulOfTheForest 4 $ \this ->
             Effect $ ForEach minions $ \minion ->
                 Enchant minion $ Continuous $ Grant $ Deathrattle $ \this' ->
                     OwnerOf this' $ \owner ->
-                        Effect $ (owner `Summon` treant_soulOfTheForest) Rightmost
+                        Effect $ (Summon treant_soulOfTheForest) $ Rightmost owner
 
 
 spellbreaker :: (UserConstraint k) => MinionCard k
