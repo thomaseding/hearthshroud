@@ -1130,10 +1130,7 @@ discoverEnchantment p = \case
 
 
 grantsFrozen :: Enchantment k t a -> Bool
-grantsFrozen = \case
-    MinionEnchantment e -> grantsFrozen e
-    PlayerEnchantment e -> grantsFrozen e
-    Until _ e -> grantsFrozen e
+grantsFrozen = discoverEnchantment $ \case
     Frozen -> True
     _ -> False
 
