@@ -561,9 +561,11 @@ showForEach (HandleList userData handles) cont = case cast userData of
             return $ "ForEach [" ++ handlesStr ++ "] as " ++ representativeStr ++ ": " ++ effectStr
     Nothing -> case cast userData of
         Just str -> case handles of
-            [representative] -> do
+            [_] -> do
+                representative <- genHandle =<< readAlgebraicSymbol =<< genAlgebraicSymbol
+                representativeStr <- readHandle representative
                 effectStr <- showEffect $ cont representative
-                return $ "ForEach " ++ str ++ ": " ++ effectStr
+                return $ "ForEach " ++ str ++ " as " ++ representativeStr ++ ": " ++ effectStr
             _ -> $logicError 'showForEach "xxx"
         Nothing -> $logicError 'showForEach "xxx"
 
