@@ -278,7 +278,7 @@ blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
 
 
 blessingOfMight :: (UserConstraint k) => SpellCard k
-blessingOfMight = mkSpell Paladin BlessingOfMight 4 $ \_ ->
+blessingOfMight = mkSpell Paladin BlessingOfMight 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ statsDelta 3 0
 
