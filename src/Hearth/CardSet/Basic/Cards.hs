@@ -212,7 +212,7 @@ ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
 animalCompanion :: (UserConstraint k) => SpellCard k
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Elect $ Choice $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
+        Effect $ Elect $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             huffer,
             leokk,
             misha ]

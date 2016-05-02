@@ -27,6 +27,7 @@ cards = let x = toCard in [
     x al'AkirTheWindlord,
     x aldorPeacekeeper,
     x amaniBerserker,
+    x ancientOfLore,
     x ancientWatcher,
     x arcaneGolem,
     x argentCommander,
@@ -155,6 +156,15 @@ aldorPeacekeeper = mkMinion Rare Paladin AldorPeacekeeper [] 3 3 3 [
             OpponentOf you $ \opponent ->
                 A $ Minion [OwnedBy opponent] $ \target ->
                     Effect $ Enchant target $ Continuous $ ChangeStat (Left 1) ]
+
+
+ancientOfLore :: (UserConstraint k) => MinionCard k
+ancientOfLore = mkMinion Epic Druid AncientOfLore [] 7 5 5 [
+    ChooseOne $ \this -> [
+        OwnerOf this $ \you ->
+            Effect $ DrawCards you 1,
+        A $ Character [] $ \character ->
+            Effect $ RestoreHealth character 5 ]]
 
 
 ancientWatcher :: (UserConstraint k) => MinionCard k
@@ -468,7 +478,7 @@ malygos = mkMinion Legendary Neutral Malygos [Dragon] 9 4 12 [
 
 markOfNature :: (UserConstraint k) => SpellCard k
 markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
-    Choice [
+    ChooseOne' [
         A $ Minion [] $ \target ->
             Effect $ Enchant target $ Continuous $ statsDelta 4 0,
         A $ Minion [] $ \target ->
@@ -506,7 +516,7 @@ naturalize = mkSpell Common Druid Naturalize 1 $ \this ->
 nourish :: (UserConstraint k) => SpellCard k
 nourish = mkSpell Rare Druid Nourish 5 $ \this ->
     OwnerOf this $ \you ->
-        Choice [
+        ChooseOne' [
             Effect $ GainManaCrystals you 2 CrystalFull,
             Effect $ DrawCards you 3 ]
 
@@ -606,7 +616,7 @@ stampedingKodo = mkMinion Rare Neutral StampedingKodo [Beast] 5 3 5 [
 
 starfall :: (UserConstraint k) => SpellCard k
 starfall = mkSpell Rare Druid Starfall 5 $ \this ->
-    Choice [
+    ChooseOne' [
         A $ Minion [] $ \target ->
             Effect $ (this `damages` target) 5,
         OwnerOf this $ \you ->
@@ -668,7 +678,7 @@ wisp = mkMinion Common Neutral Wisp [] 0 1 1 []
 
 wrath :: (UserConstraint k) => SpellCard k
 wrath = mkSpell Common Druid Wrath 2 $ \this ->
-    Choice [
+    ChooseOne' [
         A $ Minion [] $ \target ->
             Effect $ (this `damages` target) 3,
         A $ Minion [] $ \target ->

@@ -21,6 +21,7 @@ data ClassicCardName
     | Al'AkirTheWindlord
     | AldorPeacekeeper
     | AmaniBerserker
+    | AncientOfLore
     | AncientWatcher
     | ArcaneGolem
     | ArgentCommander

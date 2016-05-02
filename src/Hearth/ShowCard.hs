@@ -260,6 +260,7 @@ showAbility = \case
     Aura aura -> showAuraAbility aura
     Battlecry cont -> showBattlecry cont
     Deathrattle cont -> showDeathrattle cont
+    ChooseOne cont -> showChooseOne cont
     Charge -> return "Charge"
     DivineShield -> return "Divine Shield"
     Enrage abilities enchantments -> showEnrage abilities enchantments
@@ -577,11 +578,16 @@ showElect = \case
     Effect x -> showEffect x
     OwnerOf handle cont -> showOwnerOf showElect handle cont
     OpponentOf handle cont -> showOpponentOf showElect handle cont
-    Choice choices -> showChoice choices
+    ChooseOne' choices -> showChooseOne' choices
 
 
-showChoice :: (IsSelection s) => [Elect Showy s] -> ShowCard String
-showChoice choices = do
+showChooseOne :: (IsSelection s, Showy a) => (Handle a -> [Elect Showy s]) -> ShowCard String
+showChooseOne cont = do
+    genHandle this >>= showChooseOne' . cont
+
+
+showChooseOne' :: (IsSelection s) => [Elect Showy s] -> ShowCard String
+showChooseOne' choices = do
     st <- get
     strs <- forM choices $ \choice -> do
         str <- showElect choice

@@ -262,7 +262,7 @@ data Elect :: (* -> Constraint) -> Selection -> * where
     A :: A k s -> Elect k s
     All :: All k s -> Elect k s
     Effect :: Effect k -> Elect k s
-    Choice :: [Elect k a] -> Elect k a
+    ChooseOne' :: [Elect k a] -> Elect k a
     deriving (Typeable)
 
 
@@ -341,6 +341,7 @@ data Ability :: (* -> Constraint) -> * -> * where
     Aura :: (k a) => (Handle a -> Aura k) -> Ability k a
     Battlecry :: (k a) => (Handle a -> Elect k Targeted) -> Ability k a
     Deathrattle :: (k a) => (Handle a -> Elect k AtRandom) -> Ability k a
+    ChooseOne :: (k a) => (Handle a -> [Elect k Targeted]) -> Ability k a
     Charge :: Ability k Minion
     DivineShield :: Ability k Minion
     Enrage :: [Ability k Minion] -> [Enchantment k Continuous Minion] -> Ability k Minion
@@ -366,6 +367,7 @@ data Phase :: * where
     EndTurnPhase :: Phase
     BattlecryPhase :: Phase
     DeathrattlePhase :: Phase
+    ChooseOnePhase :: Phase
     SpellPhase :: Phase
     HeroPowerPhase :: Phase
     AttackResolutionPhase :: Phase
@@ -594,7 +596,7 @@ data GameState (k :: * -> Constraint) = GameState {
     _gameHandleSeed :: Int,
     _gamePlayerTurnOrder :: [Handle Player],
     _gameEffectObservers :: [EventListener k],
-    _gameBattlecryMinion :: Maybe (Handle Minion),  -- Used to disable targeting the battlecry minion.
+    _gameRootMinion :: Maybe (Handle Minion),  -- Used to disable targeting the battlecry/choose-on/choose-onee minion.
     _gamePlayers :: [PlayerObject k]
 } deriving (Typeable)
 
