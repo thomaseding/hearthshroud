@@ -173,8 +173,7 @@ ancientWatcher = mkMinion Rare Neutral AncientWatcher [] 2 4 5 [
 
 
 arcaneGolem :: (UserConstraint k) => MinionCard k
-arcaneGolem = mkMinion Rare Neutral ArcaneGolem [] 3 4 2 [
-    Charge,
+arcaneGolem = mkMinion Rare Neutral ArcaneGolem [] 3 4 4 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
@@ -239,7 +238,7 @@ battleRage = mkSpell Common Warrior BattleRage 2 $ \this ->
 
 
 bigGameHunter :: (UserConstraint k) => MinionCard k
-bigGameHunter = mkMinion Epic Neutral BigGameHunter [] 3 4 2 [
+bigGameHunter = mkMinion Epic Neutral BigGameHunter [] 5 4 2 [
     Battlecry $ \_ ->
         A $ Minion [RequireMinion (WithAttack GreaterEqual 7)] $ \target ->
             Effect $ DestroyMinion target ]
@@ -441,7 +440,7 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
 
 
 ironbeakOwl :: (UserConstraint k) => MinionCard k
-ironbeakOwl = mkMinion Common Neutral IronbeakOwl [Beast] 2 2 1 [
+ironbeakOwl = mkMinion Common Neutral IronbeakOwl [Beast] 3 2 1 [
     Battlecry $ \_ ->
         A $ Minion [] $ \target ->
             Effect $ Silence target ]
@@ -457,7 +456,7 @@ layOnHands = mkSpell Epic Paladin LayOnHands 8 $ \this ->
 
 
 leperGnome :: (UserConstraint k) => MinionCard k
-leperGnome = mkMinion Common Neutral LeperGnome [] 1 2 1 [
+leperGnome = mkMinion Common Neutral LeperGnome [] 1 1 1 [
     Deathrattle $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->

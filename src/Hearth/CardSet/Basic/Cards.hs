@@ -657,7 +657,7 @@ humility = mkSpell Paladin Humility 1 $ \_ ->
 
 
 hunter'sMark :: (UserConstraint k) => SpellCard k
-hunter'sMark = mkSpell Hunter Hunter'sMark 0 $ \_ ->
+hunter'sMark = mkSpell Hunter Hunter'sMark 1 $ \_ ->
     A $ Minion [] $ \target ->
         Effect $ Enchant target $ Continuous $ ChangeStat (Right 1)
 
