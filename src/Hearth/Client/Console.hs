@@ -117,14 +117,6 @@ instance Parseable SignedInt where
         _ -> Nothing
 
 
-instance Parseable CardName where
-    parse = simpleParse $ \str -> case readMaybe str of
-        Just name -> Just $ BasicCardName name
-        Nothing -> case readMaybe str of
-            Just name -> Just $ ClassicCardName name
-            Nothing -> Nothing
-
-
 data NonParseable = NonParseable
     deriving (Data, Typeable)
 
@@ -700,8 +692,8 @@ runHearthClient seed = do
         player1 = PlayerData jaina
         player2 = PlayerData gul'dan
         newDeck :: [Card Showy] -> Class -> Console (Deck Showy)
-        newDeck stacked clazz = view classRestriction >>= \strict -> do
-            cards <- case strict of
+        newDeck stacked clazz = view classRestriction >>= \isRestricted -> do
+            cards <- case isRestricted of
                 False -> liftIO $ do
                     cards <- shuffleM $ filter isCollectible $ unUniverse entireUniverse
                     return $ take 30 cards

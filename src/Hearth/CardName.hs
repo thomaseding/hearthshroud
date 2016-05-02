@@ -13,6 +13,8 @@ module Hearth.CardName where
 import Data.Data
 import Hearth.CardSet.Basic.Names
 import Hearth.CardSet.Classic.Names
+import Text.LambdaOptions.Parseable
+import Text.Read (readMaybe)
 
 
 --------------------------------------------------------------------------------
@@ -34,6 +36,14 @@ showCardName = takeWhile (/= '_') . \case
     BasicCardName name -> show name
     ClassicCardName name -> show name
     ExternalCardName _ name -> show name
+
+
+instance Parseable CardName where
+    parse = simpleParse $ \str -> case readMaybe str of
+        Just name -> Just $ BasicCardName name
+        Nothing -> case readMaybe str of
+            Just name -> Just $ ClassicCardName name
+            Nothing -> Nothing
 
 
 
