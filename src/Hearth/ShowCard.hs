@@ -25,8 +25,7 @@ module Hearth.ShowCard (
 import Control.Applicative
 import Control.Error.TH
 import Control.Monad.State
-import Data.List (intercalate)
-import Data.List.Utils (replace)
+import Data.List (intercalate, isPrefixOf)
 import Data.Proxy
 import Data.Typeable (cast)
 import Hearth.CardName
@@ -203,6 +202,13 @@ opponent = "OPPONENT"
 
 
 type Showy = GenHandle
+
+
+replace :: (Eq a) => [a] -> [a] -> [a] -> [a]
+replace _ _ [] = []
+replace old new (items @ (_ : tail)) = case old `isPrefixOf` items of
+    False -> replace old new tail
+    True -> new ++ replace old new (drop (length old) items)
 
 
 showCard :: HandCard Showy -> String

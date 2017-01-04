@@ -16,7 +16,7 @@ module Hearth.Prompt where
 
 
 import Data.NonEmpty
-import GHC.Prim (Constraint)
+import GHC.Exts (Constraint)
 import Hearth.Action
 import Hearth.DebugEvent
 import Hearth.GameEvent

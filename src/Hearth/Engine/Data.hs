@@ -17,13 +17,14 @@ module Hearth.Engine.Data where
 
 import Control.Applicative
 import Control.Lens
-import Control.Lens.Internal.Zoom (Zoomed, Focusing)
+import Control.Lens.Internal.Zoom (Focusing)
+import Control.Lens.Zoom (Zoomed)
 import Control.Monad.Prompt
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
-import GHC.Prim (Constraint)
+import GHC.Exts (Constraint)
 import Hearth.Authoring.Combinators
 import Hearth.DebugEvent
 import Hearth.Model

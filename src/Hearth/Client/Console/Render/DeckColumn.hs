@@ -28,9 +28,9 @@ deckColumn player = view $ getPlayer player.playerDeck.to deckColumn'
 
 deckColumn' :: Deck k -> [SGRString]
 deckColumn' (Deck cs) = [
-    sgrColor (Dull, Green) ++ "Deck",
-    sgrColor (Dull, Green) ++ "----",
-    sgrColor (Vivid, Green) ++ sgrShow (length cs) ]
+    sgrColor (Dull, Green) +++ "Deck",
+    sgrColor (Dull, Green) +++ "----",
+    sgrColor (Vivid, Green) +++ sgrShow (length cs) ]
 
 
 

@@ -11,7 +11,7 @@ module Hearth.GameEvent where
 
 
 import Data.Data
-import GHC.Prim (Constraint)
+import GHC.Exts (Constraint)
 import Hearth.Model
 
 

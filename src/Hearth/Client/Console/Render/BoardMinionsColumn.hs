@@ -31,8 +31,8 @@ import System.Console.ANSI
 boardMinionsColumn :: (HearthMonad k m) => [BoardMinion k] -> Hearth k m [SGRString]
 boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) . mapM boardMinionColumn . zip [1..]
     where
-        label' idx = "<" ++ sgrShow (idx + 1 :: Int) ++ ">"
-        label idx = [sgrColor (Dull, Magenta) ++ label' idx]
+        label' idx = "<" +++ sgrShow (idx + 1 :: Int) +++ ">"
+        label idx = [sgrColor (Dull, Magenta) +++ label' idx]
         f sss (idx, ss) = (ss ++ label idx) : sss
 
 
@@ -44,25 +44,25 @@ boardMinionColumn (idx, bm) = do
     dynHealth <- liftM unHealth $ dynamic $ viewMaxHealth bmHandle
     let minion = _boardMinion bm
         nameColor = case hasDivineShield bm of
-            True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
+            True -> sgrColor (Vivid, Red) +++ sgr [SetColor Background Vivid Yellow]
             False -> sgrColor (Vivid, Green)
         (tauntL, tauntR) = case hasTaunt bm of
             True -> ("[", ">")
             False -> ("", "")
-        name = nameColor ++ tauntL ++ getMinionName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
-        attack = sgrColor (Vivid, Black) ++ sgrShow dynAttack
+        name = nameColor +++ tauntL +++ getMinionName minion +++ tauntR +++ sgr [SetColor Background Dull Black]
+        attack = sgrColor (Vivid, Black) +++ sgrShow dynAttack
         healthColor = case dynDamage > 0 of
             True -> (Vivid, Red)
             False -> (Vivid, Black)
         index = let
             pad = if idx < 10 then " " else ""
-            in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
-        header = index ++ name
-        remainingHealth = sgrColor healthColor ++ sgrShow (dynHealth - dynDamage)
+            in sgrColor (Dull, Green) +++ sgrShow idx +++ "." +++ pad
+        header = index +++ name
+        remainingHealth = sgrColor healthColor +++ sgrShow (dynHealth - dynDamage)
         stats = let
             c = sgrColor (Dull, White)
-            in attack ++ c ++ "/" ++ remainingHealth
-    return $ map ("   " ++) [header, "    " ++ stats]
+            in attack +++ c +++ "/" +++ remainingHealth
+    return $ map ("   " +++) [header, "    " +++ stats]
 
 
 getMinionName :: MinionCard k -> SGRString

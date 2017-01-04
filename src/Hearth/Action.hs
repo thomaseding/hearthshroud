@@ -9,7 +9,7 @@ module Hearth.Action where
 --------------------------------------------------------------------------------
 
 
-import GHC.Prim (Constraint)
+import GHC.Exts (Constraint)
 import Hearth.Model
 
 

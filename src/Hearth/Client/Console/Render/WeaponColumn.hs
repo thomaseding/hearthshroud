@@ -32,9 +32,9 @@ weaponColumn player = dynamic $ do
             Durability durability = weapon^.boardWeaponDurability
             in show attack ++ "/" ++ show durability
     return [
-        sgrColor (Dull, Green) ++ "Weapon",
-        sgrColor (Dull, Green) ++ "------",
-        sgrColor (Vivid, Green) ++ fromString weaponStr ]
+        sgrColor (Dull, Green) +++ "Weapon",
+        sgrColor (Dull, Green) +++ "------",
+        sgrColor (Vivid, Green) +++ fromString weaponStr ]
 
 
 

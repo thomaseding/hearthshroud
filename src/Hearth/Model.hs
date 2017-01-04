@@ -29,8 +29,8 @@ import Data.Data
 import Data.Function
 import Data.Monoid (Monoid)
 import Data.Set (Set)
+import GHC.Exts (Constraint)
 import GHC.Generics
-import GHC.Prim (Constraint)
 import Hearth.CardName
 import Hearth.HeroName
 import Hearth.HeroPowerName

@@ -6,15 +6,16 @@
 module Hearth.Client.Console.SGRString where
 
 
+import Data.Either
 import Data.String
 import System.Console.ANSI
 
 
-type SGRString = [Either SGR Char]
+newtype SGRString = SGRString { unSGRString :: [Either SGR Char] }
 
 
 instance IsString SGRString where
-    fromString = map Right
+    fromString = SGRString . map Right
 
 
 sgrShow :: (Show a) => a -> SGRString
@@ -22,10 +23,19 @@ sgrShow = fromString . show
 
 
 sgr :: [SGR] -> SGRString
-sgr = map Left
+sgr = SGRString . map Left
 
 
 sgrColor :: (ColorIntensity, Color) -> SGRString
-sgrColor = return . Left . uncurry (SetColor Foreground)
+sgrColor = SGRString . return . Left . uncurry (SetColor Foreground)
+
+
+sgrToStr :: SGRString -> String
+sgrToStr = rights . unSGRString
+
+
+infixr 5 +++
+(+++) :: SGRString -> SGRString -> SGRString
+x +++ y = SGRString $ unSGRString x ++ unSGRString y
 
 

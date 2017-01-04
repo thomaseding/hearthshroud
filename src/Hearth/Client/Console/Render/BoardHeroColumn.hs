@@ -41,8 +41,8 @@ boardHeroColumn player = dynamic $ do
         txt "-----",
         toTxt armor ]
     where
-        txt str = [sgrColor (Dull, Green) ++ str]
-        toTxt x = [sgrColor (Vivid, Green) ++ sgrShow x]
+        txt str = [sgrColor (Dull, Green) +++ str]
+        toTxt x = [sgrColor (Vivid, Green) +++ sgrShow x]
 
 
 

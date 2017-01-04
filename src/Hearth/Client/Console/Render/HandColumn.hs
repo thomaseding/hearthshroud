@@ -43,56 +43,56 @@ cardColumn idx = \case
 minionColumn :: Int -> MinionCard k -> [SGRString]
 minionColumn idx minion = let
     nameColor = case hasDivineShield minion of
-        True -> sgrColor (Vivid, Red) ++ sgr [SetColor Background Vivid Yellow]
+        True -> sgrColor (Vivid, Red) +++ sgr [SetColor Background Vivid Yellow]
         False -> sgrColor (Vivid, Green)
     (tauntL, tauntR) = case hasTaunt minion of
         True -> ("[", ">")
         False -> ("", "")
-    name = nameColor ++ tauntL ++ getName minion ++ tauntR ++ sgr [SetColor Background Dull Black]
-    mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case minion^.minionCost of
+    name = nameColor +++ tauntL +++ getName minion +++ tauntR +++ sgr [SetColor Background Dull Black]
+    mana = sgrColor (Vivid, White) +++ (parens $ sgrShow $ case minion^.minionCost of
         ManaCost (Mana m) -> m)
-    attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ minion^.minionAttack)
+    attack = sgrColor (Vivid, Black) +++ sgrShow (unAttack $ minion^.minionAttack)
     healthColor = (Vivid, Black)
-    health = sgrColor healthColor ++ sgrShow (unHealth $ minion^.minionHealth)
+    health = sgrColor healthColor +++ sgrShow (unHealth $ minion^.minionHealth)
     index = let
         pad = if idx < 10 then " " else ""
-        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
-    header = index ++ name ++ " " ++ mana
+        in sgrColor (Dull, Green) +++ sgrShow idx +++ "." +++ pad
+    header = index +++ name +++ " " +++ mana
     stats = let
         c = sgrColor (Dull, White)
-        in attack ++ c ++ "/" ++ health
-    in [header, "    " ++ stats]
+        in attack +++ c +++ "/" +++ health
+    in [header, "    " +++ stats]
 
 
 weaponColumn :: Int -> WeaponCard k -> [SGRString]
 weaponColumn idx weapon = let
     nameColor = sgrColor (Vivid, Green)
-    name = nameColor ++ getName weapon
-    mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case weapon^.weaponCost of
+    name = nameColor +++ getName weapon
+    mana = sgrColor (Vivid, White) +++ (parens $ sgrShow $ case weapon^.weaponCost of
         ManaCost (Mana m) -> m)
-    attack = sgrColor (Vivid, Black) ++ sgrShow (unAttack $ weapon^.weaponAttack)
+    attack = sgrColor (Vivid, Black) +++ sgrShow (unAttack $ weapon^.weaponAttack)
     durabilityColor = (Vivid, Black)
-    durability = sgrColor durabilityColor ++ sgrShow (unDurability $ weapon^.weaponDurability)
+    durability = sgrColor durabilityColor +++ sgrShow (unDurability $ weapon^.weaponDurability)
     index = let
         pad = if idx < 10 then " " else ""
-        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
-    header = index ++ name ++ " " ++ mana
+        in sgrColor (Dull, Green) +++ sgrShow idx +++ "." +++ pad
+    header = index +++ name +++ " " +++ mana
     stats = let
         c = sgrColor (Dull, White)
-        in attack ++ c ++ "/" ++ durability
-    in [header, "    " ++ stats]
+        in attack +++ c +++ "/" +++ durability
+    in [header, "    " +++ stats]
 
 
 spellColumn :: Int -> SpellCard k -> [SGRString]
 spellColumn idx spell = let
     nameColor = sgrColor (Vivid, Green)
-    name = nameColor ++ getName spell
-    mana = sgrColor (Vivid, White) ++ (parens $ sgrShow $ case spell^.spellCost of
+    name = nameColor +++ getName spell
+    mana = sgrColor (Vivid, White) +++ (parens $ sgrShow $ case spell^.spellCost of
         ManaCost (Mana m) -> m)
     index = let
         pad = if idx < 10 then " " else ""
-        in sgrColor (Dull, Green) ++ sgrShow idx ++ "." ++ pad
-    header = index ++ name ++ " " ++ mana
+        in sgrColor (Dull, Green) +++ sgrShow idx +++ "." +++ pad
+    header = index +++ name +++ " " +++ mana
     in [header, "    Spell"]
 
 
@@ -117,7 +117,7 @@ hasTaunt minion = let
 
 
 parens :: SGRString -> SGRString
-parens s = "(" ++ s ++ ")"
+parens s = "(" +++ s +++ ")"
 
 
 

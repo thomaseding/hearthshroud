@@ -31,9 +31,9 @@ manaColumn' player = let
     totalMana = player^.playerTotalManaCrystals
     emptyMana = player^.playerEmptyManaCrystals
     currMana = totalMana - emptyMana
-    in [sgrColor (Dull, Green) ++ "Mana",
-        sgrColor (Dull, Green) ++ "----",
-        sgrColor (Vivid, Green) ++ sgrShow currMana ++ ":" ++ sgrShow totalMana ]
+    in [sgrColor (Dull, Green) +++ "Mana",
+        sgrColor (Dull, Green) +++ "----",
+        sgrColor (Vivid, Green) +++ sgrShow currMana +++ ":" +++ sgrShow totalMana ]
 
 
 

@@ -33,9 +33,9 @@ heroPowerColumn' player = let
     powerStr = case count of
         0 -> "[*]"
         _ -> "[ ]"
-    in [sgrColor (Dull, Green) ++ "Power",
-        sgrColor (Dull, Green) ++ "-----",
-        sgrColor (Vivid, Green) ++ powerStr ]
+    in [sgrColor (Dull, Green) +++ "Power",
+        sgrColor (Dull, Green) +++ "-----",
+        sgrColor (Vivid, Green) +++ powerStr ]
 
 
 

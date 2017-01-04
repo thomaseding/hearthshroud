@@ -29,9 +29,10 @@ module Hearth.Client.Console (
 import Control.Applicative
 import Control.Error.TH
 import Control.Exception hiding (handle)
-import Control.Lens hiding (index)
+import Control.Lens hiding (index, List)
 import Control.Lens.Helper
-import Control.Lens.Internal.Zoom (Zoomed, Focusing)
+import Control.Lens.Internal.Zoom (Focusing)
+import Control.Lens.Zoom (Zoomed)
 import Control.Monad.Prompt hiding (Effect)
 import Control.Monad.Reader
 import Control.Monad.State
@@ -870,28 +871,35 @@ rawBanner = [
 
 
 sgrBanner :: [SGRString]
-sgrBanner = flip map rawBanner $ concatMap $ \case
-    '2' -> f '\\' Dull Green
-    '/' -> f '/' Dull Green
-    '1' -> f '|' Vivid Red
-    '|' -> f '|' Vivid Yellow
-    '7' -> f '-' Vivid Red
-    '-' -> f '-' Vivid Yellow
-    '_' -> f '_' Vivid Yellow
-    '+' -> f '+' Vivid Yellow
-    '*' -> f '*' Vivid Magenta
-    '.' -> f '.' Vivid Green
-    '\''-> f '\'' Vivid Green
-    '(' -> f '(' Vivid Green
-    ')' -> f ')' Vivid Green
-    '@' -> sgr [SetColor Background Vivid Blue] ++ f '@' Dull Black ++ sgr [SetColor Background Dull Black]
-    '{' -> f '(' Vivid Black
-    '}' -> f ')' Vivid Black
-    '^' -> f '^' Dull Cyan
-    'v' -> f 'v' Dull Cyan
-    c -> f c Dull White
+sgrBanner = map reifyLine rawBanner
     where
-        f ch intensity color = sgrColor (intensity, color) ++ [Right ch]
+        reifyLine :: String -> SGRString
+        reifyLine = foldr (+++) (fromString "") . map reifyChar
+        --
+        reifyChar :: Char -> SGRString
+        reifyChar = \case
+            '2' -> f '\\' Dull Green
+            '/' -> f '/' Dull Green
+            '1' -> f '|' Vivid Red
+            '|' -> f '|' Vivid Yellow
+            '7' -> f '-' Vivid Red
+            '-' -> f '-' Vivid Yellow
+            '_' -> f '_' Vivid Yellow
+            '+' -> f '+' Vivid Yellow
+            '*' -> f '*' Vivid Magenta
+            '.' -> f '.' Vivid Green
+            '\''-> f '\'' Vivid Green
+            '(' -> f '(' Vivid Green
+            ')' -> f ')' Vivid Green
+            '@' -> sgr [SetColor Background Vivid Blue] +++ f '@' Dull Black +++ sgr [SetColor Background Dull Black]
+            '{' -> f '(' Vivid Black
+            '}' -> f ')' Vivid Black
+            '^' -> f '^' Dull Cyan
+            'v' -> f 'v' Dull Cyan
+            c -> f c Dull White
+        --
+        f :: Char -> ColorIntensity -> Color -> SGRString
+        f ch intensity color = sgrColor (intensity, color) +++ fromString [ch]
 
 
 printBanner :: Int -> IO ()
@@ -899,7 +907,7 @@ printBanner columnOffset = do
     setSGR [SetColor Foreground Vivid Black]
     forM_ sgrBanner $ \str -> do
         setCursorColumn columnOffset
-        putSGRString $ str ++ [Right '\n']
+        putSGRString $ str +++ fromString "\n"
     setSGR [SetColor Foreground Dull White]
 
 
@@ -1281,8 +1289,8 @@ printPlayer window pHandle = do
     liftIO $ setSGR [SetColor Foreground Vivid Green]
     isActive <- liftM (pHandle ==) getActivePlayerHandle
     playerName <- showHandle pHandle
-    let playerNameCol = fromString playerName ++ case isActive of
-            True -> sgrColor (Dull, White) ++ fromString "*" ++ sgrColor (Dull, Cyan)
+    let playerNameCol = fromString playerName +++ case isActive of
+            True -> sgrColor (Dull, White) +++ fromString "*" +++ sgrColor (Dull, Cyan)
             False -> fromString ""
         (wx, wy, wz) = (15, 30, 30) :: (Int, Int, Int)
         width = Window.width window
@@ -1291,11 +1299,12 @@ printPlayer window pHandle = do
                     0 -> (0, wx, wx + wy)
                     1 -> (width - wx, width - wx - wy, width - wx - wy - wz)
                     _ -> $logicError 'printPlayer "xxx"
+        takeSgr n = SGRString . take n . unSGRString
     playerCol <- playerColumn pHandle
     handCol <- handColumn $ player^.playerHand
     boardMinionsCol <- boardMinionsColumn $ player^.playerMinions
     liftIO $ do
-        n0 <- printColumn True (take (wx - 1) playerNameCol) deckLoc playerCol
+        n0 <- printColumn True (takeSgr (wx - 1) playerNameCol) deckLoc playerCol
         n1 <- printColumn True (fromString "HAND") handLoc handCol
         n2 <- printColumn False (fromString "   MINIONS") minionsLoc boardMinionsCol
         return $ maximum [n0, n1, n2]
@@ -1303,7 +1312,10 @@ printPlayer window pHandle = do
 
 printColumn :: Bool -> SGRString -> Int -> [SGRString] -> IO Int
 printColumn extraLine label column strs = do
-    let label' = filter (/= '*') $ rights label
+    let label' :: String
+        label' = filter (/= '*') $ sgrToStr label
+        --
+        strs' :: [SGRString]
         strs' = [
             label,
             fromString $ replicate (length $ takeWhile isSpace label') ' ' ++ replicate (length $ dropWhile isSpace label') '-'
@@ -1318,7 +1330,7 @@ printColumn extraLine label column strs = do
 
 
 putSGRString :: SGRString -> IO ()
-putSGRString = mapM_ $ \case
+putSGRString (SGRString s) = forM_ s $ \case
     Left s -> setSGR [s]
     Right c -> putChar c
 
