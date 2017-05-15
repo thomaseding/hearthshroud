@@ -1,4 +1,4 @@
-###About
+### About
 
 Hearthshroud is one of two things:
  * A Hearthstone game engine library.
@@ -6,7 +6,7 @@ Hearthshroud is one of two things:
 
 --------------------
 
-###Library
+### Library
 
 Library uses a monadic API which drives the game engine for any `HearthMonad`:
 ```haskell
@@ -23,17 +23,17 @@ For an example on how `k` could be used, refer to `Hearth.ShowCard`. Here it fil
 For a deeper understanding of the subject, refer to:
 https://dorchard.wordpress.com/2011/09/22/constraint-kinds-in-haskell-finally-bringing-us-constraint-families/ Note that this article uses a shallow DSL embedding where as my DSL is deeply embedded, so his syntax is a little different than what you would use with this library. Nonetheless, the idea is the same.
 
-#####Design Choices
+##### Design Choices
  * Model cards (and abilities, effects, etc.) as a pure data AST. This is the card DSL.
  * Model enforces game constraints at the type level.
 
-#####Design Implications 
+##### Design Implications 
  * Engine interprets the cards. (As opposed to the cards directly manipulating the environment.)
  * AI directly interprets the same cards as well.
 
 --------------------
 
-###Executable
+### Executable
 
 Sample game client is `Hearth.Client.Console` and can be seen in action by:
 ```haskell
@@ -47,20 +47,20 @@ Hearth.Client.Console.main :: IO ()
 
 --------------------
 
-###Installation
+### Installation
 
-####Steps
+#### Steps
  * Clone repository
  * Use `cabal` tool to build/install
 
 For those unfamiliar with `cabal`, search Google for "haskell cabal how to use" (or whatever).
 
-####Contact Me
+#### Contact Me
  * Probably the best way to ask me a question or tell me a comment is to just create an issue directly for the project (even if it is not a real issue).
  * I am sometimes on `#hearthsim` IRC.
 
 --------------------
 
-###Related Hearthstone Projects
+### Related Hearthstone Projects
 
  * http://hearthsim.info/
