@@ -105,7 +105,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Rarity -> Class -> ClassicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
+mkMinion :: Rarity -> Class -> ClassicCardName -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
 mkMinion = mkMinion' ClassicCardName
 
 

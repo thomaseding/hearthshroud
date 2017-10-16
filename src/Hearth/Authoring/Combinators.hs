@@ -84,10 +84,10 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
-mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
+mkMinion' f rarity clazz name tribes mana attack health abilities = MinionCard {
     _minionCost = ManaCost mana,
-    _minionTypes = Set.fromList types,
+    _minionTribes = Set.fromList tribes,
     _minionAttack = attack,
     _minionHealth = health,
     _minionAbilities = abilities,

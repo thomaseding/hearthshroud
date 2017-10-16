@@ -178,7 +178,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
+mkMinion :: Class -> BasicCardName -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
 mkMinion = mkMinion' BasicCardName Free
 
 
@@ -547,7 +547,7 @@ goldshireFootman = mkMinion Neutral GoldshireFootman [] 1 1 2 [
 grimscaleOracle :: MinionCard
 grimscaleOracle = mkMinion Neutral GrimscaleOracle [Murloc] 1 1 1 [
     AuraMinion $ \this ->
-        EachMinion [Not this, HasType Murloc] $ \minion ->
+        EachMinion [Not this, OfTribe Murloc] $ \minion ->
             Has minion $ gainAttack 1 ]
 
 
@@ -644,7 +644,7 @@ houndmaster :: MinionCard
 houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
-            A $ Minion' [OwnedBy you, HasType Beast] $ \beast ->
+            A $ Minion' [OwnedBy you, OfTribe Beast] $ \beast ->
                 Effect $ Sequence [
                     enchant beast $ gainAttack 2,
                     enchant beast $ GainHealth 2,
@@ -701,7 +701,7 @@ killCommand = mkSpell Hunter KillCommand 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Character' [] $ \victim -> let
             deal = this `damages` victim
-            in Effect $ If (you `Satisfies` [HasMinion [HasType Beast]])
+            in Effect $ If (you `Satisfies` [HasMinion [OfTribe Beast]])
                 (deal 5)
                 (deal 3)
 
@@ -896,7 +896,7 @@ rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
 sacrificialPact :: SpellCard
 sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
     OwnerOf this $ \you ->
-        A $ Minion' [HasType Demon] $ \demon ->
+        A $ Minion' [OfTribe Demon] $ \demon ->
             Effect $ Sequence [
                 DestroyMinion demon,
                 RestoreHealth (PlayerCharacter you) 5 ]
@@ -1069,14 +1069,14 @@ timberWolf :: MinionCard
 timberWolf = mkMinion Hunter TimberWolf [Beast] 1 1 1 [
     AuraMinion $ \this ->
         AuraOwnerOf this $ \you ->
-            EachMinion [OwnedBy you, Not this, HasType Beast] $ \minion ->
+            EachMinion [OwnedBy you, Not this, OfTribe Beast] $ \minion ->
                 Has minion $ gainAttack 1 ]
 
 
 totemicMight :: SpellCard
 totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
     OwnerOf this $ \you ->
-        All $ Minions [OwnedBy you, HasType Totem] $ \totems ->
+        All $ Minions [OwnedBy you, OfTribe Totem] $ \totems ->
             Effect $ ForEachMinion totems $ \totem ->
                 enchant totem $ GainHealth 2
 
@@ -1085,7 +1085,7 @@ tundraRhino :: MinionCard
 tundraRhino = mkMinion Hunter TundraRhino [Beast] 5 2 5 [
     AuraMinion $ \this ->
         AuraOwnerOf this $ \you ->
-            EachMinion [OwnedBy you, HasType Beast] $ \minion ->
+            EachMinion [OwnedBy you, OfTribe Beast] $ \minion ->
                 HasAbility minion Charge ]
 
 

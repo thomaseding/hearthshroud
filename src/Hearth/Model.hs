@@ -248,7 +248,7 @@ data Requirement :: ObjectType -> * where
     IsMinion :: Requirement 'Character
     AdjacentTo :: Handle 'Minion -> Requirement 'Minion
     HasMaxManaCrystals :: Requirement 'Player
-    HasType :: MinionType -> Requirement 'Minion
+    OfTribe :: Tribe -> Requirement 'Minion
     HasCharge :: Requirement 'Minion
     HasMinion :: [Requirement 'Minion] -> Requirement 'Player
 
@@ -409,14 +409,14 @@ data AnyEnchantment :: ObjectType -> * where
     deriving (Typeable)
 
 
-data MinionType :: * where
-    Beast :: MinionType
-    Demon :: MinionType
-    Dragon :: MinionType
-    Mech :: MinionType
-    Murloc :: MinionType
-    Pirate :: MinionType
-    Totem :: MinionType
+data Tribe :: * where
+    Beast :: Tribe
+    Demon :: Tribe
+    Dragon :: Tribe
+    Mech :: Tribe
+    Murloc :: Tribe
+    Pirate :: Tribe
+    Totem :: Tribe
     deriving (Show, Eq, Ord)
 
 
@@ -502,7 +502,7 @@ data BoardWeapon = BoardWeapon {
 
 data MinionCard = MinionCard {
     _minionCost :: Cost,
-    _minionTypes :: Set MinionType,
+    _minionTribes :: Set Tribe,
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionAbilities :: [Ability 'Minion],
