@@ -394,7 +394,7 @@ showBattlecry cont = do
 
 showEffect :: Effect -> ShowCard String
 showEffect = \case
-    Elect elect -> showElect elect
+    Get elect -> showElect elect
     DoNothing -> return "DoNothing"
     Unreferenced handle -> showUnreferenced handle
     ForEachMinion handles cont -> showForEach handles cont

@@ -815,7 +815,7 @@ whenM bool action = bool >>= flip when action
 
 enactEffect :: (HearthMonad m) => Effect -> Hearth m (SimplePickResult 'AtRandom)
 enactEffect = logCall 'enactEffect . \case
-    Elect elect -> enactEffectElect elect
+    Get elect -> enactEffectElect elect
     DoNothing -> return success
     Unreferenced _ -> return success
     ForEachMinion handles cont -> enactForEach handles cont

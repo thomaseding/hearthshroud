@@ -155,7 +155,7 @@ totemicCall = HeroPower {
     _heroPowerName = TotemicCall,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
-        Effect $ Elect $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
+        Effect $ Get $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             healingTotem,
             searingTotem,
             stoneclawTotem,

@@ -225,7 +225,7 @@ baronGeddon = mkMinion Legendary Neutral BaronGeddon [] 7 7 5 [
     WheneverMinion $ \this ->
         EndOfTurnEvent $ \player ->
             OwnerOf this $ \you ->
-                Effect $ when (player `Satisfies` [Is you]) $ Elect $ All $ Characters [Not $ MinionCharacter this] $ \characters ->
+                Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Characters [Not $ MinionCharacter this] $ \characters ->
                     Effect $ ForEachCharacter characters $ \character ->
                         (this `damages` character) 2 ]
 
@@ -279,7 +279,7 @@ bloodmageThalnos = mkMinion Legendary Neutral BloodmageThalnos [] 2 1 1 [
 
 brawl :: SpellCard
 brawl = mkSpell Epic Warrior Brawl 5 $ \_ ->
-    Effect $ Elect $ A $ Minion' [] $ \survivor ->
+    Effect $ Get $ A $ Minion' [] $ \survivor ->
         A $ Minion' [Not survivor] $ \someNonSurvivor ->
             All $ Minions [Not survivor] $ \victims ->
                 Effect $ Sequence [
@@ -548,7 +548,7 @@ ragnarosTheFirelord = mkMinion Legendary Neutral RagnarosTheFirelord [] 8 8 8 [
         EndOfTurnEvent $ \player ->
             OwnerOf this $ \you ->
                 OpponentOf you $ \opponent ->
-                    Effect $ when (player `Satisfies` [Is you]) $ Elect $ A $ Character' [OwnedBy opponent] $ \enemy ->
+                    Effect $ when (player `Satisfies` [Is you]) $ Get $ A $ Character' [OwnedBy opponent] $ \enemy ->
                         Effect $ (this `damages` enemy) 8 ]
 
 
@@ -610,7 +610,7 @@ stampedingKodo = mkMinion Rare Neutral StampedingKodo [Beast] 5 3 5 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
-                Effect $ Elect $ A $ Minion' [OwnedBy opponent, RequireMinion (WithAttack LessEqual 2)] $ \victim ->
+                Effect $ Get $ A $ Minion' [OwnedBy opponent, RequireMinion (WithAttack LessEqual 2)] $ \victim ->
                     Effect $ DestroyMinion victim ]
 
 

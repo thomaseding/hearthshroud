@@ -213,7 +213,7 @@ ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
 animalCompanion :: SpellCard
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Elect $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
+        Effect $ Get $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             huffer,
             leokk,
             misha ]
@@ -339,7 +339,7 @@ cleave :: SpellCard
 cleave = mkSpell Warrior Cleave 2 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
-            Effect $ Elect $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
+            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
                 A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ ForEachMinion (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 2
@@ -392,7 +392,7 @@ deadlyShot :: SpellCard
 deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
-            Effect $ Elect $ A $ Minion' [OwnedBy opponent] $ \victim ->
+            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim ->
                 Effect $ DestroyMinion victim
 
 
@@ -581,7 +581,7 @@ healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
     WheneverMinion $ \this ->
         EndOfTurnEvent $ \player ->
             OwnerOf this $ \you ->
-                Effect $ when (player `Satisfies` [Is you]) $ Elect $ All $ Minions [OwnedBy you] $ \minions ->
+                Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Minions [OwnedBy you] $ \minions ->
                     Effect $ ForEachMinion minions $ \minion ->
                         RestoreHealth (MinionCharacter minion) 1 ]
 
@@ -790,7 +790,7 @@ multiShot :: SpellCard
 multiShot = mkSpell Hunter MultiShot 4 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
-            Effect $ Elect $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
+            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
                 A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ ForEachMinion (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 3

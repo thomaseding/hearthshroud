@@ -297,7 +297,7 @@ data BoardLocation :: * where
 
 
 data Effect :: * where
-    Elect :: Elect 'AtRandom -> Effect
+    Get :: Elect 'AtRandom -> Effect
     DoNothing :: Effect
     Unreferenced :: Handle a -> Effect
     ForEachMinion :: HandleList 'Minion -> (Handle 'Minion -> Effect) -> Effect
