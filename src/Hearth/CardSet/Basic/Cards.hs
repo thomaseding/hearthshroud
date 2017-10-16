@@ -920,7 +920,7 @@ shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
 
 
 shadowWordDeath :: SpellCard
-shadowWordDeath = mkSpell Priest ShadowWordDeath 5 $ \_ ->
+shadowWordDeath = mkSpell Priest ShadowWordDeath 3 $ \_ ->
     A $ Minion' [RequireMinion (WithAttack GreaterEqual 5)] $ \target ->
         Effect $ DestroyMinion target
 
