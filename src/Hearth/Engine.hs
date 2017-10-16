@@ -1292,6 +1292,8 @@ dynamic action = logCall 'dynamic $ local id $ do
         applyMinionEnchantment :: (HearthMonad m) => Handle 'Minion -> Enchantment t 'Minion -> Hearth m ()
         applyMinionEnchantment minion = \case
             MinionEnchantment e -> applyCharacterEnchantment (MinionCharacter minion) e
+            GainHealth h -> do
+                getMinion minion.boardMinion.minionHealth += h
             StatsScale a h -> do
                 getMinion minion.boardMinion.minionAttack *= a
                 getMinion minion.boardMinion.minionHealth *= h
@@ -1313,13 +1315,11 @@ dynamic action = logCall 'dynamic $ local id $ do
         applyCharacterEnchantment character = \case
             Until _ enchantment -> applyCharacterEnchantment character enchantment
             Frozen -> return ()
-            StatsDelta a h -> case character of
+            GainAttack a -> case character of
                 MinionCharacter minion -> do
                     getMinion minion.boardMinion.minionAttack += a
-                    getMinion minion.boardMinion.minionHealth += h
                 PlayerCharacter player -> do
                     getPlayer player.playerHero.boardHero.heroAttack += a
-                    getPlayer player.playerHero.boardHero.heroHealth += h
             Grant _ -> $todo 'dynamic "xxx"
 
         applyPlayerWeapons :: (HearthMonad m) => Hearth m ()
@@ -1336,10 +1336,15 @@ enactAura :: (HearthMonad m) => Aura -> Hearth m ()
 enactAura = logCall 'enactAura $ \case
     AuraOwnerOf handle cont -> ownerOf handle >>= enactAura . cont
     AuraOpponentOf handle cont -> opponentOf handle >>= enactAura . cont
+    AuraSequence auras -> sequenceAuras auras
     While handle requirements aura -> enactWhile handle requirements aura
     EachMinion requirements cont -> enactEachMinion requirements cont
     Has handle enchantment -> enactHas handle enchantment
     HasAbility handle ability -> enactHasAbility handle ability
+
+
+sequenceAuras :: (HearthMonad m) => [Aura] -> Hearth m ()
+sequenceAuras = logCall 'sequenceAuras . mapM_ enactAura
 
 
 enactEachMinion :: (HearthMonad m) => [Requirement 'Minion] -> (Handle 'Minion -> Aura) -> Hearth m ()

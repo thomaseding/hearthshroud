@@ -136,7 +136,7 @@ shapeshift = HeroPower {
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ Sequence [
-            enchant you $ Until EndOfTurn $ statsDelta 1 0,
+            enchant you $ Until EndOfTurn $ gainAttack 1,
             GainArmor you 1 ]}
 
 

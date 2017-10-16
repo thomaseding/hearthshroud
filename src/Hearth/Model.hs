@@ -338,6 +338,7 @@ data EventListener :: * where
 data Aura :: * where
     AuraOwnerOf :: Handle a -> (Handle 'Player -> Aura) -> Aura
     AuraOpponentOf :: Handle 'Player -> (Handle 'Player -> Aura) -> Aura
+    AuraSequence :: [Aura] -> Aura
     While :: Handle a -> [Requirement a] -> Aura -> Aura
     EachMinion :: [Requirement 'Minion] -> (Handle 'Minion -> Aura) -> Aura
     Has :: Handle 'Minion -> Enchantment 'Continuous 'Minion -> Aura
@@ -391,7 +392,8 @@ data Enchantment :: Timeline -> ObjectType -> * where
     PlayerEnchantment :: Enchantment t 'Character -> Enchantment t 'Player
     Until :: TimePoint -> Enchantment 'Continuous a -> Enchantment 'Limited a
     DelayedEffect :: TimePoint -> Effect -> Enchantment 'Limited 'Minion
-    StatsDelta :: Attack -> Health -> Enchantment 'Continuous 'Character
+    GainAttack :: Attack -> Enchantment 'Continuous 'Character
+    GainHealth :: Health -> Enchantment 'Continuous 'Minion
     StatsScale :: Attack -> Health -> Enchantment 'Continuous 'Minion
     ChangeStat :: Either Attack Health -> Enchantment 'Continuous 'Minion
     SwapStats :: Enchantment 'Continuous 'Minion

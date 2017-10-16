@@ -133,13 +133,13 @@ abusiveSergeant :: MinionCard
 abusiveSergeant = mkMinion Common Neutral AbusiveSergeant [] 1 2 1 [
     Battlecry $ \_ ->
         A $ Minion' [] $ \target ->
-            Effect $ enchant target $ Until EndOfTurn $ statsDelta 2 0 ]
+            Effect $ enchant target $ Until EndOfTurn $ gainAttack 2 ]
 
 
 amaniBerserker :: MinionCard
 amaniBerserker = mkMinion Common Neutral AmaniBerserker [] 2 2 3 [
     Enrage [] [
-        statsDelta 3 0 ]]
+        gainAttack 3 ]]
 
 
 al'AkirTheWindlord :: MinionCard
@@ -249,7 +249,7 @@ bite :: SpellCard
 bite = mkSpell Rare Druid Bite 4 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence [
-            enchant you $ Until EndOfTurn $ statsDelta 4 0,
+            enchant you $ Until EndOfTurn $ gainAttack 4,
             GainArmor you 4 ]
 
 
@@ -316,21 +316,21 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster [] 2 2 2 [
         A $ Minion' [] $ \target ->
             Effect $ Sequence [
                 (this `damages` target) 1,
-                enchant target $ statsDelta 2 0 ]]
+                enchant target $ gainAttack 2 ]]
 
 
 darkIronDwarf :: MinionCard
 darkIronDwarf = mkMinion Common Neutral DarkIronDwarf [] 4 4 4 [
     Battlecry $ \_ ->
         A $ Minion' [] $ \target ->
-            Effect $ enchant target $ Until EndOfTurn $ statsDelta 2 0 ]
+            Effect $ enchant target $ Until EndOfTurn $ gainAttack 2 ]
 
 
 direWolfAlpha :: MinionCard
 direWolfAlpha = mkMinion Common Neutral DireWolfAlpha [Beast] 2 2 2 [
     AuraMinion $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
-            Has minion $ statsDelta 1 0 ]
+            Has minion $ gainAttack 1 ]
 
 
 earthenRingFarseer :: MinionCard
@@ -395,14 +395,16 @@ grommashHellscream :: MinionCard
 grommashHellscream = mkMinion Legendary Warrior GrommashHellscream [] 8 4 9 [
     Charge,
     Enrage [] [
-        statsDelta 6 0 ]]
+        gainAttack 6 ]]
 
 
 gruul :: MinionCard
 gruul = mkMinion Legendary Neutral Gruul [] 8 7 7 [
     WheneverMinion $ \this ->
         EndOfTurnEvent $ \_ ->
-            Effect $ enchant this $ statsDelta 1 1 ]
+            Effect $ Sequence [
+                enchant this $ gainAttack 1,
+                enchant this $ GainHealth 1 ]]
 
 
 hogger :: MinionCard
@@ -437,7 +439,7 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
     A $ Minion' [] $ \target ->
         Effect $ Sequence [
             (this `damages` target) 1,
-            enchant target $ statsDelta 2 0 ]
+            enchant target $ gainAttack 2 ]
 
 
 ironbeakOwl :: MinionCard
@@ -480,10 +482,10 @@ markOfNature :: SpellCard
 markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
     ChooseOne' [
         A $ Minion' [] $ \target ->
-            Effect $ enchant target $ statsDelta 4 0,
+            Effect $ enchant target $ gainAttack 4,
         A $ Minion' [] $ \target ->
             Effect $ Sequence [
-                enchant target $ statsDelta 0 4,
+                enchant target $ GainHealth 4,
                 enchant target $ Grant Taunt ]]
 
 
@@ -555,7 +557,9 @@ ragnarosTheFirelord = mkMinion Legendary Neutral RagnarosTheFirelord [] 8 8 8 [
 rampage :: SpellCard
 rampage = mkSpell Common Warrior Rampage 2 $ \_ ->
     A $ Minion' [RequireMinion Damaged] $ \target ->
-        Effect $ enchant target $ statsDelta 3 3
+        Effect $ Sequence [
+            enchant target $ gainAttack 3,
+            enchant target $ GainHealth 3 ]
 
 
 scarletCrusader :: MinionCard
@@ -636,7 +640,7 @@ taurenWarrior :: MinionCard
 taurenWarrior = mkMinion Common Neutral TaurenWarrior [] 3 2 3 [
     Taunt,
     Enrage [] [
-        statsDelta 3 0 ]]
+        gainAttack 3 ]]
 
 
 templeEnforcer :: MinionCard
@@ -644,7 +648,7 @@ templeEnforcer = mkMinion Common Priest TempleEnforcer [] 6 6 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ enchant target $ statsDelta 0 3 ]
+                Effect $ enchant target $ GainHealth 3 ]
 
 
 tirionFordring :: MinionCard

@@ -280,10 +280,15 @@ showAura :: Aura -> ShowCard String
 showAura = \case
     AuraOwnerOf handle cont -> showOwnerOf showAura handle cont
     AuraOpponentOf handle cont -> showOpponentOf showAura handle cont
+    AuraSequence auras -> showAuraSequence auras
     While handle requirements cont -> showWhile handle requirements cont
     EachMinion requirements cont -> showEachMinion requirements cont
     Has handle enchantment -> showHas handle enchantment
     HasAbility handle ability -> showHasAbility handle ability
+
+
+showAuraSequence :: [Aura] -> ShowCard String
+showAuraSequence = liftM unlines . mapM showAura
 
 
 showEachMinion :: [Requirement 'Minion] -> (Handle 'Minion -> Aura) -> ShowCard String
@@ -816,7 +821,8 @@ showEnchantment = \case
     PlayerEnchantment e -> showEnchantment e
     Until timePoint enchantment -> showUntil timePoint enchantment
     DelayedEffect timePoint effect -> showDelayedEffect timePoint effect
-    StatsDelta (Attack x) (Health y) -> return $ showWithSign x ++ "/" ++ showWithSign y
+    GainAttack (Attack x) -> return $ showWithSign x ++ " attack"
+    GainHealth (Health x) -> return $ showWithSign x ++ " health"
     StatsScale (Attack x) (Health y) -> return $ "Scale stats by " ++ show x ++ "/" ++ show y
     ChangeStat e -> case e of
         Left (Attack x) -> return $ "Attack changed to " ++ show x

@@ -174,8 +174,8 @@ when :: Condition -> Effect -> Effect
 when cond effect = If cond effect DoNothing
 
 
-statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment 'Continuous a
-statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
+gainAttack :: (CharacterLike a) => Attack -> Enchantment 'Continuous a
+gainAttack = fromCharacterEnchantment . GainAttack
 
 
 freeze :: (CharacterLike a) => Handle a -> Effect
