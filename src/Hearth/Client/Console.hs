@@ -46,7 +46,6 @@ import Data.Maybe
 import Data.NonEmpty
 import Data.Ord
 import Data.String
-import GHC.Exts (Constraint)
 import Hearth.Action
 import Hearth.Cards
 import Hearth.Client.Console.Choices
@@ -447,23 +446,23 @@ showHandle :: Handle a -> Hearth Console String
 showHandle = mapHandle showSpellHandle showWeaponHandle showMinionHandle showPlayerHandle showCharacterHandle
 
 
-showSpellHandle :: Handle Spell -> Hearth Console String
+showSpellHandle :: Handle 'Spell -> Hearth Console String
 showSpellHandle h = view $ getSpell h.castSpell.to (showCardName . cardName)
 
 
-showWeaponHandle :: Handle Weapon -> Hearth Console String
+showWeaponHandle :: Handle 'Weapon -> Hearth Console String
 showWeaponHandle h = view $ getWeapon h.boardWeapon.to (showCardName . cardName)
 
 
-showMinionHandle :: Handle Minion -> Hearth Console String
+showMinionHandle :: Handle 'Minion -> Hearth Console String
 showMinionHandle h = view $ getMinion h.boardMinion.to (showCardName . cardName)
 
 
-showPlayerHandle :: Handle Player -> Hearth Console String
+showPlayerHandle :: Handle 'Player -> Hearth Console String
 showPlayerHandle h = view $ getPlayer h.playerHero.boardHero.heroName.to showHeroName
 
 
-showCharacterHandle :: Handle Character -> Hearth Console String
+showCharacterHandle :: Handle 'Character -> Hearth Console String
 showCharacterHandle = \case
     PlayerCharacter h -> showPlayerHandle h
     MinionCharacter h -> showMinionHandle h
@@ -524,12 +523,12 @@ class MakePick s where
     pickElect :: GameSnapshot -> NonEmpty (Elect s) -> Console (PickResult s (Elect s))
 
 
-instance MakePick AtRandom where
+instance MakePick 'AtRandom where
     mkPick _ _ _ = liftM AtRandomPick . pickRandom
     pickElect _ = liftM AtRandomPick . pickRandom
 
 
-instance MakePick Targeted where
+instance MakePick 'Targeted where
     mkPick eq fromSignedInt snapshot candidates = do
         view isAutoplay >>= \case
             True -> liftM TargetedPick $ pickRandom candidates
@@ -571,19 +570,19 @@ pickHandCard = mkPick eq fetchHandCard
         eq = (==) `on` cardName
 
 
-pickWeapon :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Weapon) -> Console (PickResult s (Handle Weapon))
+pickWeapon :: (MakePick s) => GameSnapshot -> NonEmpty (Handle 'Weapon) -> Console (PickResult s (Handle 'Weapon))
 pickWeapon = mkPick (==) fetchWeaponHandle
 
 
-pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Minion) -> Console (PickResult s (Handle Minion))
+pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty (Handle 'Minion) -> Console (PickResult s (Handle 'Minion))
 pickMinion = mkPick (==) fetchMinionHandle
 
 
-pickPlayer :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Player) -> Console (PickResult s (Handle Player))
+pickPlayer :: (MakePick s) => GameSnapshot -> NonEmpty (Handle 'Player) -> Console (PickResult s (Handle 'Player))
 pickPlayer = mkPick (==) fetchPlayerHandle
 
 
-pickCharacter :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Character) -> Console (PickResult s (Handle Character))
+pickCharacter :: (MakePick s) => GameSnapshot -> NonEmpty (Handle 'Character) -> Console (PickResult s (Handle 'Character))
 pickCharacter = mkPick (==) fetchCharacterHandle
 
 
@@ -1085,7 +1084,7 @@ readCardInHandAction (SignedInt sign handIdx) = do
                 return QuietRetryAction
 
 
-fetchPlayerHandle :: SignedInt -> Hearth Console (Maybe (Handle Player))
+fetchPlayerHandle :: SignedInt -> Hearth Console (Maybe (Handle 'Player))
 fetchPlayerHandle (SignedInt sign idx) = case idx of
     0 -> liftM Just $ case sign of
         Positive -> getActivePlayerHandle
@@ -1093,7 +1092,7 @@ fetchPlayerHandle (SignedInt sign idx) = case idx of
     _ -> return Nothing
 
 
-fetchWeaponHandle :: SignedInt -> Hearth Console (Maybe (Handle Weapon))
+fetchWeaponHandle :: SignedInt -> Hearth Console (Maybe (Handle 'Weapon))
 fetchWeaponHandle (SignedInt sign idx) = case idx of
     0 -> do
         player <- case sign of
@@ -1116,7 +1115,7 @@ fetchHandCard (SignedInt sign idx) = case idx of
             return $ lookupIndex cs $ idx - 1
 
 
-fetchMinionHandle :: SignedInt -> Hearth Console (Maybe (Handle Minion))
+fetchMinionHandle :: SignedInt -> Hearth Console (Maybe (Handle 'Minion))
 fetchMinionHandle (SignedInt sign idx) = do
     snap <- lift $ view targetsSnapshot
     lift $ runQuery snap $ do
@@ -1127,7 +1126,7 @@ fetchMinionHandle (SignedInt sign idx) = do
         return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1
 
 
-fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe (Handle Character))
+fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe (Handle 'Character))
 fetchCharacterHandle idx = fetchPlayerHandle idx >>= \case
     Just handle -> return $ Just $ PlayerCharacter handle
     Nothing -> liftM (liftM MinionCharacter) $ fetchMinionHandle idx
@@ -1284,7 +1283,7 @@ renewLogWindow window row = do
         newGameColor = (Dull, Green)
 
 
-printPlayer :: Window Int -> Handle Player -> Hearth Console Int
+printPlayer :: Window Int -> Handle 'Player -> Hearth Console Int
 printPlayer window pHandle = do
     player <- view $ getPlayer pHandle
     liftIO $ setSGR [SetColor Foreground Vivid Green]
@@ -1332,7 +1331,7 @@ printColumn extraLine label column strs = do
 
 putSGRString :: SGRString -> IO ()
 putSGRString (SGRString s) = forM_ s $ \case
-    Left s -> setSGR [s]
+    Left s' -> setSGR [s']
     Right c -> putChar c
 
 

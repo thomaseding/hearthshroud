@@ -23,7 +23,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-heroPowerColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
+heroPowerColumn :: (HearthMonad m) => Handle 'Player -> Hearth m [SGRString]
 heroPowerColumn player = view $ getPlayer player.to heroPowerColumn'
 
 

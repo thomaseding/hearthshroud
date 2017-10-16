@@ -16,7 +16,6 @@ module Hearth.Engine.Data where
 --------------------------------------------------------------------------------
 
 
-import Control.Applicative
 import Control.Lens
 import Control.Lens.Internal.Zoom (Focusing)
 import Control.Lens.Zoom (Zoomed)
@@ -25,7 +24,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
-import GHC.Exts (Constraint)
 import Hearth.Authoring.Combinators
 import Hearth.DebugEvent
 import Hearth.Model

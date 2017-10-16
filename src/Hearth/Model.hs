@@ -29,7 +29,6 @@ import Data.Data
 import Data.Function
 import Data.Monoid (Monoid)
 import Data.Set (Set)
-import GHC.Exts (Constraint)
 import GHC.Generics
 import Hearth.CardName
 import Hearth.HeroName
@@ -75,8 +74,13 @@ newtype Durability = Durability { unDurability :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
 
+pattern MaxHandSize :: Int
 pattern MaxHandSize = 10
+
+pattern MaxManaCrystals :: Int
 pattern MaxManaCrystals = 10
+
+pattern MaxBoardMinionsPerPlayer :: Int
 pattern MaxBoardMinionsPerPlayer = 7
 
 
@@ -107,16 +111,16 @@ data Type
 
 
 data Handle :: Type -> * where
-    SpellHandle :: RawHandle -> Handle Spell
-    WeaponHandle :: RawHandle -> Handle Weapon
-    MinionHandle :: RawHandle -> Handle Minion
-    PlayerHandle :: RawHandle -> Handle Player
-    MinionCharacter :: Handle Minion -> Handle Character
-    PlayerCharacter :: Handle Player -> Handle Character
+    SpellHandle :: RawHandle -> Handle 'Spell
+    WeaponHandle :: RawHandle -> Handle 'Weapon
+    MinionHandle :: RawHandle -> Handle 'Minion
+    PlayerHandle :: RawHandle -> Handle 'Player
+    MinionCharacter :: Handle 'Minion -> Handle 'Character
+    PlayerCharacter :: Handle 'Player -> Handle 'Character
     deriving (Typeable)
 
 
-mapHandle :: (Handle Spell -> b) -> (Handle Weapon -> b) -> (Handle Minion -> b) -> (Handle Player -> b) -> (Handle Character -> b) -> (Handle a -> b)
+mapHandle :: (Handle 'Spell -> b) -> (Handle 'Weapon -> b) -> (Handle 'Minion -> b) -> (Handle 'Player -> b) -> (Handle 'Character -> b) -> (Handle a -> b)
 mapHandle spell weapon minion player character = \case
     h @ SpellHandle {} -> spell h
     h @ WeaponHandle {} -> weapon h
@@ -140,13 +144,13 @@ class CastHandle (a :: Type) where
     castHandle :: Handle b -> Maybe (Handle a)
 
 
-instance CastHandle Spell where
+instance CastHandle 'Spell where
     castHandle = \case
         h @ SpellHandle {} -> Just h
         _ -> Nothing
 
 
-instance CastHandle Character where
+instance CastHandle 'Character where
     castHandle = \case
         SpellHandle {} -> Nothing
         WeaponHandle {} -> Nothing
@@ -217,6 +221,9 @@ data Cost :: * where
 data Selection = Targeted | AtRandom
 
 
+data Timeline = Limited | Continuous
+
+
 infixr 2 `Or`
 infixr 3 `And`
 infixr 5 `Satisfies`
@@ -228,22 +235,22 @@ data Condition :: * where
 
 
 data Requirement :: Type -> * where
-    RequireMinion :: Requirement Character -> Requirement Minion
-    RequirePlayer :: Requirement Character -> Requirement Player
-    OwnedBy :: Handle Player -> Requirement a
+    RequireMinion :: Requirement 'Character -> Requirement 'Minion
+    RequirePlayer :: Requirement 'Character -> Requirement 'Player
+    OwnedBy :: Handle 'Player -> Requirement a
     Is :: Handle a -> Requirement a
     Not :: Handle a -> Requirement a
     IsDamageSource :: DamageSource -> Requirement a
-    WithAttack :: Comparison -> Attack -> Requirement Character
-    WithHealth :: Comparison -> Health -> Requirement Character
-    Damaged :: Requirement Character
-    Undamaged :: Requirement Character
-    IsMinion :: Requirement Character
-    AdjacentTo :: Handle Minion -> Requirement Minion
-    HasMaxManaCrystals :: Requirement Player
-    HasType :: MinionType -> Requirement Minion
-    HasCharge :: Requirement Minion
-    HasMinion :: [Requirement Minion] -> Requirement Player
+    WithAttack :: Comparison -> Attack -> Requirement 'Character
+    WithHealth :: Comparison -> Health -> Requirement 'Character
+    Damaged :: Requirement 'Character
+    Undamaged :: Requirement 'Character
+    IsMinion :: Requirement 'Character
+    AdjacentTo :: Handle 'Minion -> Requirement 'Minion
+    HasMaxManaCrystals :: Requirement 'Player
+    HasType :: MinionType -> Requirement 'Minion
+    HasCharge :: Requirement 'Minion
+    HasMinion :: [Requirement 'Minion] -> Requirement 'Player
 
 
 data Comparison
@@ -256,8 +263,8 @@ data Comparison
 
 
 data Elect :: Selection -> * where
-    OwnerOf :: Handle a -> (Handle Player -> Elect s) -> Elect s
-    OpponentOf :: Handle Player -> (Handle Player -> Elect s) -> Elect s
+    OwnerOf :: Handle a -> (Handle 'Player -> Elect s) -> Elect s
+    OpponentOf :: Handle 'Player -> (Handle 'Player -> Elect s) -> Elect s
     A :: A s -> Elect s
     All :: All s -> Elect s
     Effect :: Effect -> Elect s
@@ -266,95 +273,91 @@ data Elect :: Selection -> * where
 
 
 data A :: Selection -> * where
-    Weapon' :: [Requirement Weapon] -> (Handle Weapon -> Elect s) -> A s
-    Minion' :: [Requirement Minion] -> (Handle Minion -> Elect s) -> A s
-    Player' :: [Requirement Player] -> (Handle Player -> Elect s) -> A s
-    Character' :: [Requirement Character] -> (Handle Character -> Elect s) -> A s
+    Weapon' :: [Requirement 'Weapon] -> (Handle 'Weapon -> Elect s) -> A s
+    Minion' :: [Requirement 'Minion] -> (Handle 'Minion -> Elect s) -> A s
+    Player' :: [Requirement 'Player] -> (Handle 'Player -> Elect s) -> A s
+    Character' :: [Requirement 'Character] -> (Handle 'Character -> Elect s) -> A s
 
 
 data All :: Selection -> * where
-    Minions :: [Requirement Minion] -> (HandleList Minion -> Elect s) -> All s
-    Players :: [Requirement Player] -> (HandleList Player -> Elect s) -> All s
-    Characters :: [Requirement Character] -> (HandleList Character -> Elect s) -> All s
+    Minions :: [Requirement 'Minion] -> (HandleList 'Minion -> Elect s) -> All s
+    Players :: [Requirement 'Player] -> (HandleList 'Player -> Elect s) -> All s
+    Characters :: [Requirement 'Character] -> (HandleList 'Character -> Elect s) -> All s
 
 
 data DamageSource :: * where
     Fatigue :: DamageSource
-    DamagingCharacter :: Handle Character -> DamageSource
-    DamagingSpell :: Handle Spell -> DamageSource
+    DamagingCharacter :: Handle 'Character -> DamageSource
+    DamagingSpell :: Handle 'Spell -> DamageSource
 
 
 data BoardLocation :: * where
-    RightOf :: Handle Minion -> BoardLocation
-    Rightmost :: Handle Player -> BoardLocation
+    RightOf :: Handle 'Minion -> BoardLocation
+    Rightmost :: Handle 'Player -> BoardLocation
 
 
 data Effect :: * where
-    Elect :: Elect AtRandom -> Effect
+    Elect :: Elect 'AtRandom -> Effect
     DoNothing :: Effect
     Unreferenced :: Handle a -> Effect
-    ForEachMinion :: HandleList Minion -> (Handle Minion -> Effect) -> Effect
-    ForEachPlayer :: HandleList Player -> (Handle Player -> Effect) -> Effect
-    ForEachCharacter :: HandleList Character -> (Handle Character -> Effect) -> Effect
+    ForEachMinion :: HandleList 'Minion -> (Handle 'Minion -> Effect) -> Effect
+    ForEachPlayer :: HandleList 'Player -> (Handle 'Player -> Effect) -> Effect
+    ForEachCharacter :: HandleList 'Character -> (Handle 'Character -> Effect) -> Effect
     Sequence :: [Effect] -> Effect
     If :: Condition -> Effect -> Effect -> Effect
-    DrawCards :: Handle Player -> Int -> Effect
-    DealDamage :: Handle Character -> Damage -> DamageSource -> Effect
+    DrawCards :: Handle 'Player -> Int -> Effect
+    DealDamage :: Handle 'Character -> Damage -> DamageSource -> Effect
     Enchant :: Handle a -> AnyEnchantment a -> Effect
-    GainManaCrystals :: Handle Player -> Int -> CrystalState -> Effect
-    DestroyMinion :: Handle Minion -> Effect
-    DestroyWeapon :: Handle Weapon -> Effect
-    EquipWeapon :: Handle Player -> WeaponCard -> Effect
-    RestoreHealth :: Handle Character -> Health -> Effect
-    RestoreToFullHealth :: Handle Character -> Effect
-    Transform :: Handle Minion -> MinionCard -> Effect
-    Silence :: Handle Minion -> Effect
-    GainArmor :: Handle Player -> Armor -> Effect
-    Freeze :: Handle Character -> Effect
+    GainManaCrystals :: Handle 'Player -> Int -> CrystalState -> Effect
+    DestroyMinion :: Handle 'Minion -> Effect
+    DestroyWeapon :: Handle 'Weapon -> Effect
+    EquipWeapon :: Handle 'Player -> WeaponCard -> Effect
+    RestoreHealth :: Handle 'Character -> Health -> Effect
+    RestoreToFullHealth :: Handle 'Character -> Effect
+    Transform :: Handle 'Minion -> MinionCard -> Effect
+    Silence :: Handle 'Minion -> Effect
+    GainArmor :: Handle 'Player -> Armor -> Effect
+    Freeze :: Handle 'Character -> Effect
     Observing :: Effect -> EventListener -> Effect
-    PutInHand :: Handle Player -> Card -> Effect
+    PutInHand :: Handle 'Player -> Card -> Effect
     Summon :: MinionCard -> BoardLocation -> Effect
-    RandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> Effect
-    DiscardAtRandom :: Handle Player -> Effect
-    TakeControl :: Handle Player -> Handle Minion -> Effect
+    RandomMissiles :: [Requirement 'Character] -> Int -> Handle 'Spell -> Effect
+    DiscardAtRandom :: Handle 'Player -> Effect
+    TakeControl :: Handle 'Player -> Handle 'Minion -> Effect
     deriving (Typeable)
 
 
 data EventListener :: * where
-    SpellIsCast :: (Handle Spell -> Elect AtRandom) -> EventListener
-    DamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> EventListener
-    HealthIsRestored :: (Handle Character -> Health -> Elect AtRandom) -> EventListener
-    EndOfTurnEvent :: (Handle Player -> Elect AtRandom) -> EventListener
+    SpellIsCast :: (Handle 'Spell -> Elect 'AtRandom) -> EventListener
+    DamageIsDealt :: (Handle 'Character -> Damage -> DamageSource -> Elect 'AtRandom) -> EventListener
+    HealthIsRestored :: (Handle 'Character -> Health -> Elect 'AtRandom) -> EventListener
+    EndOfTurnEvent :: (Handle 'Player -> Elect 'AtRandom) -> EventListener
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)
 data Aura :: * where
-    AuraOwnerOf :: Handle a -> (Handle Player -> Aura) -> Aura
-    AuraOpponentOf :: Handle Player -> (Handle Player -> Aura) -> Aura
+    AuraOwnerOf :: Handle a -> (Handle 'Player -> Aura) -> Aura
+    AuraOpponentOf :: Handle 'Player -> (Handle 'Player -> Aura) -> Aura
     While :: Handle a -> [Requirement a] -> Aura -> Aura
-    EachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> Aura
-    Has :: Handle Minion -> Enchantment Continuous Minion -> Aura
-    HasAbility :: Handle Minion -> Ability Minion -> Aura
+    EachMinion :: [Requirement 'Minion] -> (Handle 'Minion -> Aura) -> Aura
+    Has :: Handle 'Minion -> Enchantment 'Continuous 'Minion -> Aura
+    HasAbility :: Handle 'Minion -> Ability 'Minion -> Aura
 
 
 data Ability :: Type -> * where
-    WheneverMinion :: (Handle Minion -> EventListener) -> Ability Minion
-    AuraMinion :: (Handle Minion -> Aura) -> Ability Minion
-    Battlecry :: (Handle Minion -> Elect Targeted) -> Ability Minion
-    Deathrattle :: (Handle Minion -> Elect AtRandom) -> Ability Minion
-    ChooseOne :: (Handle Minion -> [Elect Targeted]) -> Ability Minion
-    Charge :: Ability Minion
-    DivineShield :: Ability Minion
-    Enrage :: [Ability Minion] -> [Enchantment Continuous Minion] -> Ability Minion
-    Taunt :: Ability Minion
+    WheneverMinion :: (Handle 'Minion -> EventListener) -> Ability 'Minion
+    AuraMinion :: (Handle 'Minion -> Aura) -> Ability 'Minion
+    Battlecry :: (Handle 'Minion -> Elect 'Targeted) -> Ability 'Minion
+    Deathrattle :: (Handle 'Minion -> Elect 'AtRandom) -> Ability 'Minion
+    ChooseOne :: (Handle 'Minion -> [Elect 'Targeted]) -> Ability 'Minion
+    Charge :: Ability 'Minion
+    DivineShield :: Ability 'Minion
+    Enrage :: [Ability 'Minion] -> [Enchantment 'Continuous 'Minion] -> Ability 'Minion
+    Taunt :: Ability 'Minion
     SpellDamage :: Int -> Ability a
-    Windfury :: Ability Minion
-    Can'tAttack :: Ability Minion
+    Windfury :: Ability 'Minion
+    Can'tAttack :: Ability 'Minion
     deriving (Typeable)
-
-
-data Continuous
-data Limited
 
 
 data Scoped :: * -> * where
@@ -383,24 +386,24 @@ data TimePoint :: * where
     deriving (Show, Typeable, Eq, Ord)
 
 
-data Enchantment :: * -> Type -> * where
-    MinionEnchantment :: Enchantment t Character -> Enchantment t Minion
-    PlayerEnchantment :: Enchantment t Character -> Enchantment t Player
-    Until :: TimePoint -> Enchantment Continuous a -> Enchantment Limited a
-    DelayedEffect :: TimePoint -> Effect -> Enchantment Limited Minion
-    StatsDelta :: Attack -> Health -> Enchantment Continuous Character
-    StatsScale :: Attack -> Health -> Enchantment Continuous Minion
-    ChangeStat :: Either Attack Health -> Enchantment Continuous Minion
-    SwapStats :: Enchantment Continuous Minion
-    Grant :: Ability a -> Enchantment Continuous a
-    Frozen :: Enchantment Continuous Character
-    AttackDelta :: Attack -> Enchantment Continuous Weapon
+data Enchantment :: Timeline -> Type -> * where
+    MinionEnchantment :: Enchantment t 'Character -> Enchantment t 'Minion
+    PlayerEnchantment :: Enchantment t 'Character -> Enchantment t 'Player
+    Until :: TimePoint -> Enchantment 'Continuous a -> Enchantment 'Limited a
+    DelayedEffect :: TimePoint -> Effect -> Enchantment 'Limited 'Minion
+    StatsDelta :: Attack -> Health -> Enchantment 'Continuous 'Character
+    StatsScale :: Attack -> Health -> Enchantment 'Continuous 'Minion
+    ChangeStat :: Either Attack Health -> Enchantment 'Continuous 'Minion
+    SwapStats :: Enchantment 'Continuous 'Minion
+    Grant :: Ability a -> Enchantment 'Continuous a
+    Frozen :: Enchantment 'Continuous 'Character
+    AttackDelta :: Attack -> Enchantment 'Continuous 'Weapon
     deriving (Typeable)
 
 
 data AnyEnchantment :: Type -> * where
-    Continuous :: Enchantment Continuous a -> AnyEnchantment a
-    Limited :: Enchantment Limited a -> AnyEnchantment a
+    ContinuousEnchantment :: Enchantment 'Continuous a -> AnyEnchantment a
+    LimitedEnchantment :: Enchantment 'Limited a -> AnyEnchantment a
     deriving (Typeable)
 
 
@@ -461,7 +464,7 @@ data CardMeta = CardMeta {
 
 
 type SpellEffect
-    = Handle Spell -> Elect Targeted
+    = Handle 'Spell -> Elect 'Targeted
 
 
 data SpellCard = SpellCard {
@@ -472,7 +475,7 @@ data SpellCard = SpellCard {
 
 
 data CastSpell = CastSpell {
-    _castSpellHandle :: Handle Spell,
+    _castSpellHandle :: Handle 'Spell,
     _castSpell :: SpellCard
 } deriving (Typeable)
 
@@ -481,16 +484,16 @@ data WeaponCard = WeaponCard {
     _weaponCost :: Cost,
     _weaponAttack :: Attack,
     _weaponDurability :: Durability,
-    _weaponAbilities :: [Ability Weapon],
+    _weaponAbilities :: [Ability 'Weapon],
     _weaponMeta :: CardMeta
 } deriving (Typeable)
 
 
 data BoardWeapon = BoardWeapon {
     _boardWeaponDurability :: Durability,
-    _boardWeaponEnchantments :: [AnyEnchantment Weapon],
-    _boardWeaponAbilities :: [Ability Weapon],
-    _boardWeaponHandle :: Handle Weapon,
+    _boardWeaponEnchantments :: [AnyEnchantment 'Weapon],
+    _boardWeaponAbilities :: [Ability 'Weapon],
+    _boardWeaponHandle :: Handle 'Weapon,
     _boardWeapon :: WeaponCard
 } deriving (Typeable)
 
@@ -500,25 +503,25 @@ data MinionCard = MinionCard {
     _minionTypes :: Set MinionType,
     _minionAttack :: Attack,
     _minionHealth :: Health,
-    _minionAbilities :: [Ability Minion],
+    _minionAbilities :: [Ability 'Minion],
     _minionMeta :: CardMeta
 } deriving (Typeable)
 
 
 data BoardMinion = BoardMinion {
     _boardMinionDamage :: Damage,
-    _boardMinionEnchantments :: [AnyEnchantment Minion],
-    _boardMinionAbilities :: [Ability Minion],
+    _boardMinionEnchantments :: [AnyEnchantment 'Minion],
+    _boardMinionAbilities :: [Ability 'Minion],
     _boardMinionAttackCount :: Int,
     _boardMinionNewlySummoned :: Bool,
     _boardMinionPendingDestroy :: Bool,
-    _boardMinionHandle :: Handle Minion,
+    _boardMinionHandle :: Handle 'Minion,
     _boardMinion :: MinionCard
 } deriving (Typeable)
 
 
 type HeroPowerEffect
-    = Handle Player -> Elect Targeted
+    = Handle 'Player -> Elect 'Targeted
 
 
 data HeroPower = HeroPower {
@@ -578,14 +581,14 @@ newtype Deck = Deck {
 
 
 data PlayerObject = PlayerObject {
-    _playerHandle :: Handle Player,
+    _playerHandle :: Handle 'Player,
     _playerDeck :: Deck,
     _playerExcessDrawCount :: Int,
     _playerHand :: Hand,
     _playerWeapon :: Maybe (BoardWeapon),
     _playerMinions :: [BoardMinion],
     _playerSpells :: [CastSpell],
-    _playerEnchantments :: [AnyEnchantment Player],
+    _playerEnchantments :: [AnyEnchantment 'Player],
     _playerTotalManaCrystals :: Int,
     _playerEmptyManaCrystals :: Int,
     _playerTemporaryManaCrystals :: Int,
@@ -597,9 +600,9 @@ data GameState = GameState {
     _gameUniverse :: Universe,
     _gameTurn :: Turn,
     _gameHandleSeed :: Int,
-    _gamePlayerTurnOrder :: [Handle Player],
+    _gamePlayerTurnOrder :: [Handle 'Player],
     _gameEffectObservers :: [EventListener],
-    _gameRootMinion :: Maybe (Handle Minion),  -- Used to disable targeting the battlecry/choose-on/choose-onee minion.
+    _gameRootMinion :: Maybe (Handle 'Minion),  -- Used to disable targeting the battlecry/choose-on/choose-onee minion.
     _gamePlayers :: [PlayerObject]
 } deriving (Typeable)
 

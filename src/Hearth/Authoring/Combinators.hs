@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -83,7 +84,7 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability Minion] -> MinionCard
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
 mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionCost = ManaCost mana,
     _minionTypes = Set.fromList types,
@@ -93,7 +94,7 @@ mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionMeta = mkMeta f rarity clazz name }
 
 
-mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability Weapon] -> WeaponCard
+mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability 'Weapon] -> WeaponCard
 mkWeapon' f rarity clazz name mana attack durability abilities = WeaponCard {
     _weaponCost = ManaCost mana,
     _weaponAttack = attack,
@@ -110,21 +111,21 @@ mkSpell' f rarity clazz name mana effect = SpellCard {
 
 
 class CharacterLike a where
-    asCharacter :: Handle a -> Handle Character
-    fromCharacterEnchantment :: Enchantment t Character -> Enchantment t a
+    asCharacter :: Handle a -> Handle 'Character
+    fromCharacterEnchantment :: Enchantment t 'Character -> Enchantment t a
 
 
-instance CharacterLike Player where
+instance CharacterLike 'Player where
     asCharacter = PlayerCharacter
     fromCharacterEnchantment = PlayerEnchantment
 
 
-instance CharacterLike Minion where
+instance CharacterLike 'Minion where
     asCharacter = MinionCharacter
     fromCharacterEnchantment = MinionEnchantment
 
 
-instance CharacterLike Character where
+instance CharacterLike 'Character where
     asCharacter = id
     fromCharacterEnchantment = id
 
@@ -133,20 +134,36 @@ class AsDamageSource a where
     asDamageSource :: Handle a -> DamageSource
 
 
-instance AsDamageSource Player where
+instance AsDamageSource 'Player where
     asDamageSource = DamagingCharacter . asCharacter
 
 
-instance AsDamageSource Minion where
+instance AsDamageSource 'Minion where
     asDamageSource = DamagingCharacter . asCharacter
 
 
-instance AsDamageSource Character where
+instance AsDamageSource 'Character where
     asDamageSource = DamagingCharacter
 
 
-instance AsDamageSource Spell where
+instance AsDamageSource 'Spell where
     asDamageSource = DamagingSpell
+
+
+class AnyEnchantmentLike (t :: Timeline) where
+    asAnyEnchantment :: Enchantment t a -> AnyEnchantment a
+
+
+instance AnyEnchantmentLike 'Continuous where
+    asAnyEnchantment = ContinuousEnchantment
+
+
+instance AnyEnchantmentLike 'Limited where
+    asAnyEnchantment = LimitedEnchantment
+
+
+enchant :: (AnyEnchantmentLike t) => Handle a -> Enchantment t a -> Effect
+enchant h = Enchant h . asAnyEnchantment
 
 
 damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect
@@ -157,7 +174,7 @@ when :: Condition -> Effect -> Effect
 when cond effect = If cond effect DoNothing
 
 
-statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment Continuous a
+statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment 'Continuous a
 statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
 
 

@@ -16,7 +16,6 @@ module Hearth.Prompt where
 
 
 import Data.NonEmpty
-import GHC.Exts (Constraint)
 import Hearth.Action
 import Hearth.DebugEvent
 import Hearth.GameEvent
@@ -41,12 +40,12 @@ data HearthError
 data family PickResult :: Selection -> * -> *
 
 
-data instance PickResult AtRandom a
+data instance PickResult 'AtRandom a
     = AtRandomPick a
     deriving (Show, Eq, Ord)
 
 
-data instance PickResult Targeted a
+data instance PickResult 'Targeted a
     = TargetedPick a
     | AbortTargetedPick
     deriving (Show, Eq, Ord)
@@ -58,17 +57,17 @@ data HearthPrompt :: * -> * where
     PromptGameEvent :: GameSnapshot -> GameEvent -> HearthPrompt ()
     PromptAction :: GameSnapshot -> HearthPrompt Action
     PromptShuffle :: [a] -> HearthPrompt [a]
-    PromptMulligan :: Handle Player -> [HandCard] -> HearthPrompt [HandCard]
-    PromptPickAtRandom :: GameSnapshot -> PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
-    PromptPickTargeted :: GameSnapshot -> PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
+    PromptMulligan :: Handle 'Player -> [HandCard] -> HearthPrompt [HandCard]
+    PromptPickAtRandom :: GameSnapshot -> PromptPick 'AtRandom a -> HearthPrompt (PickResult 'AtRandom a)
+    PromptPickTargeted :: GameSnapshot -> PromptPick 'Targeted a -> HearthPrompt (PickResult 'Targeted a)
 
 
 data PromptPick :: Selection -> * -> * where
     PickHandCard :: NonEmpty HandCard -> PromptPick s HandCard
-    PickWeapon :: NonEmpty (Handle Weapon) -> PromptPick s (Handle Weapon)
-    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
-    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s (Handle Player)
-    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s (Handle Character)
+    PickWeapon :: NonEmpty (Handle 'Weapon) -> PromptPick s (Handle 'Weapon)
+    PickMinion :: NonEmpty (Handle 'Minion) -> PromptPick s (Handle 'Minion)
+    PickPlayer :: NonEmpty (Handle 'Player) -> PromptPick s (Handle 'Player)
+    PickCharacter :: NonEmpty (Handle 'Character) -> PromptPick s (Handle 'Character)
     PickElect :: NonEmpty (Elect s) -> PromptPick s (Elect s)
 
 

@@ -178,7 +178,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability Minion] -> MinionCard
+mkMinion :: Class -> BasicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
 mkMinion = mkMinion' BasicCardName Free
 
 
@@ -186,7 +186,7 @@ mkSpell :: Class -> BasicCardName -> Mana -> SpellEffect -> SpellCard
 mkSpell = mkSpell' BasicCardName Free
 
 
-mkWeapon :: Class -> BasicCardName -> Mana -> Attack -> Durability -> [Ability Weapon] -> WeaponCard
+mkWeapon :: Class -> BasicCardName -> Mana -> Attack -> Durability -> [Ability 'Weapon] -> WeaponCard
 mkWeapon = mkWeapon' BasicCardName Free
 
 
@@ -207,7 +207,7 @@ ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
     A $ Minion' [] $ \minion ->
         Effect $ Sequence [
             RestoreToFullHealth $ MinionCharacter minion,
-            Enchant minion $ Continuous $ Grant Taunt ]
+            enchant minion $ Grant Taunt ]
 
 
 animalCompanion :: SpellCard
@@ -275,13 +275,13 @@ backstab = mkSpell Rogue Backstab 0 $ \this ->
 blessingOfKings :: SpellCard
 blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ statsDelta 4 4
+        Effect $ enchant target $ statsDelta 4 4
 
 
 blessingOfMight :: SpellCard
 blessingOfMight = mkSpell Paladin BlessingOfMight 1 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ statsDelta 3 0
+        Effect $ enchant target $ statsDelta 3 0
 
 
 bloodfenRaptor :: MinionCard
@@ -293,7 +293,7 @@ bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
     OwnerOf this $ \you ->
         All $ Minions [OwnedBy you] $ \minions ->
             Effect $ ForEachMinion minions $ \minion ->
-                Enchant minion $ Limited $ Until EndOfTurn $ statsDelta 3 0
+                enchant minion $ Until EndOfTurn $ statsDelta 3 0
 
 
 bluegillWarrior :: MinionCard
@@ -319,8 +319,8 @@ charge = mkSpell Warrior Basic.Charge 3 $ \this ->
     OwnerOf this $ \you ->
         A $ Minion' [OwnedBy you] $ \target ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ statsDelta 2 0,
-                Enchant target $ Continuous $ Grant Charge ]
+                enchant target $ statsDelta 2 0,
+                enchant target $ Grant Charge ]
 
 
 chillwindYeti :: MinionCard
@@ -331,7 +331,7 @@ claw :: SpellCard
 claw = mkSpell Druid Claw 1 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence [
-            Enchant you $ Limited $ Until EndOfTurn $ statsDelta 2 0,
+            enchant you $ Until EndOfTurn $ statsDelta 2 0,
             GainArmor you 2 ]
 
 
@@ -363,7 +363,7 @@ corruption = mkSpell Warlock Corruption 1 $ \this ->
     OwnerOf this $ \you ->
         OpponentOf you $ \opponent ->
             A $ Minion' [OwnedBy opponent] $ \target ->
-                Effect $ Enchant target $ Limited $ DelayedEffect (Delay 1 BeginOfTurn) $ DestroyMinion target
+                Effect $ enchant target $ DelayedEffect (Delay 1 BeginOfTurn) $ DestroyMinion target
     
 
 
@@ -385,7 +385,7 @@ deadlyPoison :: SpellCard
 deadlyPoison = mkSpell Rogue DeadlyPoison 1 $ \this ->
     OwnerOf this $ \you ->
         A $ Weapon' [OwnedBy you] $ \weapon ->
-            Effect $ Enchant weapon $ Continuous $ AttackDelta 2
+            Effect $ enchant weapon $ AttackDelta 2
 
 
 deadlyShot :: SpellCard
@@ -399,7 +399,7 @@ deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
 divineSpirit :: SpellCard
 divineSpirit = mkSpell Priest DivineSpirit 2 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ StatsScale 1 2
+        Effect $ enchant target $ StatsScale 1 2
 
 
 dragonlingMechanic :: MinionCard
@@ -525,7 +525,7 @@ frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
         OwnerOf this $ \you ->
             All $ Minions [OwnedBy you, Not this] $ \minions ->
                 Effect $ ForEachMinion minions $ \_ ->
-                    Enchant this $ Continuous $ statsDelta 1 1 ]
+                    enchant this $ statsDelta 1 1 ]
 
 
 gnomishInventor :: MinionCard
@@ -558,7 +558,7 @@ gurubashiBerserker :: MinionCard
 gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
     WheneverMinion $ \this ->
         DamageIsDealt $ \victim _ _ ->
-            Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ Enchant this $ Continuous $ statsDelta 3 0 ]
+            Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ enchant this $ statsDelta 3 0 ]
 
 
 hammerOfWrath :: SpellCard
@@ -573,7 +573,7 @@ hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
 handOfProtection :: SpellCard
 handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ Grant DivineShield
+        Effect $ enchant target $ Grant DivineShield
 
 
 healingTotem :: MinionCard
@@ -602,7 +602,7 @@ hellfire = mkSpell Warlock Hellfire 4 $ \this ->
 heroicStrike :: SpellCard
 heroicStrike = mkSpell Warrior HeroicStrike 2 $ \this ->
     OwnerOf this $ \you ->
-        Effect $ Enchant you $ Limited $ Until EndOfTurn $ statsDelta 4 0
+        Effect $ enchant you $ Until EndOfTurn $ statsDelta 4 0
 
 
 hex :: SpellCard
@@ -642,8 +642,8 @@ houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you, HasType Beast] $ \beast ->
                 Effect $ Sequence [
-                    Enchant beast $ Continuous $ statsDelta 2 2,
-                    Enchant beast $ Continuous $ Grant Taunt ]]
+                    enchant beast $ statsDelta 2 2,
+                    enchant beast $ Grant Taunt ]]
 
 
 huffer :: MinionCard
@@ -654,13 +654,13 @@ huffer = uncollectible $ mkMinion Hunter Huffer [Beast] 3 4 2 [
 humility :: SpellCard
 humility = mkSpell Paladin Humility 1 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ ChangeStat (Left 1)
+        Effect $ enchant target $ ChangeStat (Left 1)
 
 
 hunter'sMark :: SpellCard
 hunter'sMark = mkSpell Hunter Hunter'sMark 1 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ ChangeStat (Right 1)
+        Effect $ enchant target $ ChangeStat (Right 1)
 
 
 koboldGeomancer :: MinionCard
@@ -722,8 +722,8 @@ markOfTheWild :: SpellCard
 markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
     A $ Minion' [] $ \target ->
         Effect $ Sequence [
-            Enchant target $ Continuous $ Grant Taunt,
-            Enchant target $ Continuous $ statsDelta 2 2 ]
+            enchant target $ Grant Taunt,
+            enchant target $ statsDelta 2 2 ]
 
 
 magmaRager :: MinionCard
@@ -853,7 +853,7 @@ powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
     A $ Minion' [] $ \target ->
         OwnerOf this $ \you ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ statsDelta 0 2,
+                enchant target $ statsDelta 0 2,
                 DrawCards you 1 ]
 
 
@@ -884,7 +884,7 @@ rockbiterWeapon :: SpellCard
 rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
     OwnerOf this $ \you ->
         A $ Character' [OwnedBy you] $ \target ->
-            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 3 0
+            Effect $ enchant target $ Until EndOfTurn $ statsDelta 3 0
 
 
 sacrificialPact :: SpellCard
@@ -901,7 +901,7 @@ savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
     OwnerOf this $ \you ->
         All $ Characters [OwnedBy you] $ \friendlies ->
             Effect $ ForEachCharacter friendlies $ \friendly ->
-                Enchant friendly $ Limited $ Until EndOfTurn $ statsDelta 2 0
+                enchant friendly $ Until EndOfTurn $ statsDelta 2 0
 
 
 searingTotem :: MinionCard
@@ -936,7 +936,7 @@ shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ Enchant target $ Continuous $ statsDelta 1 1 ]
+                Effect $ enchant target $ statsDelta 1 1 ]
 
 
 sheep :: MinionCard
@@ -1068,7 +1068,7 @@ totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
     OwnerOf this $ \you ->
         All $ Minions [OwnedBy you, HasType Totem] $ \totems ->
             Effect $ ForEachMinion totems $ \totem ->
-                Enchant totem $ Continuous $ statsDelta 0 2
+                enchant totem $ statsDelta 0 2
 
 
 tundraRhino :: MinionCard
@@ -1132,7 +1132,7 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
 windfury :: SpellCard
 windfury = mkSpell Shaman Basic.Windfury 2 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ Grant Windfury
+        Effect $ enchant target $ Grant Windfury
 
 
 windspeaker :: MinionCard
@@ -1140,7 +1140,7 @@ windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ Enchant target $ Continuous $ Grant Windfury ]
+                Effect $ enchant target $ Grant Windfury ]
 
 
 wolfRider :: MinionCard

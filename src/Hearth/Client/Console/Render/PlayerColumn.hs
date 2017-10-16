@@ -27,7 +27,7 @@ import Hearth.Client.Console.SGRString
 --------------------------------------------------------------------------------
 
 
-playerColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
+playerColumn :: (HearthMonad m) => Handle 'Player -> Hearth m [SGRString]
 playerColumn player = do
     deckCol <- deckColumn player
     manaCol <- manaColumn player

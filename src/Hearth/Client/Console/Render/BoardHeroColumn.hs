@@ -24,7 +24,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-boardHeroColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
+boardHeroColumn :: (HearthMonad m) => Handle 'Player -> Hearth m [SGRString]
 boardHeroColumn player = dynamic $ do
     Attack attack <- viewAttack player
     Health health <- viewRemainingHealth $ PlayerCharacter player

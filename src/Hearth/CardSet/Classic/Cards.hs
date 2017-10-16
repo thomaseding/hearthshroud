@@ -105,7 +105,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Rarity -> Class -> ClassicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability Minion] -> MinionCard
+mkMinion :: Rarity -> Class -> ClassicCardName -> [MinionType] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
 mkMinion = mkMinion' ClassicCardName
 
 
@@ -113,7 +113,7 @@ mkSpell :: Rarity -> Class -> ClassicCardName -> Mana -> SpellEffect -> SpellCar
 mkSpell = mkSpell' ClassicCardName
 
 
-mkWeapon :: Rarity -> Class -> ClassicCardName -> Mana -> Attack -> Durability -> [Ability Weapon] -> WeaponCard
+mkWeapon :: Rarity -> Class -> ClassicCardName -> Mana -> Attack -> Durability -> [Ability 'Weapon] -> WeaponCard
 mkWeapon = mkWeapon' ClassicCardName
 
 
@@ -133,7 +133,7 @@ abusiveSergeant :: MinionCard
 abusiveSergeant = mkMinion Common Neutral AbusiveSergeant [] 1 2 1 [
     Battlecry $ \_ ->
         A $ Minion' [] $ \target ->
-            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
+            Effect $ enchant target $ Until EndOfTurn $ statsDelta 2 0 ]
 
 
 amaniBerserker :: MinionCard
@@ -156,7 +156,7 @@ aldorPeacekeeper = mkMinion Rare Paladin AldorPeacekeeper [] 3 3 3 [
         OwnerOf this $ \you ->
             OpponentOf you $ \opponent ->
                 A $ Minion' [OwnedBy opponent] $ \target ->
-                    Effect $ Enchant target $ Continuous $ ChangeStat (Left 1) ]
+                    Effect $ enchant target $ ChangeStat (Left 1) ]
 
 
 ancientOfLore :: MinionCard
@@ -192,7 +192,7 @@ argentProtector = mkMinion Common Paladin ArgentProtector [] 2 2 2 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ Enchant target $ Continuous $ Grant DivineShield ]
+                Effect $ enchant target $ Grant DivineShield ]
 
 
 argentSquire :: MinionCard
@@ -249,14 +249,14 @@ bite :: SpellCard
 bite = mkSpell Rare Druid Bite 4 $ \this ->
     OwnerOf this $ \you ->
         Effect $ Sequence [
-            Enchant you $ Limited $ Until EndOfTurn $ statsDelta 4 0,
+            enchant you $ Until EndOfTurn $ statsDelta 4 0,
             GainArmor you 4 ]
 
 
 blessedChampion :: SpellCard
 blessedChampion = mkSpell Rare Paladin BlessedChampion 5 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Enchant target $ Continuous $ StatsScale 2 1
+        Effect $ enchant target $ StatsScale 2 1
 
 
 blizzard :: SpellCard
@@ -307,7 +307,7 @@ crazedAlchemist :: MinionCard
 crazedAlchemist = mkMinion Rare Neutral CrazedAlchemist [] 2 2 2 [
     Battlecry $ \_ ->
         A $ Minion' [] $ \target ->
-            Effect $ Enchant target $ Continuous SwapStats ]
+            Effect $ enchant target SwapStats ]
 
 
 cruelTaskmaster :: MinionCard
@@ -316,14 +316,14 @@ cruelTaskmaster = mkMinion Common Warrior CruelTaskmaster [] 2 2 2 [
         A $ Minion' [] $ \target ->
             Effect $ Sequence [
                 (this `damages` target) 1,
-                Enchant target $ Continuous $ statsDelta 2 0 ]]
+                enchant target $ statsDelta 2 0 ]]
 
 
 darkIronDwarf :: MinionCard
 darkIronDwarf = mkMinion Common Neutral DarkIronDwarf [] 4 4 4 [
     Battlecry $ \_ ->
         A $ Minion' [] $ \target ->
-            Effect $ Enchant target $ Limited $ Until EndOfTurn $ statsDelta 2 0 ]
+            Effect $ enchant target $ Until EndOfTurn $ statsDelta 2 0 ]
 
 
 direWolfAlpha :: MinionCard
@@ -356,7 +356,7 @@ equality :: SpellCard
 equality = mkSpell Rare Paladin Equality 2 $ \_ ->
     All $ Minions [] $ \minions ->
         Effect $ ForEachMinion minions $ \minion ->
-            Enchant minion $ Continuous $ ChangeStat (Right 1)
+            enchant minion $ ChangeStat (Right 1)
 
 
 fenCreeper :: MinionCard
@@ -402,7 +402,7 @@ gruul :: MinionCard
 gruul = mkMinion Legendary Neutral Gruul [] 8 7 7 [
     WheneverMinion $ \this ->
         EndOfTurnEvent $ \_ ->
-            Effect $ Enchant this $ Continuous $ statsDelta 1 1 ]
+            Effect $ enchant this $ statsDelta 1 1 ]
 
 
 hogger :: MinionCard
@@ -437,7 +437,7 @@ innerRage = mkSpell Common Warrior InnerRage 0 $ \this ->
     A $ Minion' [] $ \target ->
         Effect $ Sequence [
             (this `damages` target) 1,
-            Enchant target $ Continuous $ statsDelta 2 0 ]
+            enchant target $ statsDelta 2 0 ]
 
 
 ironbeakOwl :: MinionCard
@@ -480,11 +480,11 @@ markOfNature :: SpellCard
 markOfNature = mkSpell Common Druid MarkOfNature 3 $ \_ ->
     ChooseOne' [
         A $ Minion' [] $ \target ->
-            Effect $ Enchant target $ Continuous $ statsDelta 4 0,
+            Effect $ enchant target $ statsDelta 4 0,
         A $ Minion' [] $ \target ->
             Effect $ Sequence [
-                Enchant target $ Continuous $ statsDelta 0 4,
-                Enchant target $ Continuous $ Grant Taunt ]]
+                enchant target $ statsDelta 0 4,
+                enchant target $ Grant Taunt ]]
 
 
 massDispel :: SpellCard
@@ -555,7 +555,7 @@ ragnarosTheFirelord = mkMinion Legendary Neutral RagnarosTheFirelord [] 8 8 8 [
 rampage :: SpellCard
 rampage = mkSpell Common Warrior Rampage 2 $ \_ ->
     A $ Minion' [RequireMinion Damaged] $ \target ->
-        Effect $ Enchant target $ Continuous $ statsDelta 3 3
+        Effect $ enchant target $ statsDelta 3 3
 
 
 scarletCrusader :: MinionCard
@@ -593,7 +593,7 @@ soulOfTheForest = mkSpell Common Druid SoulOfTheForest 4 $ \this ->
     OwnerOf this $ \you ->
         All $ Minions [OwnedBy you] $ \minions ->
             Effect $ ForEachMinion minions $ \minion ->
-                Enchant minion $ Continuous $ Grant $ Deathrattle $ \this' ->
+                enchant minion $ Grant $ Deathrattle $ \this' ->
                     OwnerOf this' $ \owner ->
                         Effect $ (Summon treant_soulOfTheForest) $ Rightmost owner
 
@@ -644,7 +644,7 @@ templeEnforcer = mkMinion Common Priest TempleEnforcer [] 6 6 6 [
     Battlecry $ \this ->
         OwnerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ Enchant target $ Continuous $ statsDelta 0 3 ]
+                Effect $ enchant target $ statsDelta 0 3 ]
 
 
 tirionFordring :: MinionCard

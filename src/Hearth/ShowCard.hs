@@ -22,7 +22,6 @@ module Hearth.ShowCard (
 --------------------------------------------------------------------------------
 
 
-import Control.Applicative
 import Control.Error.TH
 import Control.Monad.State
 import Data.List (intercalate, isPrefixOf)
@@ -71,23 +70,23 @@ class GenHandle (a :: Type) where
     genHandle :: String -> ShowCard (Handle a)
 
 
-instance GenHandle Spell where
+instance GenHandle 'Spell where
     genHandle = liftM SpellHandle . rawGenHandle
 
 
-instance GenHandle Weapon where
+instance GenHandle 'Weapon where
     genHandle = liftM WeaponHandle . rawGenHandle
 
 
-instance GenHandle Minion where
+instance GenHandle 'Minion where
     genHandle = liftM MinionHandle . rawGenHandle
 
 
-instance GenHandle Player where
+instance GenHandle 'Player where
     genHandle = liftM PlayerHandle . rawGenHandle
 
 
-instance GenHandle Character where
+instance GenHandle 'Character where
     genHandle = liftM PlayerCharacter . genHandle
 
 
@@ -203,8 +202,8 @@ opponent = "OPPONENT"
 
 replace :: (Eq a) => [a] -> [a] -> [a] -> [a]
 replace _ _ [] = []
-replace old new (items @ (_ : tail)) = case old `isPrefixOf` items of
-    False -> replace old new tail
+replace old new (items @ (_ : rest)) = case old `isPrefixOf` items of
+    False -> replace old new rest
     True -> new ++ replace old new (drop (length old) items)
 
 
@@ -287,7 +286,7 @@ showAura = \case
     HasAbility handle ability -> showHasAbility handle ability
 
 
-showEachMinion :: [Requirement Minion] -> (Handle Minion -> Aura) -> ShowCard String
+showEachMinion :: [Requirement 'Minion] -> (Handle 'Minion -> Aura) -> ShowCard String
 showEachMinion requirements cont = do
     requirementsStr <- showRequirements requirements
     handle <- genHandle $ "MINION[" ++ requirementsStr ++ "]"
@@ -343,19 +342,19 @@ showEventListener = \case
     EndOfTurnEvent listener -> showEndOfTurnEvent listener
 
 
-showEndOfTurnEvent :: (Handle Player -> Elect AtRandom) -> ShowCard String
+showEndOfTurnEvent :: (Handle 'Player -> Elect 'AtRandom) -> ShowCard String
 showEndOfTurnEvent listener = do
     player <- genHandle "ACTIVE_PLAYER"
     liftM ("end of turn: " ++) $ showElect $ listener player
 
 
-showSpellIsCast :: (Handle Spell -> Elect AtRandom) -> ShowCard String
+showSpellIsCast :: (Handle 'Spell -> Elect 'AtRandom) -> ShowCard String
 showSpellIsCast listener = do
     spell <- genHandle "CAST_SPELL"
     liftM ("a spell is cast: " ++) $ showElect $ listener spell
 
 
-showDamageIsDealt :: (Handle Character -> Damage -> DamageSource -> Elect AtRandom) -> ShowCard String
+showDamageIsDealt :: (Handle 'Character -> Damage -> DamageSource -> Elect 'AtRandom) -> ShowCard String
 showDamageIsDealt listener = do
     victim <- genHandle "DAMAGED_CHARACTER"
     source <- genDamageSource "DAMAGE_SOURCE"
@@ -365,7 +364,7 @@ showDamageIsDealt listener = do
     liftM (prelude ++) $ showElect $ listener victim damage source
 
 
-showHealthIsRestored :: (Handle Character -> Health -> Elect AtRandom) -> ShowCard String
+showHealthIsRestored :: (Handle 'Character -> Health -> Elect 'AtRandom) -> ShowCard String
 showHealthIsRestored listener = do
     recipient <- genHandle "RESTORED_CHARACTER"
     health <- genAlgebraicHealth
@@ -374,20 +373,20 @@ showHealthIsRestored listener = do
     liftM (prelude ++) $ showElect $ listener recipient health
 
 
-showEnrage :: [Ability Minion] -> [Enchantment Continuous Minion] -> ShowCard String
+showEnrage :: [Ability 'Minion] -> [Enchantment 'Continuous 'Minion] -> ShowCard String
 showEnrage abilities enchantments = do
     asStr <- mapM showAbility abilities
     esStr <- mapM showEnchantment enchantments
     return $ "Enrage: " ++ itemize (asStr ++ esStr)
 
 
-showDeathrattle :: (GenHandle a) => (Handle a -> Elect AtRandom) -> ShowCard String
+showDeathrattle :: (GenHandle a) => (Handle a -> Elect 'AtRandom) -> ShowCard String
 showDeathrattle cont = do
     effectStr <- genHandle this >>= showElect . cont
     return $ "Deathrattle: " ++ effectStr
 
 
-showBattlecry :: (GenHandle a) => (Handle a -> Elect Targeted) -> ShowCard String
+showBattlecry :: (GenHandle a) => (Handle a -> Elect 'Targeted) -> ShowCard String
 showBattlecry cont = do
     effectStr <- genHandle this >>= showElect . cont
     return $ "Battlecry: " ++ effectStr
@@ -424,27 +423,27 @@ showEffect = \case
     TakeControl player minion -> showTakeControl player minion
 
 
-showEquipWeapon :: Handle Player -> WeaponCard -> ShowCard String
+showEquipWeapon :: Handle 'Player -> WeaponCard -> ShowCard String
 showEquipWeapon player weapon = do
     playerStr <- readHandle player
     let weaponName = showCardName $ cardName weapon
     return $ playerStr ++ " equip(s) " ++ weaponName
 
 
-showTakeControl :: Handle Player -> Handle Minion -> ShowCard String
+showTakeControl :: Handle 'Player -> Handle 'Minion -> ShowCard String
 showTakeControl player minion = do
     playerStr <- readHandle player
     minionStr <- readHandle minion
     return $ playerStr ++ " take(s) control of " ++ minionStr
 
 
-showDiscardAtRandom :: Handle Player -> ShowCard String
+showDiscardAtRandom :: Handle 'Player -> ShowCard String
 showDiscardAtRandom player = do
     playerStr <- readHandle player
     return $ playerStr ++ " discard(s) a card at random"
 
 
-showRandomMissiles :: [Requirement Character] -> Int -> Handle Spell -> ShowCard String
+showRandomMissiles :: [Requirement 'Character] -> Int -> Handle 'Spell -> ShowCard String
 showRandomMissiles reqs n spell = do
     reqsStr <- showRequirements reqs
     spellStr <- readHandle spell
@@ -468,7 +467,7 @@ showBoardLocation = \case
         return $ "to the rightmost of " ++ str
 
 
-showPutInHand :: Handle Player -> Card -> ShowCard String
+showPutInHand :: Handle 'Player -> Card -> ShowCard String
 showPutInHand player card = do
     playerStr <- readHandle player
     let cardStr = showCardName $ cardName card
@@ -512,7 +511,7 @@ showAnd :: Condition -> Condition -> ShowCard String
 showAnd = showBinaryCondition "and"
 
 
-showFreeze :: Handle Character -> ShowCard String
+showFreeze :: Handle 'Character -> ShowCard String
 showFreeze handle = do
     str <- readHandle handle
     return $ "Freeze " ++ str
@@ -533,27 +532,27 @@ showUnreferenced handle = do
     return $ "Unreferenced " ++ str
 
 
-showTransform :: Handle Minion -> MinionCard -> ShowCard String
+showTransform :: Handle 'Minion -> MinionCard -> ShowCard String
 showTransform oldMinionHandle newMinion = do
     oldMinionStr <- readHandle oldMinionHandle
     let newCardStr = showCard $ HandCardMinion newMinion
     return $ "Transform " ++ oldMinionStr ++ " to " ++ newCardStr
 
 
-showGainArmor :: Handle Player -> Armor -> ShowCard String
+showGainArmor :: Handle 'Player -> Armor -> ShowCard String
 showGainArmor player (Armor amount) = do
     playerStr <- readHandle player
     return $ playerStr ++ " gains " ++ show amount ++ " armor"
 
 
-showRestoreHealth :: Handle Character -> Health -> ShowCard String
+showRestoreHealth :: Handle 'Character -> Health -> ShowCard String
 showRestoreHealth character health = do
     healthStr <- readHealth health
     characterStr <- readHandle character
     return $ characterStr ++ " restores " ++ healthStr ++ " health"
 
 
-showRestoreToFullHealth :: Handle Character -> ShowCard String
+showRestoreToFullHealth :: Handle 'Character -> ShowCard String
 showRestoreToFullHealth character = do
     characterStr <- readHandle character
     return $ "Restore " ++ characterStr ++ " to full health"
@@ -621,7 +620,7 @@ showA = \case
     Character' requirements cont -> showCharacter requirements cont
 
 
-showWeapon :: forall s. (IsSelection s) => [Requirement Weapon] -> (Handle Weapon -> Elect s) -> ShowCard String
+showWeapon :: forall s. (IsSelection s) => [Requirement 'Weapon] -> (Handle 'Weapon -> Elect s) -> ShowCard String
 showWeapon requirements cont = do
     requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
@@ -629,7 +628,7 @@ showWeapon requirements cont = do
     showElect $ cont handle
 
 
-showPlayer :: forall s. (IsSelection s) => [Requirement Player] -> (Handle Player -> Elect s) -> ShowCard String
+showPlayer :: forall s. (IsSelection s) => [Requirement 'Player] -> (Handle 'Player -> Elect s) -> ShowCard String
 showPlayer requirements cont = do
     requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
@@ -648,15 +647,15 @@ class IsSelection (s :: Selection) where
     showSelection :: Proxy s -> String
 
 
-instance IsSelection Targeted where
+instance IsSelection 'Targeted where
     showSelection _ = "TARGET_"
 
 
-instance IsSelection AtRandom where
+instance IsSelection 'AtRandom where
     showSelection _ = "RANDOM_"
 
 
-showMinions :: (IsSelection s) => [Requirement Minion] -> (HandleList Minion -> Elect s) -> ShowCard String
+showMinions :: (IsSelection s) => [Requirement 'Minion] -> (HandleList 'Minion -> Elect s) -> ShowCard String
 showMinions requirements cont = do
     requirementsStr <- showRequirements requirements
     let handleStr = "MINION[" ++ requirementsStr ++ "]"
@@ -664,7 +663,7 @@ showMinions requirements cont = do
     showElect $ cont $ HandleList handleStr [handle]
 
 
-showPlayers :: (IsSelection s) => [Requirement Player] -> (HandleList Player -> Elect s) -> ShowCard String
+showPlayers :: (IsSelection s) => [Requirement 'Player] -> (HandleList 'Player -> Elect s) -> ShowCard String
 showPlayers requirements cont = do
     requirementsStr <- showRequirements requirements
     let handleStr = "PLAYER[" ++ requirementsStr ++ "]"
@@ -672,7 +671,7 @@ showPlayers requirements cont = do
     showElect $ cont $ HandleList handleStr [handle]
 
 
-showCharacters :: (IsSelection s) => [Requirement Character] -> (HandleList Character -> Elect s) -> ShowCard String
+showCharacters :: (IsSelection s) => [Requirement 'Character] -> (HandleList 'Character -> Elect s) -> ShowCard String
 showCharacters requirements cont = do
     requirementsStr <- showRequirements requirements
     let handleStr = "CHARACTER[" ++ requirementsStr ++ "]"
@@ -680,7 +679,7 @@ showCharacters requirements cont = do
     showElect $ cont $ HandleList handleStr [handle]
 
 
-showMinion :: forall s. (IsSelection s) => [Requirement Minion] -> (Handle Minion -> Elect s) -> ShowCard String
+showMinion :: forall s. (IsSelection s) => [Requirement 'Minion] -> (Handle 'Minion -> Elect s) -> ShowCard String
 showMinion requirements cont = do
     requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
@@ -688,7 +687,7 @@ showMinion requirements cont = do
     showElect $ cont handle
 
 
-showCharacter :: forall s. (IsSelection s) => [Requirement Character] -> (Handle Character -> Elect s) -> ShowCard String
+showCharacter :: forall s. (IsSelection s) => [Requirement 'Character] -> (Handle 'Character -> Elect s) -> ShowCard String
 showCharacter requirements cont = do
     requirementsStr <- showRequirements requirements
     let sel = showSelection (Proxy :: Proxy s)
@@ -731,7 +730,7 @@ showRequirement = \case
         return $ "HAS_MINION" ++ reqsStr
 
 
-showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle Player -> x) -> ShowCard String
+showOwnerOf :: (x -> ShowCard String) -> Handle a -> (Handle 'Player -> x) -> ShowCard String
 showOwnerOf showX handle cont = do
     player <- readHandle handle >>= \case
         (is this -> True) -> genHandle you
@@ -739,7 +738,7 @@ showOwnerOf showX handle cont = do
     showX $ cont player
 
 
-showOpponentOf :: (x -> ShowCard String) -> Handle Player -> (Handle Player -> x) -> ShowCard String
+showOpponentOf :: (x -> ShowCard String) -> Handle 'Player -> (Handle 'Player -> x) -> ShowCard String
 showOpponentOf showX minion cont = do
     player <- readHandle minion >>= \case
         (is you -> True) -> genHandle opponent
@@ -751,13 +750,13 @@ showSequence :: [Effect] -> ShowCard String
 showSequence = liftM unlines . mapM showEffect
 
 
-showSilence :: Handle Minion -> ShowCard String
+showSilence :: Handle 'Minion -> ShowCard String
 showSilence minion = do
     minionStr <- readHandle minion
     return $ unwords ["Silence", minionStr]
 
 
-showDrawCards :: Handle Player -> Int -> ShowCard String
+showDrawCards :: Handle 'Player -> Int -> ShowCard String
 showDrawCards player amount = do
     playerStr <- readHandle player
     let plural = case amount of
@@ -768,7 +767,7 @@ showDrawCards player amount = do
     return $ unwords [playerStr, drawStr, show amount, cardStr]
 
 
-showDealDamage :: Handle Character -> Damage -> DamageSource -> ShowCard String
+showDealDamage :: Handle 'Character -> Damage -> DamageSource -> ShowCard String
 showDealDamage character damage source = do
     characterStr <- readHandle character
     damageStr <- readDamage damage
@@ -790,12 +789,12 @@ showEnchant' :: (GenHandle a) => Handle a -> AnyEnchantment a -> ShowCard String
 showEnchant' handle enchantment = do
     handleStr <- readHandle handle
     enchantmentStr <- case enchantment of
-        Continuous e -> showEnchantment e
-        Limited e -> showEnchantment e
+        ContinuousEnchantment e -> showEnchantment e
+        LimitedEnchantment e -> showEnchantment e
     return $ unwords ["Give", handleStr, enchantmentStr]
 
 
-showGainManaCrystals :: Handle Player -> Int -> CrystalState -> ShowCard String
+showGainManaCrystals :: Handle 'Player -> Int -> CrystalState -> ShowCard String
 showGainManaCrystals player amount crystalState = do
     playerStr <- readHandle player
     let s = case amount of
@@ -835,7 +834,7 @@ showDelayedEffect timePoint effect = do
     return $ effectStr ++ " at " ++ timePointStr
 
 
-showUntil :: (GenHandle a) => TimePoint -> Enchantment Continuous a -> ShowCard String
+showUntil :: (GenHandle a) => TimePoint -> Enchantment 'Continuous a -> ShowCard String
 showUntil timePoint enchantment = do
     timePointStr <- showTimePoint timePoint
     enchantmentStr <- showEnchantment enchantment
