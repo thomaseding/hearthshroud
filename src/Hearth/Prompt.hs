@@ -52,24 +52,24 @@ data instance PickResult Targeted a
     deriving (Show, Eq, Ord)
 
 
-data HearthPrompt :: (* -> Constraint) -> * -> * where
-    PromptDebugEvent :: DebugEvent -> HearthPrompt k ()
-    PromptError :: HearthError -> HearthPrompt k ()
-    PromptGameEvent :: GameSnapshot k -> GameEvent k -> HearthPrompt k ()
-    PromptAction :: GameSnapshot k -> HearthPrompt k (Action k)
-    PromptShuffle :: [a] -> HearthPrompt k [a]
-    PromptMulligan :: Handle Player -> [HandCard k] -> HearthPrompt k [HandCard k]
-    PromptPickAtRandom :: GameSnapshot k -> PromptPick AtRandom k a -> HearthPrompt k (PickResult AtRandom a)
-    PromptPickTargeted :: GameSnapshot k -> PromptPick Targeted k a -> HearthPrompt k (PickResult Targeted a)
+data HearthPrompt :: * -> * where
+    PromptDebugEvent :: DebugEvent -> HearthPrompt ()
+    PromptError :: HearthError -> HearthPrompt ()
+    PromptGameEvent :: GameSnapshot -> GameEvent -> HearthPrompt ()
+    PromptAction :: GameSnapshot -> HearthPrompt Action
+    PromptShuffle :: [a] -> HearthPrompt [a]
+    PromptMulligan :: Handle Player -> [HandCard] -> HearthPrompt [HandCard]
+    PromptPickAtRandom :: GameSnapshot -> PromptPick AtRandom a -> HearthPrompt (PickResult AtRandom a)
+    PromptPickTargeted :: GameSnapshot -> PromptPick Targeted a -> HearthPrompt (PickResult Targeted a)
 
 
-data PromptPick :: Selection -> (* -> Constraint) -> * -> * where
-    PickHandCard :: NonEmpty (HandCard k) -> PromptPick s k (HandCard k)
-    PickWeapon :: NonEmpty (Handle Weapon) -> PromptPick s k (Handle Weapon)
-    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s k (Handle Minion)
-    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s k (Handle Player)
-    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s k (Handle Character)
-    PickElect :: NonEmpty (Elect k s) -> PromptPick s k (Elect k s)
+data PromptPick :: Selection -> * -> * where
+    PickHandCard :: NonEmpty HandCard -> PromptPick s HandCard
+    PickWeapon :: NonEmpty (Handle Weapon) -> PromptPick s (Handle Weapon)
+    PickMinion :: NonEmpty (Handle Minion) -> PromptPick s (Handle Minion)
+    PickPlayer :: NonEmpty (Handle Player) -> PromptPick s (Handle Player)
+    PickCharacter :: NonEmpty (Handle Character) -> PromptPick s (Handle Character)
+    PickElect :: NonEmpty (Elect s) -> PromptPick s (Elect s)
 
 
 

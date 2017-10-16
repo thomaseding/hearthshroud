@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -22,11 +23,11 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-heroPowerColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+heroPowerColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
 heroPowerColumn player = view $ getPlayer player.to heroPowerColumn'
 
 
-heroPowerColumn' :: PlayerObject k -> [SGRString]
+heroPowerColumn' :: PlayerObject -> [SGRString]
 heroPowerColumn' player = let
     hero = player^.playerHero
     count = hero^.boardHeroPowerCount

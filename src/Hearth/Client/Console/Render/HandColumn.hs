@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
@@ -27,20 +28,20 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-handColumn :: (HearthMonad k m) => Hand k -> Hearth k m [SGRString]
+handColumn :: (HearthMonad m) => Hand -> Hearth m [SGRString]
 handColumn (Hand cs) = return $ let
     cs' = map (uncurry cardColumn) $ zip [1..] $ reverse cs
     in concat $ intersperse [""] cs'
 
 
-cardColumn :: Int -> HandCard k -> [SGRString]
+cardColumn :: Int -> HandCard -> [SGRString]
 cardColumn idx = \case
     HandCardMinion minion -> minionColumn idx minion
     HandCardSpell spell -> spellColumn idx spell
     HandCardWeapon weapon -> weaponColumn idx weapon
 
 
-minionColumn :: Int -> MinionCard k -> [SGRString]
+minionColumn :: Int -> MinionCard -> [SGRString]
 minionColumn idx minion = let
     nameColor = case hasDivineShield minion of
         True -> sgrColor (Vivid, Red) +++ sgr [SetColor Background Vivid Yellow]
@@ -64,7 +65,7 @@ minionColumn idx minion = let
     in [header, "    " +++ stats]
 
 
-weaponColumn :: Int -> WeaponCard k -> [SGRString]
+weaponColumn :: Int -> WeaponCard -> [SGRString]
 weaponColumn idx weapon = let
     nameColor = sgrColor (Vivid, Green)
     name = nameColor +++ getName weapon
@@ -83,7 +84,7 @@ weaponColumn idx weapon = let
     in [header, "    " +++ stats]
 
 
-spellColumn :: Int -> SpellCard k -> [SGRString]
+spellColumn :: Int -> SpellCard -> [SGRString]
 spellColumn idx spell = let
     nameColor = sgrColor (Vivid, Green)
     name = nameColor +++ getName spell
@@ -100,7 +101,7 @@ getName :: (GetCardName a) => a -> SGRString
 getName = fromString . showCardName . cardName
 
 
-hasDivineShield :: MinionCard k -> Bool
+hasDivineShield :: MinionCard -> Bool
 hasDivineShield minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case
@@ -108,7 +109,7 @@ hasDivineShield minion = let
         _ -> False
 
 
-hasTaunt :: MinionCard k -> Bool
+hasTaunt :: MinionCard -> Bool
 hasTaunt minion = let
     abilities = minion^.minionAbilities
     in flip any abilities $ \case

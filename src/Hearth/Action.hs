@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 
@@ -16,14 +17,14 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-data Action :: (* -> Constraint) -> * where
-    ActionPlayerConceded :: Handle Player -> Action k
-    ActionEndTurn :: Action k
-    ActionPlayMinion :: HandCard k -> BoardIndex -> Action k
-    ActionPlaySpell :: HandCard k -> Action k
-    ActionPlayWeapon :: HandCard k -> Action k
-    ActionAttack :: Handle Character -> Handle Character -> Action k
-    ActionHeroPower :: Action k
+data Action :: * where
+    ActionPlayerConceded :: Handle Player -> Action
+    ActionEndTurn :: Action
+    ActionPlayMinion :: HandCard -> BoardIndex -> Action
+    ActionPlaySpell :: HandCard -> Action
+    ActionPlayWeapon :: HandCard -> Action
+    ActionAttack :: Handle Character -> Handle Character -> Action
+    ActionHeroPower :: Action
 
 
 

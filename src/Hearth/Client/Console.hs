@@ -46,6 +46,7 @@ import Data.Maybe
 import Data.NonEmpty
 import Data.Ord
 import Data.String
+import GHC.Exts (Constraint)
 import Hearth.Action
 import Hearth.Cards
 import Hearth.Client.Console.Choices
@@ -150,10 +151,10 @@ data ConsoleState = ConsoleState {
     _exitWithoutMessage :: Bool,
     _classRestriction :: Bool,
     _pendingTargets :: [SignedInt],
-    _targetsSnapshot :: GameSnapshot Showy,
+    _targetsSnapshot :: GameSnapshot,
     _isAutoplay :: Bool,
     _logState :: LogState,
-    _stackedCards :: [Card Showy]
+    _stackedCards :: [Card]
 } deriving ()
 makeLenses ''ConsoleState
 
@@ -191,7 +192,7 @@ instance LocalQuiet Console where
         return x
 
 
-instance LocalQuiet (Hearth k Console) where
+instance LocalQuiet (Hearth Console) where
     localQuiet m = do
         v <- lift $ view $ logState.verbosity
         lift $ logState.verbosity .= Quiet
@@ -291,7 +292,7 @@ debugEvent e = case e of
         showName = (':' :) . nameBase
 
 
-gameEvent :: GameSnapshot Showy -> GameEvent Showy -> Console ()
+gameEvent :: GameSnapshot -> GameEvent -> Console ()
 gameEvent snapshot = \case
     GameBegins -> let
         in tag 'GameBegins []
@@ -435,34 +436,34 @@ gatedTag name attrs = do
     gatedCloseTag name
 
 
-showDamageSource :: DamageSource -> Hearth Showy Console String
+showDamageSource :: DamageSource -> Hearth Console String
 showDamageSource = \case
     Fatigue -> return "Fatigue"
     DamagingCharacter handle -> showHandle handle
     DamagingSpell handle -> showHandle handle
 
 
-showHandle :: Handle a -> Hearth Showy Console String
+showHandle :: Handle a -> Hearth Console String
 showHandle = mapHandle showSpellHandle showWeaponHandle showMinionHandle showPlayerHandle showCharacterHandle
 
 
-showSpellHandle :: Handle Spell -> Hearth Showy Console String
+showSpellHandle :: Handle Spell -> Hearth Console String
 showSpellHandle h = view $ getSpell h.castSpell.to (showCardName . cardName)
 
 
-showWeaponHandle :: Handle Weapon -> Hearth Showy Console String
+showWeaponHandle :: Handle Weapon -> Hearth Console String
 showWeaponHandle h = view $ getWeapon h.boardWeapon.to (showCardName . cardName)
 
 
-showMinionHandle :: Handle Minion -> Hearth Showy Console String
+showMinionHandle :: Handle Minion -> Hearth Console String
 showMinionHandle h = view $ getMinion h.boardMinion.to (showCardName . cardName)
 
 
-showPlayerHandle :: Handle Player -> Hearth Showy Console String
+showPlayerHandle :: Handle Player -> Hearth Console String
 showPlayerHandle h = view $ getPlayer h.playerHero.boardHero.heroName.to showHeroName
 
 
-showCharacterHandle :: Handle Character -> Hearth Showy Console String
+showCharacterHandle :: Handle Character -> Hearth Console String
 showCharacterHandle = \case
     PlayerCharacter h -> showPlayerHandle h
     MinionCharacter h -> showMinionHandle h
@@ -476,11 +477,11 @@ showHeroName :: HeroName -> String
 showHeroName = show
 
 
-handCardName' :: HandCard k -> String
+handCardName' :: HandCard -> String
 handCardName' = showCardName . cardName
 
 
-deckCardName' :: DeckCard k -> String
+deckCardName' :: DeckCard -> String
 deckCardName' = showCardName . cardName
 
 
@@ -488,7 +489,7 @@ promptError :: HearthError -> Console ()
 promptError e = $logicError 'promptError $ show e
 
 
-instance MonadPrompt (HearthPrompt Showy) Console where
+instance MonadPrompt HearthPrompt Console where
     prompt = \case
         PromptDebugEvent e -> debugEvent e
         PromptError e -> promptError e
@@ -500,7 +501,7 @@ instance MonadPrompt (HearthPrompt Showy) Console where
         PromptMulligan _ xs -> return xs
 
 
-handlePromptPick :: (MakePick s) => GameSnapshot Showy -> PromptPick s Showy a -> Console (PickResult s a)
+handlePromptPick :: (MakePick s) => GameSnapshot -> PromptPick s a -> Console (PickResult s a)
 handlePromptPick snapshot = \case
     PickHandCard xs -> pickHandCard snapshot xs
     PickWeapon xs -> pickWeapon snapshot xs
@@ -519,8 +520,8 @@ elemBy f x = \case
 
 
 class MakePick s where
-    mkPick :: (a -> a -> Bool) -> (SignedInt -> Hearth Showy Console (Maybe a)) -> GameSnapshot Showy -> NonEmpty a -> Console (PickResult s a)
-    pickElect :: GameSnapshot k -> NonEmpty (Elect Showy s) -> Console (PickResult s (Elect Showy s))
+    mkPick :: (a -> a -> Bool) -> (SignedInt -> Hearth Console (Maybe a)) -> GameSnapshot -> NonEmpty a -> Console (PickResult s a)
+    pickElect :: GameSnapshot -> NonEmpty (Elect s) -> Console (PickResult s (Elect s))
 
 
 instance MakePick AtRandom where
@@ -564,25 +565,25 @@ instance MakePick Targeted where
                             Just index -> return $ TargetedPick $ candidates' !! index
 
 
-pickHandCard :: (MakePick s) => GameSnapshot Showy -> NonEmpty (HandCard Showy) -> Console (PickResult s (HandCard Showy))
+pickHandCard :: (MakePick s) => GameSnapshot -> NonEmpty HandCard -> Console (PickResult s HandCard)
 pickHandCard = mkPick eq fetchHandCard
     where
         eq = (==) `on` cardName
 
 
-pickWeapon :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Weapon) -> Console (PickResult s (Handle Weapon))
+pickWeapon :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Weapon) -> Console (PickResult s (Handle Weapon))
 pickWeapon = mkPick (==) fetchWeaponHandle
 
 
-pickMinion :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Minion) -> Console (PickResult s (Handle Minion))
+pickMinion :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Minion) -> Console (PickResult s (Handle Minion))
 pickMinion = mkPick (==) fetchMinionHandle
 
 
-pickPlayer :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Player) -> Console (PickResult s (Handle Player))
+pickPlayer :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Player) -> Console (PickResult s (Handle Player))
 pickPlayer = mkPick (==) fetchPlayerHandle
 
 
-pickCharacter :: (MakePick s) => GameSnapshot Showy -> NonEmpty (Handle Character) -> Console (PickResult s (Handle Character))
+pickCharacter :: (MakePick s) => GameSnapshot -> NonEmpty (Handle Character) -> Console (PickResult s (Handle Character))
 pickCharacter = mkPick (==) fetchCharacterHandle
 
 
@@ -692,7 +693,7 @@ runHearthClient seed = do
     where
         player1 = PlayerData jaina
         player2 = PlayerData gul'dan
-        newDeck :: [Card Showy] -> Class -> Console (Deck Showy)
+        newDeck :: [Card] -> Class -> Console Deck
         newDeck stacked clazz = view classRestriction >>= \isRestricted -> do
             cards <- case isRestricted of
                 False -> liftIO $ do
@@ -709,7 +710,7 @@ runHearthClient seed = do
             return $ Deck $ take 30 $ map toDeckCard (stacked ++ cards)
 
 
-cardsByClass :: (UserConstraint k) => Class -> [Card k]
+cardsByClass :: Class -> [Card]
 cardsByClass clazz = flip filter (unUniverse entireUniverse) $ \card ->
     cardMeta card^.cardMetaClass == clazz
 
@@ -718,22 +719,22 @@ class GetCardMeta a where
     cardMeta :: a -> CardMeta
 
 
-instance GetCardMeta (Card k) where
+instance GetCardMeta Card where
     cardMeta = \case
         CardMinion x -> cardMeta x
         CardSpell x -> cardMeta x
         CardWeapon x -> cardMeta x
 
 
-instance GetCardMeta (MinionCard k) where
+instance GetCardMeta MinionCard where
     cardMeta = _minionMeta
 
 
-instance GetCardMeta (SpellCard k) where
+instance GetCardMeta SpellCard where
     cardMeta = _spellMeta
 
 
-instance GetCardMeta (WeaponCard k) where
+instance GetCardMeta WeaponCard where
     cardMeta = _weaponMeta
 
 
@@ -751,7 +752,7 @@ getWindowSize = Window.size >>= \case
     Nothing -> $runtimeError 'getWindowSize "Could not get window size."
 
 
-renewDisplay :: Hearth Showy Console ()
+renewDisplay :: Hearth Console ()
 renewDisplay = do
     ps <- getPlayerHandles
     window <- liftIO getWindowSize
@@ -788,7 +789,7 @@ presentPrompt promptMessage responseParser = do
         args -> args
 
 
-parseActionResponse :: [String] -> Hearth Showy Console (Action Showy)
+parseActionResponse :: [String] -> Hearth Console Action
 parseActionResponse response = do
     lift $ do
         isAutoplay .= False
@@ -814,12 +815,12 @@ parseActionResponse response = do
 
 data ConsoleAction :: * where
     QuitAction :: ConsoleAction
-    GameAction :: Action Showy -> ConsoleAction
+    GameAction :: Action -> ConsoleAction
     QuietRetryAction :: ConsoleAction
     ComplainRetryAction :: String -> ConsoleAction
 
 
-actionOptions :: Options (Hearth Showy Console) ConsoleAction ()
+actionOptions :: Options (Hearth Console) ConsoleAction ()
 actionOptions = do
     addOption (kw "" `argText` "" `text` "Autoplay.")
         autoplayAction
@@ -851,7 +852,7 @@ enterToContinue = do
     return ()
 
 
-quitAction :: Hearth Showy Console ConsoleAction
+quitAction :: Hearth Console ConsoleAction
 quitAction = return QuitAction
 
 
@@ -911,7 +912,7 @@ printBanner columnOffset = do
     setSGR [SetColor Foreground Dull White]
 
 
-helpAction :: Hearth Showy Console ConsoleAction
+helpAction :: Hearth Console ConsoleAction
 helpAction = do
     liftIO $ do
         setCursorPosition 1 0
@@ -992,7 +993,7 @@ instance PickRandom (NonEmpty a) a where
         Nothing -> $logicError 'pickRandom "Can't pick from (NonEmpty a)?"
 
 
-autoplayAction :: Hearth Showy Console ConsoleAction
+autoplayAction :: Hearth Console ConsoleAction
 autoplayAction = do
     lift $ isAutoplay .= True
     liftIO (shuffleM activities) >>= decideAction
@@ -1043,7 +1044,7 @@ autoplayAction = do
             _ -> False
 
 
-endTurnAction :: Hearth Showy Console ConsoleAction
+endTurnAction :: Hearth Console ConsoleAction
 endTurnAction = return $ GameAction ActionEndTurn
 
 
@@ -1057,7 +1058,7 @@ lookupIndex = \case
             False -> lookupIndex xs (n - 1)
 
 
-readCardInHandAction :: SignedInt -> Hearth Showy Console ConsoleAction
+readCardInHandAction :: SignedInt -> Hearth Console ConsoleAction
 readCardInHandAction (SignedInt sign handIdx) = do
     handle <- case sign of
         Positive -> getActivePlayerHandle
@@ -1084,7 +1085,7 @@ readCardInHandAction (SignedInt sign handIdx) = do
                 return QuietRetryAction
 
 
-fetchPlayerHandle :: SignedInt -> Hearth Showy Console (Maybe (Handle Player))
+fetchPlayerHandle :: SignedInt -> Hearth Console (Maybe (Handle Player))
 fetchPlayerHandle (SignedInt sign idx) = case idx of
     0 -> liftM Just $ case sign of
         Positive -> getActivePlayerHandle
@@ -1092,7 +1093,7 @@ fetchPlayerHandle (SignedInt sign idx) = case idx of
     _ -> return Nothing
 
 
-fetchWeaponHandle :: SignedInt -> Hearth Showy Console (Maybe (Handle Weapon))
+fetchWeaponHandle :: SignedInt -> Hearth Console (Maybe (Handle Weapon))
 fetchWeaponHandle (SignedInt sign idx) = case idx of
     0 -> do
         player <- case sign of
@@ -1102,7 +1103,7 @@ fetchWeaponHandle (SignedInt sign idx) = case idx of
     _ -> return Nothing
 
 
-fetchHandCard :: SignedInt -> Hearth Showy Console (Maybe (HandCard Showy))
+fetchHandCard :: SignedInt -> Hearth Console (Maybe HandCard)
 fetchHandCard (SignedInt sign idx) = case idx of
     0 -> return Nothing
     _ -> do
@@ -1115,7 +1116,7 @@ fetchHandCard (SignedInt sign idx) = case idx of
             return $ lookupIndex cs $ idx - 1
 
 
-fetchMinionHandle :: SignedInt -> Hearth Showy Console (Maybe (Handle Minion))
+fetchMinionHandle :: SignedInt -> Hearth Console (Maybe (Handle Minion))
 fetchMinionHandle (SignedInt sign idx) = do
     snap <- lift $ view targetsSnapshot
     lift $ runQuery snap $ do
@@ -1126,13 +1127,13 @@ fetchMinionHandle (SignedInt sign idx) = do
         return $ lookupIndex (map _boardMinionHandle ms) $ idx - 1
 
 
-fetchCharacterHandle :: SignedInt -> Hearth Showy Console (Maybe (Handle Character))
+fetchCharacterHandle :: SignedInt -> Hearth Console (Maybe (Handle Character))
 fetchCharacterHandle idx = fetchPlayerHandle idx >>= \case
     Just handle -> return $ Just $ PlayerCharacter handle
     Nothing -> liftM (liftM MinionCharacter) $ fetchMinionHandle idx
 
 
-attackAction :: SignedInt -> SignedInt -> Hearth Showy Console ConsoleAction
+attackAction :: SignedInt -> SignedInt -> Hearth Console ConsoleAction
 attackAction attackerIdx defenderIdx = do
     mAttacker <- fetchCharacterHandle attackerIdx
     mDefender <- fetchCharacterHandle defenderIdx
@@ -1143,7 +1144,7 @@ attackAction attackerIdx defenderIdx = do
             Just defender -> return $ GameAction $ ActionAttack attacker defender
 
 
-tryAction :: Action Showy -> [SignedInt] -> Hearth Showy Console ConsoleAction
+tryAction :: Action -> [SignedInt] -> Hearth Console ConsoleAction
 tryAction action targets = localQuiet $ do
     lift $ pendingTargets .= targets
     local id $ enactAction action >>= \case
@@ -1162,14 +1163,14 @@ tryAction action targets = localQuiet $ do
             return $ ComplainRetryAction msg
 
 
-heroPowerAction :: List SignedInt -> Hearth Showy Console ConsoleAction
+heroPowerAction :: List SignedInt -> Hearth Console ConsoleAction
 heroPowerAction = tryAction ActionHeroPower . unList
 
 
-playCardAction :: List SignedInt -> Hearth Showy Console ConsoleAction
+playCardAction :: List SignedInt -> Hearth Console ConsoleAction
 playCardAction = let
 
-    goMinion :: SignedInt -> HandCard Showy -> Hearth Showy Console ConsoleAction
+    goMinion :: SignedInt -> HandCard -> Hearth Console ConsoleAction
     goMinion (SignedInt Positive boardIdx) card = do
         handle <- getActivePlayerHandle
         boardLen <- view $ getPlayer handle.playerMinions.to length
@@ -1178,13 +1179,13 @@ playCardAction = let
             True -> return $ GameAction $ ActionPlayMinion card $ BoardIndex $ boardIdx - 1
     goMinion _ _ = return $ ComplainRetryAction "Invalid board index: Must be positive."
 
-    goSpell :: HandCard Showy -> Hearth Showy Console ConsoleAction
+    goSpell :: HandCard -> Hearth Console ConsoleAction
     goSpell card = return $ GameAction $ ActionPlaySpell card
 
-    goWeapon :: HandCard Showy -> Hearth Showy Console ConsoleAction
+    goWeapon :: HandCard -> Hearth Console ConsoleAction
     goWeapon card = return $ GameAction $ ActionPlayWeapon card
 
-    go :: Int -> [SignedInt] -> Hearth Showy Console ConsoleAction
+    go :: Int -> [SignedInt] -> Hearth Console ConsoleAction
     go handIdx args = do
         handle <- getActivePlayerHandle
         cards <- view $ getPlayer handle.playerHand.handCards
@@ -1198,7 +1199,7 @@ playCardAction = let
                     boardPos : rest -> goMinion boardPos card >>= go' rest
                     [] -> return $ ComplainRetryAction "Playing a minion requires a board index."
 
-    go' :: [SignedInt] -> ConsoleAction -> Hearth Showy Console ConsoleAction
+    go' :: [SignedInt] -> ConsoleAction -> Hearth Console ConsoleAction
     go' targets = \case
         GameAction action -> tryAction action targets
         action -> return action
@@ -1208,7 +1209,7 @@ playCardAction = let
         _ -> return $ ComplainRetryAction "Hand card index must be positive when playing a card."
 
 
-getAction :: GameSnapshot Showy -> Console (Action Showy)
+getAction :: GameSnapshot -> Console Action
 getAction snapshot = do
     targetsSnapshot .= snapshot
     let name = showName 'getAction
@@ -1221,7 +1222,7 @@ getAction snapshot = do
         showName = (':' :) . nameBase
 
 
-getAction' :: Hearth Showy Console (Action Showy)
+getAction' :: Hearth Console Action
 getAction' = do
     renewDisplay
     presentPrompt formattedActionOptions parseActionResponse
@@ -1283,7 +1284,7 @@ renewLogWindow window row = do
         newGameColor = (Dull, Green)
 
 
-printPlayer :: Window Int -> Handle Player -> Hearth Showy Console Int
+printPlayer :: Window Int -> Handle Player -> Hearth Console Int
 printPlayer window pHandle = do
     player <- view $ getPlayer pHandle
     liftIO $ setSGR [SetColor Foreground Vivid Green]

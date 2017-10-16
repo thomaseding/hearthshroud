@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -22,11 +23,11 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-deckColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+deckColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
 deckColumn player = view $ getPlayer player.playerDeck.to deckColumn'
 
 
-deckColumn' :: Deck k -> [SGRString]
+deckColumn' :: Deck -> [SGRString]
 deckColumn' (Deck cs) = [
     sgrColor (Dull, Green) +++ "Deck",
     sgrColor (Dull, Green) +++ "----",

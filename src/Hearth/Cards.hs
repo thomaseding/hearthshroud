@@ -20,13 +20,13 @@ import qualified Hearth.CardSet.Classic.Cards as Classic
 --------------------------------------------------------------------------------
 
 
-entireUniverse :: (UserConstraint k) => Universe k
+entireUniverse :: Universe
 entireUniverse = Universe $ concat [
     Basic.cards,
     Classic.cards ]
 
 
-cardByName :: (UserConstraint k) => Universe k -> CardName -> Card k
+cardByName :: Universe -> CardName -> Card
 cardByName (Universe cards) name = let
     mCard = flip find cards $ \card -> cardName card == name
     in case mCard of 
@@ -38,36 +38,36 @@ class GetCardName a where
     cardName :: a -> CardName
 
 
-instance GetCardName (Card k) where
+instance GetCardName Card where
     cardName = \case
         CardMinion x -> cardName x
         CardSpell x -> cardName x
         CardWeapon x -> cardName x
 
 
-instance GetCardName (DeckCard k) where
+instance GetCardName DeckCard where
     cardName = \case
         DeckCardMinion x -> cardName x
         DeckCardSpell x -> cardName x
         DeckCardWeapon x -> cardName x
 
 
-instance GetCardName (HandCard k) where
+instance GetCardName HandCard where
     cardName = \case
         HandCardMinion x -> cardName x
         HandCardSpell x -> cardName x
         HandCardWeapon x -> cardName x
 
 
-instance GetCardName (MinionCard k) where
+instance GetCardName MinionCard where
     cardName = cardName . _minionMeta
 
 
-instance GetCardName (SpellCard k) where
+instance GetCardName SpellCard where
     cardName = cardName . _spellMeta
 
 
-instance GetCardName (WeaponCard k) where
+instance GetCardName WeaponCard where
     cardName = cardName . _weaponMeta
 
 

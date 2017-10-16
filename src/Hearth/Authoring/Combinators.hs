@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -18,7 +19,7 @@ import Hearth.CardName
 
 
 class ToCard a where
-    toCard :: a k -> Card k
+    toCard :: a -> Card
 
 
 instance ToCard MinionCard where
@@ -55,22 +56,22 @@ instance Uncollectible CardMeta where
     uncollectible meta = meta { _cardMetaCollectibility = Uncollectible }
 
 
-instance Uncollectible (Card k) where
+instance Uncollectible (Card) where
     uncollectible = \case
         CardMinion x -> CardMinion $ uncollectible x
         CardSpell x -> CardSpell $ uncollectible x
         CardWeapon x -> CardWeapon $ uncollectible x
 
 
-instance Uncollectible (MinionCard k) where
+instance Uncollectible (MinionCard) where
     uncollectible minion = minion { _minionMeta = uncollectible $ _minionMeta minion }
 
 
-instance Uncollectible (SpellCard k) where
+instance Uncollectible (SpellCard) where
     uncollectible spell = spell { _spellMeta = uncollectible $ _spellMeta spell }
 
 
-instance Uncollectible (WeaponCard k) where
+instance Uncollectible (WeaponCard) where
     uncollectible weapon = weapon { _weaponMeta = uncollectible $ _weaponMeta weapon }
 
 
@@ -82,7 +83,7 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability k Minion] -> MinionCard k
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [MinionType] -> Mana -> Attack -> Health -> [Ability Minion] -> MinionCard
 mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionCost = ManaCost mana,
     _minionTypes = Set.fromList types,
@@ -92,7 +93,7 @@ mkMinion' f rarity clazz name types mana attack health abilities = MinionCard {
     _minionMeta = mkMeta f rarity clazz name }
 
 
-mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability k Weapon] -> WeaponCard k
+mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability Weapon] -> WeaponCard
 mkWeapon' f rarity clazz name mana attack durability abilities = WeaponCard {
     _weaponCost = ManaCost mana,
     _weaponAttack = attack,
@@ -101,7 +102,7 @@ mkWeapon' f rarity clazz name mana attack durability abilities = WeaponCard {
     _weaponMeta = mkMeta f rarity clazz name }
 
 
-mkSpell' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> SpellEffect k -> SpellCard k
+mkSpell' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> SpellEffect -> SpellCard
 mkSpell' f rarity clazz name mana effect = SpellCard {
     _spellCost = ManaCost mana,
     _spellEffect = effect,
@@ -110,7 +111,7 @@ mkSpell' f rarity clazz name mana effect = SpellCard {
 
 class CharacterLike a where
     asCharacter :: Handle a -> Handle Character
-    fromCharacterEnchantment :: Enchantment k t Character -> Enchantment k t a
+    fromCharacterEnchantment :: Enchantment t Character -> Enchantment t a
 
 
 instance CharacterLike Player where
@@ -148,19 +149,19 @@ instance AsDamageSource Spell where
     asDamageSource = DamagingSpell
 
 
-damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect k
+damages :: (AsDamageSource a, CharacterLike b) => Handle a -> Handle b -> Damage -> Effect
 damages source victim amount = DealDamage (asCharacter victim) amount (asDamageSource source)
 
 
-when :: Condition -> Effect k -> Effect k
+when :: Condition -> Effect -> Effect
 when cond effect = If cond effect DoNothing
 
 
-statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment k Continuous a
+statsDelta :: (CharacterLike a) => Attack -> Health -> Enchantment Continuous a
 statsDelta attack health = fromCharacterEnchantment $ StatsDelta attack health
 
 
-freeze :: (CharacterLike a) => Handle a -> Effect k
+freeze :: (CharacterLike a) => Handle a -> Effect
 freeze = Freeze . asCharacter
 
 

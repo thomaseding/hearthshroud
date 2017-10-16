@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -23,7 +24,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-weaponColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+weaponColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
 weaponColumn player = dynamic $ do
     weaponStr <- view (getPlayer player.playerWeapon) >>= return . \case
         Nothing -> "None"

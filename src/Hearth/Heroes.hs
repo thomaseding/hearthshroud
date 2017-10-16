@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 
 
 module Hearth.Heroes (
@@ -27,7 +28,7 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-mkSimpleHero :: (UserConstraint k) => HeroName -> HeroPower k -> Hero k
+mkSimpleHero :: HeroName -> HeroPower -> Hero
 mkSimpleHero name power = Hero {
     _heroAttack = 0,
     _heroHealth = 30,
@@ -38,46 +39,46 @@ mkSimpleHero name power = Hero {
 --------------------------------------------------------------------------------
 
 
-anduin :: (UserConstraint k) => Hero k
+anduin :: Hero
 anduin = mkSimpleHero Anduin lesserHeal
 
 
-garrosh :: (UserConstraint k) => Hero k
+garrosh :: Hero
 garrosh = mkSimpleHero Garrosh armorUp
 
 
-gul'dan :: (UserConstraint k) => Hero k
+gul'dan :: Hero
 gul'dan = mkSimpleHero Gul'dan lifeTap
 
 
-jaina :: (UserConstraint k) => Hero k
+jaina :: Hero
 jaina = mkSimpleHero Jaina fireblast
 
 
-malfurion :: (UserConstraint k) => Hero k
+malfurion :: Hero
 malfurion = mkSimpleHero Malfurion shapeshift
 
 
-rexxar :: (UserConstraint k) => Hero k
+rexxar :: Hero
 rexxar = mkSimpleHero Rexxar steadyShot
 
 
-thrall :: (UserConstraint k) => Hero k
+thrall :: Hero
 thrall = mkSimpleHero Thrall totemicCall
 
 
-uther :: (UserConstraint k) => Hero k
+uther :: Hero
 uther = mkSimpleHero Uther reinforce
 
 
-valeera :: (UserConstraint k) => Hero k
+valeera :: Hero
 valeera = mkSimpleHero Valeera daggerMastery
 
 
 --------------------------------------------------------------------------------
 
 
-armorUp :: (UserConstraint k) => HeroPower k
+armorUp :: HeroPower
 armorUp = HeroPower {
     _heroPowerName = ArmorUp,
     _heroPowerCost = ManaCost 2,
@@ -85,7 +86,7 @@ armorUp = HeroPower {
         Effect $ GainArmor you 2 }
 
 
-daggerMastery :: (UserConstraint k) => HeroPower k
+daggerMastery :: HeroPower
 daggerMastery = HeroPower {
     _heroPowerName = DaggerMastery,
     _heroPowerCost = ManaCost 2,
@@ -93,25 +94,25 @@ daggerMastery = HeroPower {
         Effect $ EquipWeapon you wickedKnife }
 
 
-fireblast :: (UserConstraint k) => HeroPower k
+fireblast :: HeroPower
 fireblast = HeroPower {
     _heroPowerName = Fireblast,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
-        A $ Character [] $ \target ->
+        A $ Character' [] $ \target ->
             Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
 
 
-lesserHeal :: (UserConstraint k) => HeroPower k
+lesserHeal :: HeroPower
 lesserHeal = HeroPower {
     _heroPowerName = LesserHeal,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \_ ->
-        A $ Character [] $ \target ->
+        A $ Character' [] $ \target ->
             Effect $ RestoreHealth target 2 }
 
 
-lifeTap :: (UserConstraint k) => HeroPower k
+lifeTap :: HeroPower
 lifeTap = HeroPower {
     _heroPowerName = LifeTap,
     _heroPowerCost = ManaCost 2,
@@ -121,7 +122,7 @@ lifeTap = HeroPower {
             DealDamage (PlayerCharacter you) 2 (DamagingCharacter $ PlayerCharacter you) ]}
 
 
-reinforce :: (UserConstraint k) => HeroPower k
+reinforce :: HeroPower
 reinforce = HeroPower {
     _heroPowerName = Reinforce,
     _heroPowerCost = ManaCost 2,
@@ -129,7 +130,7 @@ reinforce = HeroPower {
         Effect $ Summon silverHandRecruit $ Rightmost you }
 
 
-shapeshift :: (UserConstraint k) => HeroPower k
+shapeshift :: HeroPower
 shapeshift = HeroPower {
     _heroPowerName = Shapeshift,
     _heroPowerCost = ManaCost 2,
@@ -139,7 +140,7 @@ shapeshift = HeroPower {
             GainArmor you 1 ]}
 
 
-steadyShot :: (UserConstraint k) => HeroPower k
+steadyShot :: HeroPower
 steadyShot = HeroPower {
     _heroPowerName = SteadyShot,
     _heroPowerCost = ManaCost 2,
@@ -149,7 +150,7 @@ steadyShot = HeroPower {
 
 
 -- TODO: Not this simple. Needs to select from non-owned totems.
-totemicCall :: (UserConstraint k) => HeroPower k
+totemicCall :: HeroPower
 totemicCall = HeroPower {
     _heroPowerName = TotemicCall,
     _heroPowerCost = ManaCost 2,

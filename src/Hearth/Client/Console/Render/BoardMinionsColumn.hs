@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
@@ -28,7 +29,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-boardMinionsColumn :: (HearthMonad k m) => [BoardMinion k] -> Hearth k m [SGRString]
+boardMinionsColumn :: (HearthMonad m) => [BoardMinion] -> Hearth m [SGRString]
 boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) . mapM boardMinionColumn . zip [1..]
     where
         label' idx = "<" +++ sgrShow (idx + 1 :: Int) +++ ">"
@@ -36,7 +37,7 @@ boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) .
         f sss (idx, ss) = (ss ++ label idx) : sss
 
 
-boardMinionColumn :: (HearthMonad k m) => (Int, BoardMinion k) -> Hearth k m [SGRString]
+boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m [SGRString]
 boardMinionColumn (idx, bm) = do
     let bmHandle = bm^.boardMinionHandle
     dynDamage <- liftM unDamage $ dynamic $ viewDamage bmHandle
@@ -65,11 +66,11 @@ boardMinionColumn (idx, bm) = do
     return $ map ("   " +++) [header, "    " +++ stats]
 
 
-getMinionName :: MinionCard k -> SGRString
+getMinionName :: MinionCard -> SGRString
 getMinionName = fromString . showCardName . cardName
 
 
-hasDivineShield :: BoardMinion k -> Bool
+hasDivineShield :: BoardMinion -> Bool
 hasDivineShield minion = let
     abilities = minion^.boardMinionAbilities
     in flip any abilities $ \case
@@ -77,7 +78,7 @@ hasDivineShield minion = let
         _ -> False
 
 
-hasTaunt :: BoardMinion k -> Bool
+hasTaunt :: BoardMinion -> Bool
 hasTaunt minion = let
     abilities = minion^.boardMinionAbilities
     in flip any abilities $ \case

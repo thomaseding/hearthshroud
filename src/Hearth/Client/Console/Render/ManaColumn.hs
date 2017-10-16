@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -22,11 +23,11 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-manaColumn :: (HearthMonad k m) => Handle Player -> Hearth k m [SGRString]
+manaColumn :: (HearthMonad m) => Handle Player -> Hearth m [SGRString]
 manaColumn player = view $ getPlayer player.to manaColumn'
 
 
-manaColumn' :: PlayerObject k -> [SGRString]
+manaColumn' :: PlayerObject -> [SGRString]
 manaColumn' player = let
     totalMana = player^.playerTotalManaCrystals
     emptyMana = player^.playerEmptyManaCrystals

@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
@@ -19,7 +20,7 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-possibleAttacks :: (HearthMonad k m) => Hearth k m [(Handle Character, Handle Character)]
+possibleAttacks :: (HearthMonad m) => Hearth m [(Handle Character, Handle Character)]
 possibleAttacks = do
     activeHandle <- getActivePlayerHandle
     activeMinions' <- view $ getPlayer activeHandle.playerMinions
@@ -37,7 +38,7 @@ possibleAttacks = do
             Success -> return True
 
 
-playableMinions :: (HearthMonad k m) => Hearth k m [(HandCard k, BoardIndex)]
+playableMinions :: (HearthMonad m) => Hearth m [(HandCard, BoardIndex)]
 playableMinions = do
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
@@ -50,7 +51,7 @@ playableMinions = do
                 Success -> return True
 
 
-playableSpells :: (HearthMonad k m) => Hearth k m [HandCard k]
+playableSpells :: (HearthMonad m) => Hearth m [HandCard]
 playableSpells = do
     handle <- getActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
