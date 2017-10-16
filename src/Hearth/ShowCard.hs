@@ -66,7 +66,7 @@ rawGenHandle str = do
     return handle
 
 
-class GenHandle (a :: Type) where
+class GenHandle (a :: ObjectType) where
     genHandle :: String -> ShowCard (Handle a)
 
 

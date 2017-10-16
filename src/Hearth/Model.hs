@@ -101,7 +101,7 @@ instance Ord RawHandle where
     (RawHandle _ x) <= (RawHandle _ y) = x <= y
 
 
-data Type
+data ObjectType
     = Spell
     | Weapon
     | Minion
@@ -110,7 +110,7 @@ data Type
     deriving (Typeable)
 
 
-data Handle :: Type -> * where
+data Handle :: ObjectType -> * where
     SpellHandle :: RawHandle -> Handle 'Spell
     WeaponHandle :: RawHandle -> Handle 'Weapon
     MinionHandle :: RawHandle -> Handle 'Minion
@@ -140,7 +140,7 @@ applyRawHandle f = \case
     PlayerCharacter h -> applyRawHandle f h
 
 
-class CastHandle (a :: Type) where
+class CastHandle (a :: ObjectType) where
     castHandle :: Handle b -> Maybe (Handle a)
 
 
@@ -172,7 +172,7 @@ instance Ord (Handle a) where
     (<=) = on (<=) $ applyRawHandle id
 
 
-data HandleList :: Type -> * where
+data HandleList :: ObjectType -> * where
     HandleList :: (Typeable userData) => userData -> [Handle a] -> HandleList a
 
 
@@ -234,7 +234,7 @@ data Condition :: * where
     Satisfies :: Handle a -> [Requirement a] -> Condition
 
 
-data Requirement :: Type -> * where
+data Requirement :: ObjectType -> * where
     RequireMinion :: Requirement 'Character -> Requirement 'Minion
     RequirePlayer :: Requirement 'Character -> Requirement 'Player
     OwnedBy :: Handle 'Player -> Requirement a
@@ -344,7 +344,7 @@ data Aura :: * where
     HasAbility :: Handle 'Minion -> Ability 'Minion -> Aura
 
 
-data Ability :: Type -> * where
+data Ability :: ObjectType -> * where
     WheneverMinion :: (Handle 'Minion -> EventListener) -> Ability 'Minion
     AuraMinion :: (Handle 'Minion -> Aura) -> Ability 'Minion
     Battlecry :: (Handle 'Minion -> Elect 'Targeted) -> Ability 'Minion
@@ -386,7 +386,7 @@ data TimePoint :: * where
     deriving (Show, Typeable, Eq, Ord)
 
 
-data Enchantment :: Timeline -> Type -> * where
+data Enchantment :: Timeline -> ObjectType -> * where
     MinionEnchantment :: Enchantment t 'Character -> Enchantment t 'Minion
     PlayerEnchantment :: Enchantment t 'Character -> Enchantment t 'Player
     Until :: TimePoint -> Enchantment 'Continuous a -> Enchantment 'Limited a
@@ -401,7 +401,7 @@ data Enchantment :: Timeline -> Type -> * where
     deriving (Typeable)
 
 
-data AnyEnchantment :: Type -> * where
+data AnyEnchantment :: ObjectType -> * where
     ContinuousEnchantment :: Enchantment 'Continuous a -> AnyEnchantment a
     LimitedEnchantment :: Enchantment 'Limited a -> AnyEnchantment a
     deriving (Typeable)
@@ -602,7 +602,7 @@ data GameState = GameState {
     _gameHandleSeed :: Int,
     _gamePlayerTurnOrder :: [Handle 'Player],
     _gameEffectObservers :: [EventListener],
-    _gameRootMinion :: Maybe (Handle 'Minion),  -- Used to disable targeting the battlecry/choose-on/choose-onee minion.
+    _gameRootMinion :: Maybe (Handle 'Minion), -- Used to disable targeting the battlecry/choose-one minion.
     _gamePlayers :: [PlayerObject]
 } deriving (Typeable)
 
