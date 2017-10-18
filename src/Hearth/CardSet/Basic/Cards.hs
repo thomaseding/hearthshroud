@@ -23,6 +23,7 @@ import Hearth.CardName
 import Hearth.CardSet.Basic.Names hiding (Charge, Windfury)
 import qualified Hearth.CardSet.Basic.Names as Basic
 import Hearth.Model
+import Prelude hiding (sequence)
 
 
 --------------------------------------------------------------------------------
@@ -196,23 +197,23 @@ mkWeapon = mkWeapon' BasicCardName Free
 acidicSwampOoze :: MinionCard
 acidicSwampOoze = mkMinion Neutral AcidicSwampOoze [] 2 3 2 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
-            OpponentOf you $ \opponent ->
+        ownerOf this $ \you ->
+            opponentOf you $ \opponent ->
                 A $ Weapon' [OwnedBy opponent] $ \weapon ->
-                    Effect $ DestroyWeapon weapon ]
+                    Effect $ destroy weapon ]
 
 
 ancestralHealing :: SpellCard
 ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
     A $ Minion' [] $ \minion ->
-        Effect $ Sequence [
+        Effect $ sequence [
             RestoreToFullHealth $ MinionCharacter minion,
             enchant minion $ Grant Taunt ]
 
 
 animalCompanion :: SpellCard
 animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ Get $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
             huffer,
             leokk,
@@ -221,23 +222,23 @@ animalCompanion = mkSpell Hunter AnimalCompanion 3 $ \this ->
 
 arcaneExplosion :: SpellCard
 arcaneExplosion = mkSpell Mage ArcaneExplosion 2 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \enemies ->
-                Effect $ ForEachMinion enemies $ \enemy ->
+                Effect $ forEach enemies $ \enemy ->
                     (this `damages` enemy) 1
 
 
 arcaneIntellect :: SpellCard
 arcaneIntellect = mkSpell Mage ArcaneIntellect 3 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ DrawCards you 2
 
 
 arcaneMissiles :: SpellCard
 arcaneMissiles = mkSpell Mage ArcaneMissiles 1 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ RandomMissiles [OwnedBy opponent] 3 this
 
 
@@ -259,7 +260,7 @@ archmage = mkMinion Neutral Archmage [] 6 4 7 [
 assassinate :: SpellCard
 assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ DestroyMinion target
+        Effect $ destroy target
 
 
 assassin'sBlade :: WeaponCard
@@ -268,14 +269,14 @@ assassin'sBlade = mkWeapon Rogue Assassin'sBlade 5 3 4 []
 
 backstab :: SpellCard
 backstab = mkSpell Rogue Backstab 0 $ \this ->
-    A $ Minion' [RequireMinion Undamaged] $ \target ->
+    A $ Minion' [undamaged] $ \target ->
         Effect $ (this `damages` target) 2
 
 
 blessingOfKings :: SpellCard
 blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Sequence [
+        Effect $ sequence [
             enchant target $ gainAttack 4,
             enchant target $ GainHealth 4 ]
 
@@ -292,9 +293,9 @@ bloodfenRaptor = mkMinion Neutral BloodfenRaptor [Beast] 2 3 2 []
 
 bloodlust :: SpellCard
 bloodlust = mkSpell Shaman Bloodlust 5 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         All $ Minions [OwnedBy you] $ \minions ->
-            Effect $ ForEachMinion minions $ \minion ->
+            Effect $ forEach minions $ \minion ->
                 enchant minion $ Until EndOfTurn $ gainAttack 3
 
 
@@ -318,9 +319,9 @@ boulderfistOgre = mkMinion Neutral BoulderfistOgre [] 6 6 7 []
 
 charge :: SpellCard
 charge = mkSpell Warrior Basic.Charge 3 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Minion' [OwnedBy you] $ \target ->
-            Effect $ Sequence [
+            Effect $ sequence [
                 enchant target $ gainAttack 2,
                 enchant target $ Grant Charge ]
 
@@ -331,28 +332,28 @@ chillwindYeti = mkMinion Neutral ChillwindYeti [] 4 4 5 []
 
 claw :: SpellCard
 claw = mkSpell Druid Claw 1 $ \this ->
-    OwnerOf this $ \you ->
-        Effect $ Sequence [
+    ownerOf this $ \you ->
+        Effect $ sequence [
             enchant you $ Until EndOfTurn $ gainAttack 2,
             GainArmor you 2 ]
 
 
 cleave :: SpellCard
 cleave = mkSpell Warrior Cleave 2 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
                 A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
-                    Effect $ ForEachMinion (handleList [victim1, victim2]) $ \victim ->
+                    Effect $ forEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 2
 
 
 consecration :: SpellCard
 consecration = mkSpell Paladin Consecration 4 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Characters [OwnedBy opponent] $ \enemies ->
-                Effect $ ForEachCharacter enemies $ \enemy ->
+                Effect $ forEach enemies $ \enemy ->
                     (this `damages` enemy) 2
 
 
@@ -362,10 +363,10 @@ coreHound = mkMinion Neutral CoreHound [Beast] 7 9 5 []
 
 corruption :: SpellCard
 corruption = mkSpell Warlock Corruption 1 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             A $ Minion' [OwnedBy opponent] $ \target ->
-                Effect $ enchant target $ DelayedEffect (Delay 1 BeginOfTurn) $ DestroyMinion target
+                Effect $ enchant target $ DelayedEffect (Delay 1 BeginOfTurn) $ destroy target
     
 
 
@@ -377,25 +378,25 @@ dalaranMage = mkMinion Neutral DalaranMage [] 3 1 4 [
 darkscaleHealer :: MinionCard
 darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             All $ Characters [OwnedBy you] $ \friendlies ->
-                Effect $ ForEachCharacter friendlies $ \friendly ->
+                Effect $ forEach friendlies $ \friendly ->
                     RestoreHealth friendly 2 ]
 
 
 deadlyPoison :: SpellCard
 deadlyPoison = mkSpell Rogue DeadlyPoison 1 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Weapon' [OwnedBy you] $ \weapon ->
             Effect $ enchant weapon $ AttackDelta 2
 
 
 deadlyShot :: SpellCard
 deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim ->
-                Effect $ DestroyMinion victim
+                Effect $ destroy victim
 
 
 divineSpirit :: SpellCard
@@ -413,8 +414,8 @@ dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
 drainLife :: SpellCard
 drainLife = mkSpell Warlock DrainLife 3 $ \this ->
     A $ Character' [] $ \target ->
-        OwnerOf this $ \you ->
-            Effect $ Sequence [
+        ownerOf this $ \you ->
+            Effect $ sequence [
                 (this `damages` target) 2,
                 RestoreHealth (PlayerCharacter you) 2 ]
 
@@ -423,7 +424,7 @@ dreadInfernal :: MinionCard
 dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
     Battlecry $ \this ->
         All $ Characters [Not (MinionCharacter this)] $ \victims ->
-            Effect $ ForEachCharacter victims $ \victim ->
+            Effect $ forEach victims $ \victim ->
                 (this `damages` victim) 1 ]
 
 
@@ -436,23 +437,23 @@ elvenArcher = mkMinion Neutral ElvenArcher [] 1 1 1 [
 
 excessMana :: SpellCard
 excessMana = uncollectible $ mkSpell Druid ExcessMana 0 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ DrawCards you 1
 
 
 execute :: SpellCard
 execute = mkSpell Warrior Execute 1 $ \_ ->
-    A $ Minion' [RequireMinion Damaged] $ \target ->
-        Effect $ DestroyMinion target
+    A $ Minion' [damaged] $ \target ->
+        Effect $ destroy target
 
 
 fanOfKnives :: SpellCard
 fanOfKnives = mkSpell Rogue FanOfKnives 4 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \enemies ->
-                Effect $ Sequence [
-                    ForEachMinion enemies $ \enemy ->
+                Effect $ sequence [
+                    forEach enemies $ \enemy ->
                         (this `damages` enemy) 1,
                     DrawCards you 1 ]
 
@@ -472,16 +473,16 @@ fireElemental = mkMinion Shaman FireElemental [] 6 6 5 [
 
 flamestrike :: SpellCard
 flamestrike = mkSpell Mage Flamestrike 7 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \victims ->
-                Effect $ ForEachMinion victims $ \victim ->
+                Effect $ forEach victims $ \victim ->
                     (this `damages` victim) 4
 
 
 flametongueTotem :: MinionCard
 flametongueTotem = mkMinion Shaman FlametongueTotem [Totem] 2 0 3 [
-    AuraMinion $ \this ->
+    aura $ \this ->
         EachMinion [AdjacentTo this] $ \minion ->
             Has minion $ gainAttack 2 ]
 
@@ -494,24 +495,24 @@ frog = uncollectible $ mkMinion Neutral Frog [Beast] 0 0 1 [
 frostbolt :: SpellCard
 frostbolt = mkSpell Mage Frostbolt 2 $ \this ->
     A $ Character' [] $ \target ->
-        Effect $ Sequence [
+        Effect $ sequence [
             (this `damages` target) 3,
             Freeze target ]
 
 
 frostNova :: SpellCard
 frostNova = mkSpell Mage FrostNova 3 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Minions [OwnedBy opponent] $ \victims ->
-                Effect $ ForEachMinion victims $ \victim ->
+                Effect $ forEach victims $ \victim ->
                     Freeze (MinionCharacter victim)
 
 
 frostShock :: SpellCard
 frostShock = mkSpell Shaman FrostShock 1 $ \this ->
     A $ Character' [] $ \target ->
-        Effect $ Sequence [
+        Effect $ sequence [
             (this `damages` target) 1,
             Freeze target ]
 
@@ -524,10 +525,10 @@ frostwolfGrunt = mkMinion Neutral FrostwolfGrunt [] 2 2 2 [
 frostwolfWarlord :: MinionCard
 frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             All $ Minions [OwnedBy you, Not this] $ \minions ->
-                Effect $ ForEachMinion minions $ \_ ->
-                    Sequence [
+                Effect $ forEach minions $ \_ ->
+                    sequence [
                         enchant this $ gainAttack 1,
                         enchant this $ GainHealth 1 ]]
 
@@ -535,7 +536,7 @@ frostwolfWarlord = mkMinion Neutral FrostwolfWarlord [] 5 4 4 [
 gnomishInventor :: MinionCard
 gnomishInventor = mkMinion Neutral GnomishInventor [] 4 2 4 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
@@ -546,7 +547,7 @@ goldshireFootman = mkMinion Neutral GoldshireFootman [] 1 1 2 [
 
 grimscaleOracle :: MinionCard
 grimscaleOracle = mkMinion Neutral GrimscaleOracle [Murloc] 1 1 1 [
-    AuraMinion $ \this ->
+    aura $ \this ->
         EachMinion [Not this, OfTribe Murloc] $ \minion ->
             Has minion $ gainAttack 1 ]
 
@@ -554,13 +555,13 @@ grimscaleOracle = mkMinion Neutral GrimscaleOracle [Murloc] 1 1 1 [
 guardianOfKings :: MinionCard
 guardianOfKings = mkMinion Paladin GuardianOfKings [] 7 5 6 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             Effect $ RestoreHealth (PlayerCharacter you) 6 ]
 
 
 gurubashiBerserker :: MinionCard
 gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
-    WheneverMinion $ \this ->
+    observer $ \this ->
         DamageIsDealt $ \victim _ _ ->
             Effect $ when (MinionCharacter this `Satisfies` [Is victim]) $ enchant this $ gainAttack 3 ]
 
@@ -568,8 +569,8 @@ gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
 hammerOfWrath :: SpellCard
 hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
     A $ Character' [] $ \target ->
-        OwnerOf this $ \you ->
-            Effect $ Sequence [
+        ownerOf this $ \you ->
+            Effect $ sequence [
                 (this `damages` target) 3,
                 DrawCards you 1 ]
 
@@ -582,11 +583,11 @@ handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
 
 healingTotem :: MinionCard
 healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
-    WheneverMinion $ \this ->
+    observer $ \this ->
         EndOfTurnEvent $ \player ->
-            OwnerOf this $ \you ->
+            ownerOf this $ \you ->
                 Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Minions [OwnedBy you] $ \minions ->
-                    Effect $ ForEachMinion minions $ \minion ->
+                    Effect $ forEach minions $ \minion ->
                         RestoreHealth (MinionCharacter minion) 1 ]
 
 
@@ -599,13 +600,13 @@ healingTouch = mkSpell Druid HealingTouch 3 $ \_ ->
 hellfire :: SpellCard
 hellfire = mkSpell Warlock Hellfire 4 $ \this ->
     All $ Characters [] $ \victims ->
-        Effect $ ForEachCharacter victims $ \victim ->
+        Effect $ forEach victims $ \victim ->
             (this `damages` victim) 3
 
 
 heroicStrike :: SpellCard
 heroicStrike = mkSpell Warrior HeroicStrike 2 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ enchant you $ Until EndOfTurn $ gainAttack 4
 
 
@@ -623,14 +624,14 @@ holyLight = mkSpell Paladin HolyLight 2 $ \_ ->
 
 holyNova :: SpellCard
 holyNova = mkSpell Priest HolyNova 5 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             All $ Characters [OwnedBy you] $ \friendlies ->
                 All $ Characters [OwnedBy opponent] $ \enemies ->
-                    Effect $ Sequence [
-                        ForEachCharacter enemies $ \enemy ->
+                    Effect $ sequence [
+                        forEach enemies $ \enemy ->
                             (this `damages` enemy) 2,
-                        ForEachCharacter friendlies $ \friendly ->
+                        forEach friendlies $ \friendly ->
                             RestoreHealth friendly 2 ]
 
 
@@ -643,9 +644,9 @@ holySmite = mkSpell Priest HolySmite 1 $ \this ->
 houndmaster :: MinionCard
 houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             A $ Minion' [OwnedBy you, OfTribe Beast] $ \beast ->
-                Effect $ Sequence [
+                Effect $ sequence [
                     enchant beast $ gainAttack 2,
                     enchant beast $ GainHealth 2,
                     enchant beast $ Grant Taunt ]]
@@ -680,7 +681,7 @@ kor'kronElite = mkMinion Warrior Kor'kronElite [] 4 4 3 [
 
 innervate :: SpellCard
 innervate = mkSpell Druid Innervate 0 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ GainManaCrystals you 2 CrystalTemporary
 
 
@@ -698,7 +699,7 @@ ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
 
 killCommand :: SpellCard
 killCommand = mkSpell Hunter KillCommand 3 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Character' [] $ \victim -> let
             deal = this `damages` victim
             in Effect $ If (you `Satisfies` [HasMinion [OfTribe Beast]])
@@ -708,8 +709,8 @@ killCommand = mkSpell Hunter KillCommand 3 $ \this ->
 
 leokk :: MinionCard
 leokk = uncollectible $ mkMinion Hunter Leokk [Beast] 3 2 4 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [Not this, OwnedBy you] $ \minion ->
                 Has minion $ gainAttack 1 ]
 
@@ -726,7 +727,7 @@ lordOfTheArena = mkMinion Neutral LordOfTheArena [] 6 6 5 [
 markOfTheWild :: SpellCard
 markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
     A $ Minion' [] $ \target ->
-        Effect $ Sequence [
+        Effect $ sequence [
             enchant target $ Grant Taunt,
             enchant target $ gainAttack 2,
             enchant target $ GainHealth 2 ]
@@ -742,15 +743,15 @@ mechanicalDragonling = uncollectible $ mkMinion Neutral MechanicalDragonling [Me
 
 mindBlast :: SpellCard
 mindBlast = mkSpell Priest MindBlast 2 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 5
 
 
 mindControl :: SpellCard
 mindControl = mkSpell Priest MindControl 10 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             A $ Minion' [OwnedBy opponent] $ \victim ->
                 Effect $ TakeControl you victim
 
@@ -762,8 +763,8 @@ mirrorImage_minion = uncollectible $ mkMinion Mage MirrorImage_Minion [] 1 0 2 [
 
 mirrorImage_spell :: SpellCard
 mirrorImage_spell = mkSpell Mage MirrorImage_Spell 1 $ \this ->
-    OwnerOf this $ \you ->
-        Effect $ Sequence $ replicate 2 $ (Summon mirrorImage_minion) $ Rightmost you
+    ownerOf this $ \you ->
+        Effect $ sequence $ replicate 2 $ (Summon mirrorImage_minion) $ Rightmost you
 
 
 misha :: MinionCard
@@ -783,22 +784,22 @@ moonfire = mkSpell Druid Moonfire 0 $ \this ->
 -- Comprehensive explanation - https://www.youtube.com/watch?v=H3d_qlm4Xws
 mortalCoil :: SpellCard
 mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Minion' [] $ \target -> let
             effect = (this `damages` target) 1
             in Effect $ Observing effect $ DamageIsDealt $ \victim _ source -> let
                 condition = this `Satisfies` [IsDamageSource source]
-                    `And` victim `Satisfies` [WithHealth LessEqual 0]
+                    `And` victim `Satisfies` [withHealth LessEqual 0]
                 in Effect $ when condition $ DrawCards you 1
 
 
 multiShot :: SpellCard
 multiShot = mkSpell Hunter MultiShot 4 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
                 A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
-                    Effect $ ForEachMinion (handleList [victim1, victim2]) $ \victim ->
+                    Effect $ forEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 3
 
 
@@ -819,23 +820,23 @@ murlocTidehunter = mkMinion Neutral MurlocTidehunter [Murloc] 2 2 1 [
 nightblade :: MinionCard
 nightblade = mkMinion Neutral Nightblade [] 5 4 4 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
-            OpponentOf you $ \opponent ->
+        ownerOf this $ \you ->
+            opponentOf you $ \opponent ->
                 Effect $ (this `damages` opponent) 3 ]
 
 
 northshireCleric :: MinionCard
 northshireCleric = mkMinion Priest NorthshireCleric [] 1 1 3 [
-    WheneverMinion $ \this ->
+    observer $ \this ->
         HealthIsRestored $ \recipient _ ->
-            OwnerOf this $ \you ->
+            ownerOf this $ \you ->
                 Effect $ when (recipient `Satisfies` [IsMinion]) $ DrawCards you 1 ]
 
 
 noviceEngineer :: MinionCard
 noviceEngineer = mkMinion Neutral NoviceEngineer [] 2 1 1 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             Effect $ DrawCards you 1 ]
 
 
@@ -857,16 +858,16 @@ polymorph = mkSpell Mage Polymorph 4 $ \_ ->
 powerWordShield :: SpellCard
 powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
     A $ Minion' [] $ \target ->
-        OwnerOf this $ \you ->
-            Effect $ Sequence [
+        ownerOf this $ \you ->
+            Effect $ sequence [
                 enchant target $ GainHealth 2,
                 DrawCards you 1 ]
 
 
 raidLeader :: MinionCard
 raidLeader = mkMinion Neutral RaidLeader [] 3 2 2 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
                 Has minion $ gainAttack 1 ]
 
@@ -888,25 +889,25 @@ riverCrocolisk = mkMinion Neutral RiverCrocolisk [Beast] 2 2 3 []
 
 rockbiterWeapon :: SpellCard
 rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Character' [OwnedBy you] $ \target ->
             Effect $ enchant target $ Until EndOfTurn $ gainAttack 3
 
 
 sacrificialPact :: SpellCard
 sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Minion' [OfTribe Demon] $ \demon ->
-            Effect $ Sequence [
-                DestroyMinion demon,
+            Effect $ sequence [
+                destroy demon,
                 RestoreHealth (PlayerCharacter you) 5 ]
 
 
 savageRoar :: SpellCard
 savageRoar = mkSpell Druid SavageRoar 3 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         All $ Characters [OwnedBy you] $ \friendlies ->
-            Effect $ ForEachCharacter friendlies $ \friendly ->
+            Effect $ forEach friendlies $ \friendly ->
                 enchant friendly $ Until EndOfTurn $ gainAttack 2
 
 
@@ -927,22 +928,22 @@ shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
 
 shadowWordDeath :: SpellCard
 shadowWordDeath = mkSpell Priest ShadowWordDeath 3 $ \_ ->
-    A $ Minion' [RequireMinion (WithAttack GreaterEqual 5)] $ \target ->
-        Effect $ DestroyMinion target
+    A $ Minion' [withAttack GreaterEqual 5] $ \target ->
+        Effect $ destroy target
 
 
 shadowWordPain :: SpellCard
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
-    A $ Minion' [RequireMinion (WithAttack LessEqual 3)] $ \target ->
-        Effect $ DestroyMinion target
+    A $ Minion' [withAttack LessEqual 3] $ \target ->
+        Effect $ destroy target
 
 
 shatteredSunCleric :: MinionCard
 shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
-                Effect $ Sequence [
+                Effect $ sequence [
                     enchant target $ gainAttack 1,
                     enchant target $ GainHealth 1 ]]
 
@@ -953,8 +954,8 @@ sheep = uncollectible $ mkMinion Neutral Sheep [Beast] 0 1 1 []
 
 shieldBlock :: SpellCard
 shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
-    OwnerOf this $ \you ->
-        Effect $ Sequence [
+    ownerOf this $ \you ->
+        Effect $ sequence [
             GainArmor you 5,
             DrawCards you 1 ]
 
@@ -962,8 +963,8 @@ shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
 shiv :: SpellCard
 shiv = mkSpell Rogue Shiv 2 $ \this ->
     A $ Character' [] $ \target ->
-        OwnerOf this $ \you ->
-            Effect $ Sequence [
+        ownerOf this $ \you ->
+            Effect $ sequence [
                 (this `damages` target) 1,
                 DrawCards you 1 ]
 
@@ -979,31 +980,31 @@ silverHandRecruit = uncollectible $ mkMinion Paladin SilverHandRecruit [] 1 1 1 
 
 sinisterStrike :: SpellCard
 sinisterStrike = mkSpell Rogue SinisterStrike 1 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             Effect $ (this `damages` opponent) 3
 
 
 soulfire :: SpellCard
 soulfire = mkSpell Warlock Soulfire 1 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         A $ Character' [] $ \victim ->
-            Effect $ Sequence [
+            Effect $ sequence [
                 (this `damages` victim) 4,
                 DiscardAtRandom you ]
 
 
 sprint :: SpellCard
 sprint = mkSpell Rogue Sprint 7 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ DrawCards you 4
 
 
 starfire :: SpellCard
 starfire = mkSpell Druid Starfire 6 $ \this ->
     A $ Character' [] $ \target ->
-        OwnerOf this $ \you ->
-            Effect $ Sequence [
+        ownerOf this $ \you ->
+            Effect $ sequence [
                 (this `damages` target) 5,
                 DrawCards you 1 ]
 
@@ -1032,10 +1033,10 @@ stormwindKnight = mkMinion Neutral StormwindKnight [] 4 2 5 [
 
 stormwindChampion :: MinionCard
 stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [OwnedBy you, Not this] $ \minion ->
-                AuraSequence [
+                sequence [
                     Has minion $ gainAttack 1,
                     Has minion $ GainHealth 1 ]]
 
@@ -1043,48 +1044,48 @@ stormwindChampion = mkMinion Neutral StormwindChampion [] 7 6 6 [
 succubus :: MinionCard
 succubus = mkMinion Warlock Succubus [Demon] 2 4 3 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             Effect $ DiscardAtRandom you ]
 
 
 swipe :: SpellCard
 swipe = mkSpell Druid Swipe 4 $ \this ->
-    OwnerOf this $ \you ->
-        OpponentOf you $ \opponent ->
+    ownerOf this $ \you ->
+        opponentOf you $ \opponent ->
             A $ Character' [OwnedBy opponent] $ \target ->
                 All $ Characters [OwnedBy opponent, Not target] $ \others ->
-                    Effect $ Sequence [
+                    Effect $ sequence [
                         (this `damages` target) 4,
-                        ForEachCharacter others $ \other ->
+                        forEach others $ \other ->
                             (this `damages` other) 1 ]
 
 
 theCoin :: SpellCard
 theCoin = uncollectible $ mkSpell Neutral TheCoin 0 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ GainManaCrystals you 1 CrystalTemporary
 
 
 timberWolf :: MinionCard
 timberWolf = mkMinion Hunter TimberWolf [Beast] 1 1 1 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [OwnedBy you, Not this, OfTribe Beast] $ \minion ->
                 Has minion $ gainAttack 1 ]
 
 
 totemicMight :: SpellCard
 totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         All $ Minions [OwnedBy you, OfTribe Totem] $ \totems ->
-            Effect $ ForEachMinion totems $ \totem ->
+            Effect $ forEach totems $ \totem ->
                 enchant totem $ GainHealth 2
 
 
 tundraRhino :: MinionCard
 tundraRhino = mkMinion Hunter TundraRhino [Beast] 5 2 5 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [OwnedBy you, OfTribe Beast] $ \minion ->
                 HasAbility minion Charge ]
 
@@ -1107,15 +1108,15 @@ warGolem = mkMinion Neutral WarGolem [] 7 7 7 []
 
 warsongCommander :: MinionCard
 warsongCommander = mkMinion Warrior WarsongCommander [] 3 2 3 [
-    AuraMinion $ \this ->
-        AuraOwnerOf this $ \you ->
+    aura $ \this ->
+        ownerOf this $ \you ->
             EachMinion [OwnedBy you, HasCharge] $ \minion ->
                 Has minion $ gainAttack 1 ]
 
 
 waterElemental :: MinionCard
 waterElemental = mkMinion Mage WaterElemental [] 4 3 6 [
-    WheneverMinion $ \this ->
+    observer $ \this ->
         DamageIsDealt $ \victim _ source ->
             Effect $ when (this `Satisfies` [IsDamageSource source]) $ Freeze victim ]
 
@@ -1123,7 +1124,7 @@ waterElemental = mkMinion Mage WaterElemental [] 4 3 6 [
 whirlwind :: SpellCard
 whirlwind = mkSpell Warrior Whirlwind 1 $ \this ->
     All $ Minions [] $ \minions ->
-        Effect $ ForEachMinion minions $ \minion ->
+        Effect $ forEach minions $ \minion ->
             (this `damages` minion) 1
 
 
@@ -1133,7 +1134,7 @@ wickedKnife = uncollectible $ mkWeapon Rogue WickedKnife 1 1 2 []
 
 wildGrowth :: SpellCard
 wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
-    OwnerOf this $ \you ->
+    ownerOf this $ \you ->
         Effect $ If (you `Satisfies` [HasMaxManaCrystals])
             (PutInHand you $ CardSpell excessMana)
             $ GainManaCrystals you 1 CrystalEmpty
@@ -1148,7 +1149,7 @@ windfury = mkSpell Shaman Basic.Windfury 2 $ \_ ->
 windspeaker :: MinionCard
 windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
     Battlecry $ \this ->
-        OwnerOf this $ \you ->
+        ownerOf this $ \you ->
             A $ Minion' [OwnedBy you] $ \target ->
                 Effect $ enchant target $ Grant Windfury ]
 

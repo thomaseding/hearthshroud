@@ -1985,7 +1985,7 @@ viewEventListeners = logCall 'viewEventListeners $ do
     minionListeners <- liftM concat $ forM minions $ \minion -> do
         abilities <- viewMinionAbilities minion
         return $ flip mapMaybe abilities $ \case
-            WheneverMinion listener -> Just $ listener minion
+            ObserverMinion listener -> Just $ listener minion
             _ -> Nothing
     effectObservers <- view gameEffectObservers
     return $ effectObservers ++ minionListeners

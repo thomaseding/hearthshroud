@@ -14,6 +14,7 @@ module Hearth.Authoring.Combinators where
 import qualified Data.Set as Set
 import Hearth.Model
 import Hearth.CardName
+import Prelude hiding (sequence)
 
 
 --------------------------------------------------------------------------------
@@ -110,7 +111,7 @@ mkSpell' f rarity clazz name mana effect = SpellCard {
     _spellMeta = mkMeta f rarity clazz name }
 
 
-class CharacterLike a where
+class CharacterLike (a :: ObjectType) where
     asCharacter :: Handle a -> Handle 'Character
     fromCharacterEnchantment :: Enchantment t 'Character -> Enchantment t a
 
@@ -130,7 +131,7 @@ instance CharacterLike 'Character where
     fromCharacterEnchantment = id
 
 
-class AsDamageSource a where
+class AsDamageSource (a :: ObjectType) where
     asDamageSource :: Handle a -> DamageSource
 
 
@@ -182,6 +183,92 @@ freeze :: (CharacterLike a) => Handle a -> Effect
 freeze = Freeze . asCharacter
 
 
+class AsObserver (a :: ObjectType) where
+    observer :: (Handle a -> EventListener) -> Ability a
+
+instance AsObserver 'Minion where
+    observer = ObserverMinion
+
+
+class AsAura (a :: ObjectType) where
+    aura :: (Handle a -> Aura) -> Ability a
+
+instance AsAura 'Minion where
+    aura = AuraMinion
+
+
+class AuraElect (a :: *) where
+    ownerOf :: Handle o -> (Handle 'Player -> a) -> a
+    opponentOf :: Handle 'Player -> (Handle 'Player -> a) -> a
+
+instance AuraElect (Elect s) where
+    ownerOf = OwnerOf
+    opponentOf = OpponentOf
+
+instance AuraElect Aura where
+    ownerOf = AuraOwnerOf
+    opponentOf = AuraOpponentOf
+
+
+class AsSequence (a :: *) where
+    sequence :: [a] -> a
+
+instance AsSequence Effect where
+    sequence = Sequence
+
+instance AsSequence Aura where
+    sequence = AuraSequence
+
+
+
+
+class AsForEach (a :: ObjectType) where
+    forEach :: HandleList a -> (Handle a -> Effect) -> Effect
+
+instance AsForEach 'Minion where
+    forEach = ForEachMinion
+
+instance AsForEach 'Player where
+    forEach = ForEachPlayer
+
+instance AsForEach 'Character where
+    forEach = ForEachCharacter
+
+
+
+class AsDestroy (a :: ObjectType) where
+    destroy :: Handle a -> Effect
+
+instance AsDestroy 'Minion where
+    destroy = DestroyMinion
+
+instance AsDestroy 'Weapon where
+    destroy = DestroyWeapon
+
+
+class CharacterRequirment (a :: ObjectType) where
+    withAttack :: Comparison -> Attack -> Requirement a
+    withHealth :: Comparison -> Health -> Requirement a
+    damaged :: Requirement a
+    undamaged :: Requirement a
+
+instance CharacterRequirment 'Character where
+    withAttack = WithAttack
+    withHealth = WithHealth
+    damaged = Damaged
+    undamaged = Undamaged
+
+instance CharacterRequirment 'Minion where
+    withAttack c = RequireMinion . WithAttack c
+    withHealth c = RequireMinion . WithHealth c
+    damaged = RequireMinion Damaged
+    undamaged = RequireMinion Undamaged
+
+instance CharacterRequirment 'Player where
+    withAttack c = RequirePlayer . WithAttack c
+    withHealth c = RequirePlayer . WithHealth c
+    damaged = RequirePlayer Damaged
+    undamaged = RequirePlayer Undamaged
 
 
 

@@ -258,7 +258,7 @@ showAbilities = liftM unlines . mapM showAbility
 
 showAbility :: (GenHandle a) => Ability a -> ShowCard String
 showAbility = \case
-    WheneverMinion cont -> showWhenever cont
+    ObserverMinion cont -> showObserver cont
     AuraMinion aura -> showAuraAbility aura
     Battlecry cont -> showBattlecry cont
     Deathrattle cont -> showDeathrattle cont
@@ -333,10 +333,10 @@ showWhile' handle requirements aura = case requirements of
         return $ "While " ++ handleStr ++ "[" ++ requirementsStr ++ "]: " ++ auraStr
 
 
-showWhenever :: (GenHandle a) => (Handle a -> EventListener) -> ShowCard String
-showWhenever cont = do
+showObserver :: (GenHandle a) => (Handle a -> EventListener) -> ShowCard String
+showObserver cont = do
     str <- genHandle this >>= showEventListener . cont
-    return $ "Whenever " ++ str
+    return $ "Observer " ++ str
 
 
 showEventListener :: EventListener -> ShowCard String

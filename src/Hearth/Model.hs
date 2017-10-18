@@ -346,7 +346,7 @@ data Aura :: * where
 
 
 data Ability :: ObjectType -> * where
-    WheneverMinion :: (Handle 'Minion -> EventListener) -> Ability 'Minion
+    ObserverMinion :: (Handle 'Minion -> EventListener) -> Ability 'Minion
     AuraMinion :: (Handle 'Minion -> Aura) -> Ability 'Minion
     Battlecry :: (Handle 'Minion -> Elect 'Targeted) -> Ability 'Minion
     Deathrattle :: (Handle 'Minion -> Elect 'AtRandom) -> Ability 'Minion
