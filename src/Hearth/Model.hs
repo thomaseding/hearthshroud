@@ -268,7 +268,7 @@ data Elect :: Selection -> * where
     A :: A s -> Elect s
     All :: All s -> Elect s
     Effect :: Effect -> Elect s
-    ChooseOne' :: [Elect a] -> Elect a
+    ChooseOne' :: [Elect s] -> Elect s
     deriving (Typeable)
 
 
@@ -355,7 +355,7 @@ data Ability :: ObjectType -> * where
     DivineShield :: Ability 'Minion
     Enrage :: [Ability 'Minion] -> [Enchantment 'Continuous 'Minion] -> Ability 'Minion
     Taunt :: Ability 'Minion
-    SpellDamage :: Int -> Ability a
+    SpellDamage :: Int -> Ability 'Minion
     Windfury :: Ability 'Minion
     Can'tAttack :: Ability 'Minion
     deriving (Typeable)
