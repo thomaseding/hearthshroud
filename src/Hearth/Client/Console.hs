@@ -46,14 +46,14 @@ import Data.Maybe
 import Data.NonEmpty
 import Data.Ord
 import Data.String
-import Hearth.Cards
+import Hearth.Authored.Cards
+import Hearth.Authored.Hero.Basic.Heroes
 import Hearth.Client.Console.Choices
 import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
 import Hearth.Engine hiding (scopedPhase)
-import Hearth.Hero.Basic.Heroes
 import Hearth.Model.Authoring hiding (And, Or)
 import Hearth.Model.Runtime
 import Hearth.Model.Runtime.Action

@@ -3,7 +3,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 
-module Hearth.CardSet.Basic.Cards (
+module Hearth.Authored.CardSet.Basic.Cards (
     cards,
     healingTotem,
     searingTotem,
@@ -18,12 +18,12 @@ module Hearth.CardSet.Basic.Cards (
 --------------------------------------------------------------------------------
 
 
-import Hearth.CardSet.Basic.Names hiding (Charge, Windfury)
+import Hearth.Authored.CardSet.Basic.Names hiding (Charge, Windfury)
 import Hearth.Combinator.Authoring
 import Hearth.Model.Authoring
 import Prelude hiding (sequence)
 
-import qualified Hearth.CardSet.Basic.Names as Basic
+import qualified Hearth.Authored.CardSet.Basic.Names as Basic
 
 
 --------------------------------------------------------------------------------

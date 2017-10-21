@@ -487,6 +487,14 @@ data Card :: * where
     deriving (Typeable)
 
 
+data Universe :: * where
+    Universe :: [Card] -> Universe
+
+
+unUniverse :: Universe -> [Card]
+unUniverse (Universe u) = u
+
+
 --------------------------------------------------------------------------------
 
 

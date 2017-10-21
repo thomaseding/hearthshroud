@@ -1,9 +1,9 @@
-module Hearth.HeroPower.Basic.Powers where
+module Hearth.Authored.HeroPower.Basic.Powers where
 
 
-import Hearth.CardSet.Basic.Cards (wickedKnife, silverHandRecruit, healingTotem, searingTotem, stoneclawTotem, wrathOfAirTotem)
+import Hearth.Authored.CardSet.Basic.Cards (wickedKnife, silverHandRecruit, healingTotem, searingTotem, stoneclawTotem, wrathOfAirTotem)
+import Hearth.Authored.HeroPower.Basic.Names
 import Hearth.Combinator.Authoring
-import Hearth.HeroPower.Basic.Names
 import Hearth.Model.Authoring
 
 

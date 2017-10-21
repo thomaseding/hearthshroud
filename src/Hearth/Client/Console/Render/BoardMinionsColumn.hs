@@ -18,7 +18,7 @@ import Control.Lens hiding (index)
 import Control.Monad
 import Data.List
 import Data.String
-import Hearth.Cards
+import Hearth.Authored.Cards
 import Hearth.Client.Console.SGRString
 import Hearth.Engine
 import Hearth.Model.Authoring

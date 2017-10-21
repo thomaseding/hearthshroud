@@ -17,7 +17,7 @@ module Hearth.Client.Console.Render.HandColumn (
 import Control.Lens hiding (index)
 import Data.List
 import Data.String
-import Hearth.Cards
+import Hearth.Authored.Cards
 import Hearth.Client.Console.SGRString
 import Hearth.Engine
 import Hearth.Model.Authoring

@@ -3,7 +3,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
 
-module Hearth.CardSet.Classic.Cards (
+module Hearth.Authored.CardSet.Classic.Cards (
     cards,
 ) where
 
@@ -11,12 +11,12 @@ module Hearth.CardSet.Classic.Cards (
 --------------------------------------------------------------------------------
 
 
-import Hearth.CardSet.Classic.Names hiding (Silence)
+import Hearth.Authored.CardSet.Classic.Names hiding (Silence)
 import Hearth.Combinator.Authoring
 import Hearth.Model.Authoring
 import Prelude hiding (sequence)
 
-import qualified Hearth.CardSet.Classic.Names as Classic
+import qualified Hearth.Authored.CardSet.Classic.Names as Classic
 
 
 --------------------------------------------------------------------------------

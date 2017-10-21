@@ -64,14 +64,6 @@ data Phase :: * where
     deriving (Show, Typeable)
 
 
-data Universe :: * where
-    Universe :: [Card] -> Universe
-
-
-unUniverse :: Universe -> [Card]
-unUniverse (Universe u) = u
-
-
 data CastSpell = CastSpell {
     _castSpellHandle :: Handle 'Spell',
     _castSpell :: SpellCard

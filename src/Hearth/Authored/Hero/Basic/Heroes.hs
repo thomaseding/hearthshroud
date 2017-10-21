@@ -2,7 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 
 
-module Hearth.Hero.Basic.Heroes (
+module Hearth.Authored.Hero.Basic.Heroes (
     anduin,
     garrosh,
     gul'dan,
@@ -18,8 +18,8 @@ module Hearth.Hero.Basic.Heroes (
 --------------------------------------------------------------------------------
 
 
-import Hearth.Hero.Basic.Names
-import Hearth.HeroPower.Basic.Powers
+import Hearth.Authored.Hero.Basic.Names
+import Hearth.Authored.HeroPower.Basic.Powers
 import Hearth.Model.Authoring
 
 

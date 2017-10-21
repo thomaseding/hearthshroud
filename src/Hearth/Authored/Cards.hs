@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 
-module Hearth.Cards where
+module Hearth.Authored.Cards where
 
 
 --------------------------------------------------------------------------------
@@ -12,10 +12,10 @@ module Hearth.Cards where
 import Control.Error.TH
 import Data.List
 import Hearth.Model.Authoring
-import Hearth.Model.Runtime
+import Hearth.Model.Runtime (DeckCard(..), HandCard(..))
 
-import qualified Hearth.CardSet.Basic.Cards as Basic
-import qualified Hearth.CardSet.Classic.Cards as Classic
+import qualified Hearth.Authored.CardSet.Basic.Cards as Basic
+import qualified Hearth.Authored.CardSet.Classic.Cards as Classic
 
 
 --------------------------------------------------------------------------------

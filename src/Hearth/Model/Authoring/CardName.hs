@@ -15,8 +15,8 @@ module Hearth.Model.Authoring.CardName (
 
 import Data.Data
 import Data.Namespace
-import Hearth.CardSet.Basic.Names
-import Hearth.CardSet.Classic.Names
+import Hearth.Authored.CardSet.Basic.Names
+import Hearth.Authored.CardSet.Classic.Names
 import Text.LambdaOptions.Parseable
 import Text.Read (readMaybe)
 

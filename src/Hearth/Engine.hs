@@ -39,8 +39,8 @@ import Data.List.Ordered
 import Data.Maybe
 import Data.NonEmpty (NonEmpty)
 import Data.Proxy
-import Hearth.Cards (cardName)
-import Hearth.CardSet.Basic.Cards (theCoin)
+import Hearth.Authored.Cards (cardName)
+import Hearth.Authored.CardSet.Basic.Cards (theCoin)
 import Hearth.Combinator.Authoring (toCard)
 import Hearth.Engine.Data
 import Hearth.Model.Authoring

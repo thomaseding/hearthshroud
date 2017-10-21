@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.Hero.Basic.Names where
+module Hearth.Authored.Hero.Basic.Names where
 
 
 import Data.Data

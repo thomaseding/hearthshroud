@@ -15,7 +15,7 @@ module Hearth.Model.Authoring.HeroPowerName (
 
 import Data.Data
 import Data.Namespace
-import Hearth.HeroPower.Basic.Names
+import Hearth.Authored.HeroPower.Basic.Names
 import Text.LambdaOptions.Parseable
 import Text.Read (readMaybe)
 
