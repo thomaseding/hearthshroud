@@ -28,6 +28,7 @@ import Hearth.Authoring.Combinators
 import Hearth.DebugEvent
 import Hearth.Model
 import Hearth.Prompt
+import Hearth.RuntimeModel
 import Language.Haskell.TH.Syntax (Name)
 
 
@@ -130,12 +131,6 @@ instance ToDeckCard Card where
 
 instance ToDeckCard HandCard where
     toDeckCard = toDeckCard . toCard
-
-
-
-
-
-
 
 
 

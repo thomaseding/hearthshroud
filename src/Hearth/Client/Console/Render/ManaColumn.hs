@@ -14,9 +14,10 @@ module Hearth.Client.Console.Render.ManaColumn (
 
 
 import Control.Lens
+import Hearth.Client.Console.SGRString
 import Hearth.Engine
 import Hearth.Model
-import Hearth.Client.Console.SGRString
+import Hearth.RuntimeModel
 import System.Console.ANSI
 
 

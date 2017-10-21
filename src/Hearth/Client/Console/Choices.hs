@@ -15,6 +15,7 @@ import Control.Lens
 import Control.Monad.Reader
 import Hearth.Engine
 import Hearth.Model
+import Hearth.RuntimeModel
 
 
 --------------------------------------------------------------------------------

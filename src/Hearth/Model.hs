@@ -27,9 +27,7 @@ module Hearth.Model where
 import Control.Lens hiding (Each)
 import Data.Data
 import Data.Function
-import Data.Monoid (Monoid)
 import Data.Set (Set)
-import GHC.Generics
 import Hearth.CardName
 import Hearth.HeroName
 import Hearth.HeroPowerName
@@ -72,19 +70,6 @@ newtype Damage = Damage { unDamage :: Int }
 
 newtype Durability = Durability { unDurability :: Int }
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
--- TODO: Move this to Hearth.Engine.Data
-pattern MaxHandSize :: Int
-pattern MaxHandSize = 10
-
--- TODO: Move this to Hearth.Engine.Data
-pattern MaxManaCrystals :: Int
-pattern MaxManaCrystals = 10
-
--- TODO: Move this to Hearth.Engine.Data
-pattern MaxBoardMinionsPerPlayer :: Int
-pattern MaxBoardMinionsPerPlayer = 7
 
 
 data RawHandle :: * where
@@ -364,27 +349,6 @@ data Ability :: ObjectType -> * where
     deriving (Typeable)
 
 
--- TODO: Move this to Hearth.Engine.Data
-data Scoped :: * -> * where
-    Begin :: a -> Scoped a
-    End :: a -> Scoped a
-    deriving (Eq, Ord)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data Phase :: * where
-    BeginTurnPhase :: Phase
-    EndTurnPhase :: Phase
-    BattlecryPhase :: Phase
-    DeathrattlePhase :: Phase
-    ChooseOnePhase :: Phase
-    SpellPhase :: Phase
-    HeroPowerPhase :: Phase
-    AttackResolutionPhase :: Phase
-    TriggeredEffectPhase :: Phase
-    deriving (Show, Typeable)
-
-
 data TimePoint :: * where
     Delay :: Int -> TimePoint -> TimePoint
     BeginOfTurn :: TimePoint
@@ -448,16 +412,6 @@ data Class :: * where
     deriving (Show, Eq, Ord)
 
 
--- TODO: Move this to Hearth.Engine.Data
-data Universe :: * where
-    Universe :: [Card] -> Universe
-
-
--- TODO: Move this to Hearth.Engine.Data
-unUniverse :: Universe -> [Card]
-unUniverse (Universe u) = u
-
-
 data Collectibility :: * where
     Collectible :: Collectibility
     Uncollectible :: Collectibility
@@ -483,29 +437,12 @@ data SpellCard = SpellCard {
 } deriving (Typeable)
 
 
--- TODO: Move this to Hearth.Engine.Data
-data CastSpell = CastSpell {
-    _castSpellHandle :: Handle 'Spell',
-    _castSpell :: SpellCard
-} deriving (Typeable)
-
-
 data WeaponCard = WeaponCard {
     _weaponCost :: Cost,
     _weaponAttack :: Attack,
     _weaponDurability :: Durability,
     _weaponAbilities :: [Ability 'Weapon'],
     _weaponMeta :: CardMeta
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data BoardWeapon = BoardWeapon {
-    _boardWeaponDurability :: Durability,
-    _boardWeaponEnchantments :: [AnyEnchantment 'Weapon'],
-    _boardWeaponAbilities :: [Ability 'Weapon'],
-    _boardWeaponHandle :: Handle 'Weapon',
-    _boardWeapon :: WeaponCard
 } deriving (Typeable)
 
 
@@ -516,19 +453,6 @@ data MinionCard = MinionCard {
     _minionHealth :: Health,
     _minionAbilities :: [Ability 'Minion'],
     _minionMeta :: CardMeta
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data BoardMinion = BoardMinion {
-    _boardMinionDamage :: Damage,
-    _boardMinionEnchantments :: [AnyEnchantment 'Minion'],
-    _boardMinionAbilities :: [Ability 'Minion'],
-    _boardMinionAttackCount :: Int,
-    _boardMinionNewlySummoned :: Bool,
-    _boardMinionPendingDestroy :: Bool,
-    _boardMinionHandle :: Handle 'Minion',
-    _boardMinion :: MinionCard
 } deriving (Typeable)
 
 
@@ -551,33 +475,6 @@ data Hero = Hero {
 } deriving (Typeable)
 
 
--- TODO: Move this to Hearth.Engine.Data
-data BoardHero = BoardHero {
-    _boardHeroDamage :: Damage,
-    _boardHeroArmor :: Armor,
-    _boardHeroAttackCount :: Int,
-    _boardHeroPower :: HeroPower,
-    _boardHeroPowerCount :: Int,
-    _boardHero :: Hero
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data HandCard :: * where
-    HandCardMinion :: MinionCard -> HandCard
-    HandCardSpell :: SpellCard -> HandCard
-    HandCardWeapon :: WeaponCard -> HandCard
-    deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data DeckCard :: * where
-    DeckCardMinion :: MinionCard -> DeckCard
-    DeckCardSpell :: SpellCard -> DeckCard
-    DeckCardWeapon :: WeaponCard -> DeckCard
-    deriving (Typeable)
-
-
 data Card :: * where
     CardMinion :: MinionCard -> Card
     CardSpell :: SpellCard -> Card
@@ -585,57 +482,7 @@ data Card :: * where
     deriving (Typeable)
 
 
-newtype Hand = Hand {
-    _handCards :: [HandCard]
-} deriving (Monoid, Generic, Typeable)
-
-
-newtype Deck = Deck {
-    _deckCards :: [DeckCard]
-} deriving (Monoid, Generic, Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data PlayerObject = PlayerObject {
-    _playerHandle :: Handle 'Player',
-    _playerDeck :: Deck,
-    _playerExcessDrawCount :: Int,
-    _playerHand :: Hand,
-    _playerWeapon :: Maybe (BoardWeapon),
-    _playerMinions :: [BoardMinion],
-    _playerSpells :: [CastSpell],
-    _playerEnchantments :: [AnyEnchantment 'Player'],
-    _playerTotalManaCrystals :: Int,
-    _playerEmptyManaCrystals :: Int,
-    _playerTemporaryManaCrystals :: Int,
-    _playerHero :: BoardHero
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data GameState = GameState {
-    _gameUniverse :: Universe,
-    _gameTurn :: Turn,
-    _gameHandleSeed :: Int,
-    _gamePlayerTurnOrder :: [Handle 'Player'],
-    _gameEffectObservers :: [EventListener],
-    _gameRootMinion :: Maybe (Handle 'Minion'), -- Used to disable targeting the battlecry/choose-one minion.
-    _gamePlayers :: [PlayerObject]
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data GameSnapshot = GameSnapshot {
-    _snapshotGameState :: GameState
-} deriving (Typeable)
-
-
--- TODO: Move this to Hearth.Engine.Data
-data GameResult :: * where
-    GameResult :: GameResult
-    deriving (Show, Eq, Ord, Typeable)
-
-
+--------------------------------------------------------------------------------
 
 
 -- Unfortunately I can't make the lenses alongside
@@ -643,72 +490,10 @@ data GameResult :: * where
 --   https://ghc.haskell.org/trac/ghc/ticket/10743
 makeLenses ''CardMeta
 makeLenses ''SpellCard
-makeLenses ''CastSpell
 makeLenses ''WeaponCard
-makeLenses ''BoardWeapon
 makeLenses ''MinionCard
-makeLenses ''BoardMinion
 makeLenses ''HeroPower
 makeLenses ''Hero
-makeLenses ''BoardHero
-makeLenses ''Hand
-makeLenses ''Deck
-makeLenses ''PlayerObject
-makeLenses ''GameState
-makeLenses ''GameSnapshot
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

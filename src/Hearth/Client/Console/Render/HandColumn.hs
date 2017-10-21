@@ -17,11 +17,12 @@ module Hearth.Client.Console.Render.HandColumn (
 import Control.Lens hiding (index)
 import Data.List
 import Data.String
-import Hearth.Engine
-import Hearth.Model
 import Hearth.CardName
 import Hearth.Cards
 import Hearth.Client.Console.SGRString
+import Hearth.Engine
+import Hearth.Model
+import Hearth.RuntimeModel
 import System.Console.ANSI
 
 

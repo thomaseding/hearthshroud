@@ -14,9 +14,10 @@ module Hearth.Client.Console.Render.DeckColumn (
 
 
 import Control.Lens
+import Hearth.Client.Console.SGRString
 import Hearth.Engine
 import Hearth.Model
-import Hearth.Client.Console.SGRString
+import Hearth.RuntimeModel
 import System.Console.ANSI
 
 

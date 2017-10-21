@@ -13,6 +13,7 @@ module Hearth.GameEvent where
 
 import Data.Data
 import Hearth.Model
+import Hearth.RuntimeModel
 
 
 --------------------------------------------------------------------------------

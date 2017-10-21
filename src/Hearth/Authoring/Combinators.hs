@@ -12,14 +12,16 @@ module Hearth.Authoring.Combinators where
 
 
 import qualified Data.Set as Set
-import Hearth.Model
 import Hearth.CardName
+import Hearth.Model
+import Hearth.RuntimeModel
 import Prelude hiding (sequence)
 
 
 --------------------------------------------------------------------------------
 
 
+-- TODO: ToCard is not an authoring combinator. Move to some other file.
 class ToCard a where
     toCard :: a -> Card
 
@@ -48,6 +50,9 @@ instance ToCard DeckCard where
         DeckCardMinion minion -> CardMinion minion
         DeckCardSpell spell -> CardSpell spell
         DeckCardWeapon weapon -> CardWeapon weapon
+
+
+--------------------------------------------------------------------------------
 
 
 class Uncollectible a where

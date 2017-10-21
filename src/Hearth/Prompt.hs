@@ -20,6 +20,7 @@ import Hearth.Action
 import Hearth.DebugEvent
 import Hearth.GameEvent
 import Hearth.Model
+import Hearth.RuntimeModel
 
 
 --------------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import Control.Error.TH
 import Data.List
 import Hearth.CardName
 import Hearth.Model
+import Hearth.RuntimeModel
 import qualified Hearth.CardSet.Basic.Cards as Basic
 import qualified Hearth.CardSet.Classic.Cards as Classic
 

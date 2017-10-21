@@ -15,9 +15,10 @@ module Hearth.Client.Console.Render.WeaponColumn (
 
 import Control.Lens
 import Data.String
+import Hearth.Client.Console.SGRString
 import Hearth.Engine
 import Hearth.Model
-import Hearth.Client.Console.SGRString
+import Hearth.RuntimeModel
 import System.Console.ANSI
 
 

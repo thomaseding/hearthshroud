@@ -47,13 +47,13 @@ import Data.NonEmpty
 import Data.Ord
 import Data.String
 import Hearth.Action
+import Hearth.CardName
 import Hearth.Cards
 import Hearth.Client.Console.Choices
 import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
-import Hearth.CardName
 import Hearth.DebugEvent
 import Hearth.Engine hiding (scopedPhase)
 import Hearth.GameEvent
@@ -62,6 +62,7 @@ import Hearth.HeroName
 import Hearth.HeroPowerName
 import Hearth.Model hiding (And, Or)
 import Hearth.Prompt
+import Hearth.RuntimeModel
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)

@@ -49,6 +49,7 @@ import Hearth.Engine.Data
 import Hearth.GameEvent
 import Hearth.Model
 import Hearth.Prompt
+import Hearth.RuntimeModel
 
 
 --------------------------------------------------------------------------------

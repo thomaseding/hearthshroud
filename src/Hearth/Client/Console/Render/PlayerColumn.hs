@@ -14,14 +14,14 @@ module Hearth.Client.Console.Render.PlayerColumn (
 --------------------------------------------------------------------------------
 
 
-import Hearth.Engine
-import Hearth.Model
 import Hearth.Client.Console.Render.BoardHeroColumn
 import Hearth.Client.Console.Render.DeckColumn
 import Hearth.Client.Console.Render.HeroPowerColumn
 import Hearth.Client.Console.Render.ManaColumn
 import Hearth.Client.Console.Render.WeaponColumn
 import Hearth.Client.Console.SGRString
+import Hearth.Engine
+import Hearth.Model
 
 
 --------------------------------------------------------------------------------
