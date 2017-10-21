@@ -5,7 +5,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module Hearth.GameEvent where
+module Hearth.Model.Runtime.GameEvent where
 
 
 --------------------------------------------------------------------------------

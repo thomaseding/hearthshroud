@@ -1,10 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.HeroPowerName where
-
-
---------------------------------------------------------------------------------
+module Hearth.HeroPower.Basic.Names where
 
 
 import Data.Data
@@ -13,7 +10,7 @@ import Data.Data
 --------------------------------------------------------------------------------
 
 
-data HeroPowerName
+data BasicHeroPowerName
     = ArmorUp
     | DaggerMastery
     | Fireblast
@@ -23,7 +20,6 @@ data HeroPowerName
     | Shapeshift
     | SteadyShot
     | TotemicCall
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
-
+    deriving (Show, Read, Eq, Ord, Enum, Data, Typeable)
 
 

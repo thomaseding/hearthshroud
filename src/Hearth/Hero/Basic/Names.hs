@@ -1,12 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hearth.HeroName (
-    HeroName(..),
-) where
-
-
---------------------------------------------------------------------------------
+module Hearth.Hero.Basic.Names where
 
 
 import Data.Data
@@ -15,7 +10,7 @@ import Data.Data
 --------------------------------------------------------------------------------
 
 
-data HeroName
+data BasicHeroName
     = Anduin
     | Garrosh
     | Gul'dan
@@ -25,9 +20,7 @@ data HeroName
     | Thrall
     | Uther
     | Valeera
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
-
-
+    deriving (Show, Read, Eq, Ord, Enum, Data, Typeable)
 
 
 

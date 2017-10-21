@@ -38,18 +38,19 @@ import Data.List
 import Data.List.Ordered
 import Data.Maybe
 import Data.NonEmpty (NonEmpty)
-import qualified Data.NonEmpty as NonEmpty
 import Data.Proxy
-import qualified Data.Set as Set
-import Hearth.Action
-import Hearth.Authoring.Combinators (toCard)
 import Hearth.Cards (cardName)
 import Hearth.CardSet.Basic.Cards (theCoin)
+import Hearth.Combinator.Authoring (toCard)
 import Hearth.Engine.Data
-import Hearth.GameEvent
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime
-import Hearth.Prompt
+import Hearth.Model.Runtime.Action
+import Hearth.Model.Runtime.GameEvent
+import Hearth.Model.Runtime.Prompt
+
+import qualified Data.NonEmpty as NonEmpty
+import qualified Data.Set as Set
 
 
 --------------------------------------------------------------------------------

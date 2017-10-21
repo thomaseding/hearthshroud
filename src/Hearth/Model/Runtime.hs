@@ -23,6 +23,7 @@ module Hearth.Model.Runtime where
 import Control.Lens
 import Data.Data
 import GHC.Generics -- XXX: Is this different than Data.Generics?
+import Hearth.Combinator.Authoring (ToCard(..))
 import Hearth.Model.Authoring
 
 
@@ -116,11 +117,25 @@ data HandCard :: * where
     deriving (Typeable)
 
 
+instance ToCard HandCard where
+    toCard = \case
+        HandCardMinion minion -> CardMinion minion
+        HandCardSpell spell -> CardSpell spell
+        HandCardWeapon weapon -> CardWeapon weapon
+
+
 data DeckCard :: * where
     DeckCardMinion :: MinionCard -> DeckCard
     DeckCardSpell :: SpellCard -> DeckCard
     DeckCardWeapon :: WeaponCard -> DeckCard
     deriving (Typeable)
+
+
+instance ToCard DeckCard where
+    toCard = \case
+        DeckCardMinion minion -> CardMinion minion
+        DeckCardSpell spell -> CardSpell spell
+        DeckCardWeapon weapon -> CardWeapon weapon
 
 
 newtype Hand = Hand {

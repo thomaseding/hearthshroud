@@ -24,11 +24,11 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.State.Local
 import Data.Data
-import Hearth.Authoring.Combinators
-import Hearth.DebugEvent
+import Hearth.Combinator.Authoring
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime
-import Hearth.Prompt
+import Hearth.Model.Runtime.DebugEvent
+import Hearth.Model.Runtime.Prompt
 import Language.Haskell.TH.Syntax (Name)
 
 

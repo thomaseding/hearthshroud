@@ -5,23 +5,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 
-module Hearth.Authoring.Combinators where
+module Hearth.Combinator.Authoring where
 
 
 --------------------------------------------------------------------------------
 
 
 import qualified Data.Set as Set
-import Hearth.CardName
 import Hearth.Model.Authoring
-import Hearth.Model.Runtime
 import Prelude hiding (sequence)
 
 
 --------------------------------------------------------------------------------
 
 
--- TODO: ToCard is not an authoring combinator. Move to some other file.
 class ToCard a where
     toCard :: a -> Card
 
@@ -36,20 +33,6 @@ instance ToCard SpellCard where
 
 instance ToCard WeaponCard where
     toCard = CardWeapon
-
-
-instance ToCard HandCard where
-    toCard = \case
-        HandCardMinion minion -> CardMinion minion
-        HandCardSpell spell -> CardSpell spell
-        HandCardWeapon weapon -> CardWeapon weapon
-
-
-instance ToCard DeckCard where
-    toCard = \case
-        DeckCardMinion minion -> CardMinion minion
-        DeckCardSpell spell -> CardSpell spell
-        DeckCardWeapon weapon -> CardWeapon weapon
 
 
 --------------------------------------------------------------------------------

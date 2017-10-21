@@ -9,18 +9,18 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.Prompt where
+module Hearth.Model.Runtime.Prompt where
 
 
 --------------------------------------------------------------------------------
 
 
 import Data.NonEmpty
-import Hearth.Action
-import Hearth.DebugEvent
-import Hearth.GameEvent
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime
+import Hearth.Model.Runtime.Action
+import Hearth.Model.Runtime.DebugEvent
+import Hearth.Model.Runtime.GameEvent
 
 
 --------------------------------------------------------------------------------

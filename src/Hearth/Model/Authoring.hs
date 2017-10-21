@@ -18,7 +18,12 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.Model.Authoring where
+module Hearth.Model.Authoring (
+    module Hearth.Model.Authoring,
+    module Hearth.Model.Authoring.CardName,
+    module Hearth.Model.Authoring.HeroName,
+    module Hearth.Model.Authoring.HeroPowerName,
+) where
 
 
 --------------------------------------------------------------------------------
@@ -28,9 +33,9 @@ import Control.Lens hiding (Each)
 import Data.Data
 import Data.Function
 import Data.Set (Set)
-import Hearth.CardName
-import Hearth.HeroName
-import Hearth.HeroPowerName
+import Hearth.Model.Authoring.CardName
+import Hearth.Model.Authoring.HeroName
+import Hearth.Model.Authoring.HeroPowerName
 
 
 --------------------------------------------------------------------------------

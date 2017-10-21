@@ -46,23 +46,20 @@ import Data.Maybe
 import Data.NonEmpty
 import Data.Ord
 import Data.String
-import Hearth.Action
-import Hearth.CardName
 import Hearth.Cards
 import Hearth.Client.Console.Choices
 import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
-import Hearth.DebugEvent
 import Hearth.Engine hiding (scopedPhase)
-import Hearth.GameEvent
-import Hearth.Heroes
-import Hearth.HeroName
-import Hearth.HeroPowerName
+import Hearth.Hero.Basic.Heroes
 import Hearth.Model.Authoring hiding (And, Or)
 import Hearth.Model.Runtime
-import Hearth.Prompt
+import Hearth.Model.Runtime.Action
+import Hearth.Model.Runtime.DebugEvent
+import Hearth.Model.Runtime.GameEvent
+import Hearth.Model.Runtime.Prompt
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)
@@ -467,14 +464,6 @@ showCharacterHandle :: Handle 'Character' -> Hearth Console String
 showCharacterHandle = \case
     PlayerCharacter h -> showPlayerHandle h
     MinionCharacter h -> showMinionHandle h
-
-
-showHeroPowerName :: HeroPowerName -> String
-showHeroPowerName = show
-
-
-showHeroName :: HeroName -> String
-showHeroName = show
 
 
 handCardName' :: HandCard -> String

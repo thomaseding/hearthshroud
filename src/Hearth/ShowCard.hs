@@ -27,7 +27,6 @@ import Control.Monad.State
 import Data.List (intercalate, isPrefixOf)
 import Data.Proxy
 import Data.Typeable (cast)
-import Hearth.CardName
 import Hearth.Cards
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime

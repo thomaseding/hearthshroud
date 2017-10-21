@@ -1,78 +1,10 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
+module Hearth.HeroPower.Basic.Powers where
 
 
-module Hearth.Heroes (
-    anduin,
-    garrosh,
-    gul'dan,
-    jaina,
-    malfurion,
-    rexxar,
-    thrall,
-    uther,
-    valeera,
-) where
-
-
---------------------------------------------------------------------------------
-
-
-import Hearth.Authoring.Combinators
-import Hearth.CardSet.Basic.Cards
-import Hearth.HeroName
-import Hearth.HeroPowerName
+import Hearth.CardSet.Basic.Cards (wickedKnife, silverHandRecruit, healingTotem, searingTotem, stoneclawTotem, wrathOfAirTotem)
+import Hearth.Combinator.Authoring
+import Hearth.HeroPower.Basic.Names
 import Hearth.Model.Authoring
-
-
---------------------------------------------------------------------------------
-
-
-mkSimpleHero :: HeroName -> HeroPower -> Hero
-mkSimpleHero name power = Hero {
-    _heroAttack = 0,
-    _heroHealth = 30,
-    _heroPower = power,
-    _heroName = name }
-
-
---------------------------------------------------------------------------------
-
-
-anduin :: Hero
-anduin = mkSimpleHero Anduin lesserHeal
-
-
-garrosh :: Hero
-garrosh = mkSimpleHero Garrosh armorUp
-
-
-gul'dan :: Hero
-gul'dan = mkSimpleHero Gul'dan lifeTap
-
-
-jaina :: Hero
-jaina = mkSimpleHero Jaina fireblast
-
-
-malfurion :: Hero
-malfurion = mkSimpleHero Malfurion shapeshift
-
-
-rexxar :: Hero
-rexxar = mkSimpleHero Rexxar steadyShot
-
-
-thrall :: Hero
-thrall = mkSimpleHero Thrall totemicCall
-
-
-uther :: Hero
-uther = mkSimpleHero Uther reinforce
-
-
-valeera :: Hero
-valeera = mkSimpleHero Valeera daggerMastery
 
 
 --------------------------------------------------------------------------------
@@ -80,7 +12,7 @@ valeera = mkSimpleHero Valeera daggerMastery
 
 armorUp :: HeroPower
 armorUp = HeroPower {
-    _heroPowerName = ArmorUp,
+    _heroPowerName = BasicHeroPowerName ArmorUp,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ GainArmor you 2 }
@@ -88,7 +20,7 @@ armorUp = HeroPower {
 
 daggerMastery :: HeroPower
 daggerMastery = HeroPower {
-    _heroPowerName = DaggerMastery,
+    _heroPowerName = BasicHeroPowerName DaggerMastery,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ EquipWeapon you wickedKnife }
@@ -96,7 +28,7 @@ daggerMastery = HeroPower {
 
 fireblast :: HeroPower
 fireblast = HeroPower {
-    _heroPowerName = Fireblast,
+    _heroPowerName = BasicHeroPowerName Fireblast,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         A $ Character [] $ \target ->
@@ -105,7 +37,7 @@ fireblast = HeroPower {
 
 lesserHeal :: HeroPower
 lesserHeal = HeroPower {
-    _heroPowerName = LesserHeal,
+    _heroPowerName = BasicHeroPowerName LesserHeal,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \_ ->
         A $ Character [] $ \target ->
@@ -114,7 +46,7 @@ lesserHeal = HeroPower {
 
 lifeTap :: HeroPower
 lifeTap = HeroPower {
-    _heroPowerName = LifeTap,
+    _heroPowerName = BasicHeroPowerName LifeTap,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you -> 
         Effect $ Sequence [
@@ -124,7 +56,7 @@ lifeTap = HeroPower {
 
 reinforce :: HeroPower
 reinforce = HeroPower {
-    _heroPowerName = Reinforce,
+    _heroPowerName = BasicHeroPowerName Reinforce,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ Summon silverHandRecruit $ Rightmost you }
@@ -132,7 +64,7 @@ reinforce = HeroPower {
 
 shapeshift :: HeroPower
 shapeshift = HeroPower {
-    _heroPowerName = Shapeshift,
+    _heroPowerName = BasicHeroPowerName Shapeshift,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ Sequence [
@@ -142,7 +74,7 @@ shapeshift = HeroPower {
 
 steadyShot :: HeroPower
 steadyShot = HeroPower {
-    _heroPowerName = SteadyShot,
+    _heroPowerName = BasicHeroPowerName SteadyShot,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         OpponentOf you $ \opponent ->
@@ -152,7 +84,7 @@ steadyShot = HeroPower {
 -- TODO: Not this simple. Needs to select from non-owned totems.
 totemicCall :: HeroPower
 totemicCall = HeroPower {
-    _heroPowerName = TotemicCall,
+    _heroPowerName = BasicHeroPowerName TotemicCall,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
         Effect $ Get $ ChooseOne' $ map (\minion -> Effect $ (Summon minion) $ Rightmost you) [
@@ -160,7 +92,6 @@ totemicCall = HeroPower {
             searingTotem,
             stoneclawTotem,
             wrathOfAirTotem ]}
-
 
 
 

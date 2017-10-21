@@ -4,13 +4,17 @@
 {-# LANGUAGE LambdaCase #-}
 
 
-module Hearth.CardName where
+module Hearth.Model.Authoring.CardName (
+    CardName(..),
+    showCardName,
+) where
 
 
 --------------------------------------------------------------------------------
 
 
 import Data.Data
+import Data.Namespace
 import Hearth.CardSet.Basic.Names
 import Hearth.CardSet.Classic.Names
 import Text.LambdaOptions.Parseable
@@ -18,10 +22,6 @@ import Text.Read (readMaybe)
 
 
 --------------------------------------------------------------------------------
-
-
-data Namespace = String
-    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data CardName :: * where

@@ -4,7 +4,7 @@
 {-# LANGUAGE KindSignatures #-}
 
 
-module Hearth.Action where
+module Hearth.Model.Runtime.Action where
 
 
 --------------------------------------------------------------------------------

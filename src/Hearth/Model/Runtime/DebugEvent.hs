@@ -3,7 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 
-module Hearth.DebugEvent where
+module Hearth.Model.Runtime.DebugEvent where
 
 
 --------------------------------------------------------------------------------
