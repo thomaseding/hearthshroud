@@ -16,8 +16,8 @@ module Hearth.Client.Console.Render.HeroPowerColumn (
 import Control.Lens
 import Hearth.Client.Console.SGRString
 import Hearth.Engine
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 import System.Console.ANSI
 
 

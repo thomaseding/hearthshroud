@@ -18,7 +18,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.Model where
+module Hearth.Model.Authoring where
 
 
 --------------------------------------------------------------------------------

@@ -10,8 +10,8 @@ module Hearth.Action where
 --------------------------------------------------------------------------------
 
 
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 
 
 --------------------------------------------------------------------------------

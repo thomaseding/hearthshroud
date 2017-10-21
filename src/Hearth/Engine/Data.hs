@@ -26,9 +26,9 @@ import Control.Monad.State.Local
 import Data.Data
 import Hearth.Authoring.Combinators
 import Hearth.DebugEvent
-import Hearth.Model
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 import Hearth.Prompt
-import Hearth.RuntimeModel
 import Language.Haskell.TH.Syntax (Name)
 
 

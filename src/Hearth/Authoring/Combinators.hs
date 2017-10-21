@@ -13,8 +13,8 @@ module Hearth.Authoring.Combinators where
 
 import qualified Data.Set as Set
 import Hearth.CardName
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 import Prelude hiding (sequence)
 
 

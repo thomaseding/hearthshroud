@@ -60,9 +60,9 @@ import Hearth.GameEvent
 import Hearth.Heroes
 import Hearth.HeroName
 import Hearth.HeroPowerName
-import Hearth.Model hiding (And, Or)
+import Hearth.Model.Authoring hiding (And, Or)
+import Hearth.Model.Runtime
 import Hearth.Prompt
-import Hearth.RuntimeModel
 import Hearth.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)

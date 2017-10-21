@@ -22,7 +22,7 @@ import Hearth.Authoring.Combinators
 import Hearth.CardName
 import Hearth.CardSet.Basic.Names hiding (Charge, Windfury)
 import qualified Hearth.CardSet.Basic.Names as Basic
-import Hearth.Model
+import Hearth.Model.Authoring
 import Prelude hiding (sequence)
 
 

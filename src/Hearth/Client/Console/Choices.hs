@@ -14,8 +14,8 @@ module Hearth.Client.Console.Choices where
 import Control.Lens
 import Control.Monad.Reader
 import Hearth.Engine
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 
 
 --------------------------------------------------------------------------------

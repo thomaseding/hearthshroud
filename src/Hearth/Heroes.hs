@@ -22,7 +22,7 @@ import Hearth.Authoring.Combinators
 import Hearth.CardSet.Basic.Cards
 import Hearth.HeroName
 import Hearth.HeroPowerName
-import Hearth.Model
+import Hearth.Model.Authoring
 
 
 --------------------------------------------------------------------------------

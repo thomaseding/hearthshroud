@@ -29,8 +29,8 @@ import Data.Proxy
 import Data.Typeable (cast)
 import Hearth.CardName
 import Hearth.Cards
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 
 
 --------------------------------------------------------------------------------

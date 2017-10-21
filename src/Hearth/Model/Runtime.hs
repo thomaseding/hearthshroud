@@ -14,7 +14,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.RuntimeModel where
+module Hearth.Model.Runtime where
 
 
 --------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ module Hearth.RuntimeModel where
 import Control.Lens
 import Data.Data
 import GHC.Generics -- XXX: Is this different than Data.Generics?
-import Hearth.Model
+import Hearth.Model.Authoring
 
 
 --------------------------------------------------------------------------------
@@ -168,8 +168,6 @@ data GameSnapshot = GameSnapshot {
 data GameResult :: * where
     GameResult :: GameResult
     deriving (Show, Eq, Ord, Typeable)
-
-
 
 
 --------------------------------------------------------------------------------

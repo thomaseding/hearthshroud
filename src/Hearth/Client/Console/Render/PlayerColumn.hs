@@ -21,7 +21,7 @@ import Hearth.Client.Console.Render.ManaColumn
 import Hearth.Client.Console.Render.WeaponColumn
 import Hearth.Client.Console.SGRString
 import Hearth.Engine
-import Hearth.Model
+import Hearth.Model.Authoring
 
 
 --------------------------------------------------------------------------------

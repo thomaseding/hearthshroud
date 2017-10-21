@@ -16,7 +16,7 @@ import Control.Lens
 import Data.List
 import Hearth.Cards
 import Hearth.Client.Console.Render.BoardMinionsColumn
-import Hearth.Model
+import Hearth.Model.Authoring
 
 
 --------------------------------------------------------------------------------

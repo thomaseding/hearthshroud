@@ -47,9 +47,9 @@ import Hearth.Cards (cardName)
 import Hearth.CardSet.Basic.Cards (theCoin)
 import Hearth.Engine.Data
 import Hearth.GameEvent
-import Hearth.Model
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 import Hearth.Prompt
-import Hearth.RuntimeModel
 
 
 --------------------------------------------------------------------------------

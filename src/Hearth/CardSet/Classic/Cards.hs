@@ -15,7 +15,7 @@ import Hearth.Authoring.Combinators
 import Hearth.CardName
 import Hearth.CardSet.Classic.Names hiding (Silence)
 import qualified Hearth.CardSet.Classic.Names as Classic
-import Hearth.Model
+import Hearth.Model.Authoring
 import Prelude hiding (sequence)
 
 

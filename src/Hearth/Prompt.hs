@@ -19,8 +19,8 @@ import Data.NonEmpty
 import Hearth.Action
 import Hearth.DebugEvent
 import Hearth.GameEvent
-import Hearth.Model
-import Hearth.RuntimeModel
+import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 
 
 --------------------------------------------------------------------------------
