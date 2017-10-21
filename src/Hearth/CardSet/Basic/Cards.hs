@@ -179,7 +179,7 @@ cards = let x = toCard in [
 --------------------------------------------------------------------------------
 
 
-mkMinion :: Class -> BasicCardName -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
+mkMinion :: Class -> BasicCardName -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion'] -> MinionCard
 mkMinion = mkMinion' BasicCardName Free
 
 
@@ -187,7 +187,7 @@ mkSpell :: Class -> BasicCardName -> Mana -> SpellEffect -> SpellCard
 mkSpell = mkSpell' BasicCardName Free
 
 
-mkWeapon :: Class -> BasicCardName -> Mana -> Attack -> Durability -> [Ability 'Weapon] -> WeaponCard
+mkWeapon :: Class -> BasicCardName -> Mana -> Attack -> Durability -> [Ability 'Weapon'] -> WeaponCard
 mkWeapon = mkWeapon' BasicCardName Free
 
 
@@ -199,13 +199,13 @@ acidicSwampOoze = mkMinion Neutral AcidicSwampOoze [] 2 3 2 [
     Battlecry $ \this ->
         ownerOf this $ \you ->
             opponentOf you $ \opponent ->
-                A $ Weapon' [OwnedBy opponent] $ \weapon ->
+                A $ Weapon [OwnedBy opponent] $ \weapon ->
                     Effect $ destroy weapon ]
 
 
 ancestralHealing :: SpellCard
 ancestralHealing = mkSpell Shaman AncestralHealing 0 $ \_ ->
-    A $ Minion' [] $ \minion ->
+    A $ Minion [] $ \minion ->
         Effect $ sequence [
             RestoreToFullHealth $ MinionCharacter minion,
             enchant minion $ Grant Taunt ]
@@ -244,7 +244,7 @@ arcaneMissiles = mkSpell Mage ArcaneMissiles 1 $ \this ->
 
 arcaneShot :: SpellCard
 arcaneShot = mkSpell Hunter ArcaneShot 1 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ (this `damages` target) 2
 
 
@@ -259,7 +259,7 @@ archmage = mkMinion Neutral Archmage [] 6 4 7 [
 
 assassinate :: SpellCard
 assassinate = mkSpell Rogue Assassinate 5 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ destroy target
 
 
@@ -269,13 +269,13 @@ assassin'sBlade = mkWeapon Rogue Assassin'sBlade 5 3 4 []
 
 backstab :: SpellCard
 backstab = mkSpell Rogue Backstab 0 $ \this ->
-    A $ Minion' [undamaged] $ \target ->
+    A $ Minion [undamaged] $ \target ->
         Effect $ (this `damages` target) 2
 
 
 blessingOfKings :: SpellCard
 blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ sequence [
             enchant target $ gainAttack 4,
             enchant target $ GainHealth 4 ]
@@ -283,7 +283,7 @@ blessingOfKings = mkSpell Paladin BlessingOfKings 4 $ \_ ->
 
 blessingOfMight :: SpellCard
 blessingOfMight = mkSpell Paladin BlessingOfMight 1 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ gainAttack 3
 
 
@@ -320,7 +320,7 @@ boulderfistOgre = mkMinion Neutral BoulderfistOgre [] 6 6 7 []
 charge :: SpellCard
 charge = mkSpell Warrior Basic.Charge 3 $ \this ->
     ownerOf this $ \you ->
-        A $ Minion' [OwnedBy you] $ \target ->
+        A $ Minion [OwnedBy you] $ \target ->
             Effect $ sequence [
                 enchant target $ gainAttack 2,
                 enchant target $ Grant Charge ]
@@ -342,8 +342,8 @@ cleave :: SpellCard
 cleave = mkSpell Warrior Cleave 2 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
-                A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
+            Effect $ Get $ A $ Minion [OwnedBy opponent] $ \victim1 ->
+                A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ forEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 2
 
@@ -365,7 +365,7 @@ corruption :: SpellCard
 corruption = mkSpell Warlock Corruption 1 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            A $ Minion' [OwnedBy opponent] $ \target ->
+            A $ Minion [OwnedBy opponent] $ \target ->
                 Effect $ enchant target $ DelayedEffect (Delay 1 BeginOfTurn) $ destroy target
     
 
@@ -387,7 +387,7 @@ darkscaleHealer = mkMinion Neutral DarkscaleHealer [] 5 4 5 [
 deadlyPoison :: SpellCard
 deadlyPoison = mkSpell Rogue DeadlyPoison 1 $ \this ->
     ownerOf this $ \you ->
-        A $ Weapon' [OwnedBy you] $ \weapon ->
+        A $ Weapon [OwnedBy you] $ \weapon ->
             Effect $ enchant weapon $ AttackDelta 2
 
 
@@ -395,13 +395,13 @@ deadlyShot :: SpellCard
 deadlyShot = mkSpell Hunter DeadlyShot 3 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim ->
+            Effect $ Get $ A $ Minion [OwnedBy opponent] $ \victim ->
                 Effect $ destroy victim
 
 
 divineSpirit :: SpellCard
 divineSpirit = mkSpell Priest DivineSpirit 2 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ StatsScale 1 2
 
 
@@ -413,7 +413,7 @@ dragonlingMechanic = mkMinion Neutral DragonlingMechanic [] 4 2 4 [
 
 drainLife :: SpellCard
 drainLife = mkSpell Warlock DrainLife 3 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         ownerOf this $ \you ->
             Effect $ sequence [
                 (this `damages` target) 2,
@@ -431,7 +431,7 @@ dreadInfernal = mkMinion Warlock DreadInfernal [Demon] 6 6 6 [
 elvenArcher :: MinionCard
 elvenArcher = mkMinion Neutral ElvenArcher [] 1 1 1 [
     Battlecry $ \this ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
@@ -443,7 +443,7 @@ excessMana = uncollectible $ mkSpell Druid ExcessMana 0 $ \this ->
 
 execute :: SpellCard
 execute = mkSpell Warrior Execute 1 $ \_ ->
-    A $ Minion' [damaged] $ \target ->
+    A $ Minion [damaged] $ \target ->
         Effect $ destroy target
 
 
@@ -460,14 +460,14 @@ fanOfKnives = mkSpell Rogue FanOfKnives 4 $ \this ->
 
 fireball :: SpellCard
 fireball = mkSpell Mage Fireball 4 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ (this `damages` target) 6
 
 
 fireElemental :: MinionCard
 fireElemental = mkMinion Shaman FireElemental [] 6 6 5 [
     Battlecry $ \this ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 3 ]
 
 
@@ -494,7 +494,7 @@ frog = uncollectible $ mkMinion Neutral Frog [Beast] 0 0 1 [
 
 frostbolt :: SpellCard
 frostbolt = mkSpell Mage Frostbolt 2 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ sequence [
             (this `damages` target) 3,
             Freeze target ]
@@ -511,7 +511,7 @@ frostNova = mkSpell Mage FrostNova 3 $ \this ->
 
 frostShock :: SpellCard
 frostShock = mkSpell Shaman FrostShock 1 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ sequence [
             (this `damages` target) 1,
             Freeze target ]
@@ -568,7 +568,7 @@ gurubashiBerserker = mkMinion Neutral GurubashiBerserker [] 5 2 7 [
 
 hammerOfWrath :: SpellCard
 hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         ownerOf this $ \you ->
             Effect $ sequence [
                 (this `damages` target) 3,
@@ -577,7 +577,7 @@ hammerOfWrath = mkSpell Paladin HammerOfWrath 4 $ \this ->
 
 handOfProtection :: SpellCard
 handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ Grant DivineShield
 
 
@@ -593,7 +593,7 @@ healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
 
 healingTouch :: SpellCard
 healingTouch = mkSpell Druid HealingTouch 3 $ \_ ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ RestoreHealth target 8
 
 
@@ -612,13 +612,13 @@ heroicStrike = mkSpell Warrior HeroicStrike 2 $ \this ->
 
 hex :: SpellCard
 hex = mkSpell Shaman Hex 3 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ Transform target frog
 
 
 holyLight :: SpellCard
 holyLight = mkSpell Paladin HolyLight 2 $ \_ ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ RestoreHealth target 6
 
 
@@ -637,7 +637,7 @@ holyNova = mkSpell Priest HolyNova 5 $ \this ->
 
 holySmite :: SpellCard
 holySmite = mkSpell Priest HolySmite 1 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ (this `damages` target) 2
 
 
@@ -645,7 +645,7 @@ houndmaster :: MinionCard
 houndmaster = mkMinion Hunter Houndmaster [] 4 4 3 [
     Battlecry $ \this ->
         ownerOf this $ \you ->
-            A $ Minion' [OwnedBy you, OfTribe Beast] $ \beast ->
+            A $ Minion [OwnedBy you, OfTribe Beast] $ \beast ->
                 Effect $ sequence [
                     enchant beast $ gainAttack 2,
                     enchant beast $ GainHealth 2,
@@ -659,13 +659,13 @@ huffer = uncollectible $ mkMinion Hunter Huffer [Beast] 3 4 2 [
 
 humility :: SpellCard
 humility = mkSpell Paladin Humility 1 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ ChangeStat (Left 1)
 
 
 hunter'sMark :: SpellCard
 hunter'sMark = mkSpell Hunter Hunter'sMark 1 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ ChangeStat (Right 1)
 
 
@@ -693,14 +693,14 @@ ironbarkProtector = mkMinion Druid IronbarkProtector [] 8 8 8 [
 ironforgeRifleman :: MinionCard
 ironforgeRifleman = mkMinion Neutral IronforgeRifleman [] 3 2 2 [
     Battlecry $ \this ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 1 ]
 
 
 killCommand :: SpellCard
 killCommand = mkSpell Hunter KillCommand 3 $ \this ->
     ownerOf this $ \you ->
-        A $ Character' [] $ \victim -> let
+        A $ Character [] $ \victim -> let
             deal = this `damages` victim
             in Effect $ If (you `Satisfies` [HasMinion [OfTribe Beast]])
                 (deal 5)
@@ -726,7 +726,7 @@ lordOfTheArena = mkMinion Neutral LordOfTheArena [] 6 6 5 [
 
 markOfTheWild :: SpellCard
 markOfTheWild = mkSpell Druid MarkOfTheWild 2 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ sequence [
             enchant target $ Grant Taunt,
             enchant target $ gainAttack 2,
@@ -752,7 +752,7 @@ mindControl :: SpellCard
 mindControl = mkSpell Priest MindControl 10 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            A $ Minion' [OwnedBy opponent] $ \victim ->
+            A $ Minion [OwnedBy opponent] $ \victim ->
                 Effect $ TakeControl you victim
 
 
@@ -774,7 +774,7 @@ misha = uncollectible $ mkMinion Hunter Misha [Beast] 3 4 4 [
 
 moonfire :: SpellCard
 moonfire = mkSpell Druid Moonfire 0 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         Effect $ (this `damages` target) 1
 
 
@@ -785,7 +785,7 @@ moonfire = mkSpell Druid Moonfire 0 $ \this ->
 mortalCoil :: SpellCard
 mortalCoil = mkSpell Warlock MortalCoil 1 $ \this ->
     ownerOf this $ \you ->
-        A $ Minion' [] $ \target -> let
+        A $ Minion [] $ \target -> let
             effect = (this `damages` target) 1
             in Effect $ Observing effect $ DamageIsDealt $ \victim _ source -> let
                 condition = this `Satisfies` [IsDamageSource source]
@@ -797,8 +797,8 @@ multiShot :: SpellCard
 multiShot = mkSpell Hunter MultiShot 4 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            Effect $ Get $ A $ Minion' [OwnedBy opponent] $ \victim1 ->
-                A $ Minion' [OwnedBy opponent, Not victim1] $ \victim2 ->
+            Effect $ Get $ A $ Minion [OwnedBy opponent] $ \victim1 ->
+                A $ Minion [OwnedBy opponent, Not victim1] $ \victim2 ->
                     Effect $ forEach (handleList [victim1, victim2]) $ \victim ->
                         (this `damages` victim) 3
 
@@ -851,13 +851,13 @@ ogreMagi = mkMinion Neutral OgreMagi [] 4 4 4 [
 
 polymorph :: SpellCard
 polymorph = mkSpell Mage Polymorph 4 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ Transform target sheep
 
 
 powerWordShield :: SpellCard
 powerWordShield = mkSpell Priest PowerWordShield 1 $ \this ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         ownerOf this $ \you ->
             Effect $ sequence [
                 enchant target $ GainHealth 2,
@@ -890,14 +890,14 @@ riverCrocolisk = mkMinion Neutral RiverCrocolisk [Beast] 2 2 3 []
 rockbiterWeapon :: SpellCard
 rockbiterWeapon = mkSpell Shaman RockbiterWeapon 1 $ \this ->
     ownerOf this $ \you ->
-        A $ Character' [OwnedBy you] $ \target ->
+        A $ Character [OwnedBy you] $ \target ->
             Effect $ enchant target $ Until EndOfTurn $ gainAttack 3
 
 
 sacrificialPact :: SpellCard
 sacrificialPact = mkSpell Warlock SacrificialPact 0 $ \this ->
     ownerOf this $ \you ->
-        A $ Minion' [OfTribe Demon] $ \demon ->
+        A $ Minion [OfTribe Demon] $ \demon ->
             Effect $ sequence [
                 destroy demon,
                 RestoreHealth (PlayerCharacter you) 5 ]
@@ -922,19 +922,19 @@ sen'jinShieldmasta = mkMinion Neutral Sen'jinShieldmasta [] 4 3 5 [
 
 shadowBolt :: SpellCard
 shadowBolt = mkSpell Warlock ShadowBolt 3 $ \this ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ (this `damages` target) 4
 
 
 shadowWordDeath :: SpellCard
 shadowWordDeath = mkSpell Priest ShadowWordDeath 3 $ \_ ->
-    A $ Minion' [withAttack GreaterEqual 5] $ \target ->
+    A $ Minion [withAttack GreaterEqual 5] $ \target ->
         Effect $ destroy target
 
 
 shadowWordPain :: SpellCard
 shadowWordPain = mkSpell Priest ShadowWordPain 2 $ \_ ->
-    A $ Minion' [withAttack LessEqual 3] $ \target ->
+    A $ Minion [withAttack LessEqual 3] $ \target ->
         Effect $ destroy target
 
 
@@ -942,7 +942,7 @@ shatteredSunCleric :: MinionCard
 shatteredSunCleric = mkMinion Neutral ShatteredSunCleric [] 3 3 2 [
     Battlecry $ \this ->
         ownerOf this $ \you ->
-            A $ Minion' [OwnedBy you] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ sequence [
                     enchant target $ gainAttack 1,
                     enchant target $ GainHealth 1 ]]
@@ -962,7 +962,7 @@ shieldBlock = mkSpell Warrior ShieldBlock 3 $ \this ->
 
 shiv :: SpellCard
 shiv = mkSpell Rogue Shiv 2 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         ownerOf this $ \you ->
             Effect $ sequence [
                 (this `damages` target) 1,
@@ -988,7 +988,7 @@ sinisterStrike = mkSpell Rogue SinisterStrike 1 $ \this ->
 soulfire :: SpellCard
 soulfire = mkSpell Warlock Soulfire 1 $ \this ->
     ownerOf this $ \you ->
-        A $ Character' [] $ \victim ->
+        A $ Character [] $ \victim ->
             Effect $ sequence [
                 (this `damages` victim) 4,
                 DiscardAtRandom you ]
@@ -1002,7 +1002,7 @@ sprint = mkSpell Rogue Sprint 7 $ \this ->
 
 starfire :: SpellCard
 starfire = mkSpell Druid Starfire 6 $ \this ->
-    A $ Character' [] $ \target ->
+    A $ Character [] $ \target ->
         ownerOf this $ \you ->
             Effect $ sequence [
                 (this `damages` target) 5,
@@ -1022,7 +1022,7 @@ stonetuskBoar = mkMinion Neutral StonetuskBoar [Beast] 1 1 1 [
 stormpikeCommando :: MinionCard
 stormpikeCommando = mkMinion Neutral StormpikeCommando [] 5 4 2 [
     Battlecry $ \this ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ (this `damages` target) 2 ]
 
 
@@ -1052,7 +1052,7 @@ swipe :: SpellCard
 swipe = mkSpell Druid Swipe 4 $ \this ->
     ownerOf this $ \you ->
         opponentOf you $ \opponent ->
-            A $ Character' [OwnedBy opponent] $ \target ->
+            A $ Character [OwnedBy opponent] $ \target ->
                 All $ Characters [OwnedBy opponent, Not target] $ \others ->
                     Effect $ sequence [
                         (this `damages` target) 4,
@@ -1098,7 +1098,7 @@ voidwalker = mkMinion Warlock Voidwalker [Demon] 1 1 3 [
 voodooDoctor :: MinionCard
 voodooDoctor = mkMinion Neutral VoodooDoctor [] 1 2 1 [
     Battlecry $ \_ ->
-        A $ Character' [] $ \character ->
+        A $ Character [] $ \character ->
             Effect $ RestoreHealth character 2 ]
 
 
@@ -1142,7 +1142,7 @@ wildGrowth = mkSpell Druid WildGrowth 2 $ \this ->
 
 windfury :: SpellCard
 windfury = mkSpell Shaman Basic.Windfury 2 $ \_ ->
-    A $ Minion' [] $ \target ->
+    A $ Minion [] $ \target ->
         Effect $ enchant target $ Grant Windfury
 
 
@@ -1150,7 +1150,7 @@ windspeaker :: MinionCard
 windspeaker = mkMinion Shaman Windspeaker [] 4 3 3 [
     Battlecry $ \this ->
         ownerOf this $ \you ->
-            A $ Minion' [OwnedBy you] $ \target ->
+            A $ Minion [OwnedBy you] $ \target ->
                 Effect $ enchant target $ Grant Windfury ]
 
 

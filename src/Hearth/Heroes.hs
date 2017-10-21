@@ -99,7 +99,7 @@ fireblast = HeroPower {
     _heroPowerName = Fireblast,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \you ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ DealDamage target 1 (DamagingCharacter $ PlayerCharacter you) }
 
 
@@ -108,7 +108,7 @@ lesserHeal = HeroPower {
     _heroPowerName = LesserHeal,
     _heroPowerCost = ManaCost 2,
     _heroPowerEffect = \_ ->
-        A $ Character' [] $ \target ->
+        A $ Character [] $ \target ->
             Effect $ RestoreHealth target 2 }
 
 

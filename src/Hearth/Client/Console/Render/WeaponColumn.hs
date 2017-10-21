@@ -24,7 +24,7 @@ import System.Console.ANSI
 --------------------------------------------------------------------------------
 
 
-weaponColumn :: (HearthMonad m) => Handle 'Player -> Hearth m [SGRString]
+weaponColumn :: (HearthMonad m) => Handle 'Player' -> Hearth m [SGRString]
 weaponColumn player = dynamic $ do
     weaponStr <- view (getPlayer player.playerWeapon) >>= return . \case
         Nothing -> "None"

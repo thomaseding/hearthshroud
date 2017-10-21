@@ -85,7 +85,7 @@ mkMeta f rarity clazz name = CardMeta {
     _cardMetaCollectibility = Collectible }
 
 
-mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion] -> MinionCard
+mkMinion' :: (name -> CardName) -> Rarity -> Class -> name -> [Tribe] -> Mana -> Attack -> Health -> [Ability 'Minion'] -> MinionCard
 mkMinion' f rarity clazz name tribes mana attack health abilities = MinionCard {
     _minionCost = ManaCost mana,
     _minionTribes = Set.fromList tribes,
@@ -95,7 +95,7 @@ mkMinion' f rarity clazz name tribes mana attack health abilities = MinionCard {
     _minionMeta = mkMeta f rarity clazz name }
 
 
-mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability 'Weapon] -> WeaponCard
+mkWeapon' :: (name -> CardName) -> Rarity -> Class -> name -> Mana -> Attack -> Durability -> [Ability 'Weapon'] -> WeaponCard
 mkWeapon' f rarity clazz name mana attack durability abilities = WeaponCard {
     _weaponCost = ManaCost mana,
     _weaponAttack = attack,
@@ -112,21 +112,21 @@ mkSpell' f rarity clazz name mana effect = SpellCard {
 
 
 class CharacterLike (a :: ObjectType) where
-    asCharacter :: Handle a -> Handle 'Character
-    fromCharacterEnchantment :: Enchantment t 'Character -> Enchantment t a
+    asCharacter :: Handle a -> Handle 'Character'
+    fromCharacterEnchantment :: Enchantment t 'Character' -> Enchantment t a
 
 
-instance CharacterLike 'Player where
+instance CharacterLike 'Player' where
     asCharacter = PlayerCharacter
     fromCharacterEnchantment = PlayerEnchantment
 
 
-instance CharacterLike 'Minion where
+instance CharacterLike 'Minion' where
     asCharacter = MinionCharacter
     fromCharacterEnchantment = MinionEnchantment
 
 
-instance CharacterLike 'Character where
+instance CharacterLike 'Character' where
     asCharacter = id
     fromCharacterEnchantment = id
 
@@ -135,19 +135,19 @@ class AsDamageSource (a :: ObjectType) where
     asDamageSource :: Handle a -> DamageSource
 
 
-instance AsDamageSource 'Player where
+instance AsDamageSource 'Player' where
     asDamageSource = DamagingCharacter . asCharacter
 
 
-instance AsDamageSource 'Minion where
+instance AsDamageSource 'Minion' where
     asDamageSource = DamagingCharacter . asCharacter
 
 
-instance AsDamageSource 'Character where
+instance AsDamageSource 'Character' where
     asDamageSource = DamagingCharacter
 
 
-instance AsDamageSource 'Spell where
+instance AsDamageSource 'Spell' where
     asDamageSource = DamagingSpell
 
 
@@ -155,11 +155,11 @@ class AnyEnchantmentLike (t :: Timeline) where
     asAnyEnchantment :: Enchantment t a -> AnyEnchantment a
 
 
-instance AnyEnchantmentLike 'Continuous where
+instance AnyEnchantmentLike 'Continuous' where
     asAnyEnchantment = ContinuousEnchantment
 
 
-instance AnyEnchantmentLike 'Limited where
+instance AnyEnchantmentLike 'Limited' where
     asAnyEnchantment = LimitedEnchantment
 
 
@@ -175,7 +175,7 @@ when :: Condition -> Effect -> Effect
 when cond effect = If cond effect DoNothing
 
 
-gainAttack :: (CharacterLike a) => Attack -> Enchantment 'Continuous a
+gainAttack :: (CharacterLike a) => Attack -> Enchantment 'Continuous' a
 gainAttack = fromCharacterEnchantment . GainAttack
 
 
@@ -186,20 +186,20 @@ freeze = Freeze . asCharacter
 class AsObserver (a :: ObjectType) where
     observer :: (Handle a -> EventListener) -> Ability a
 
-instance AsObserver 'Minion where
+instance AsObserver 'Minion' where
     observer = ObserverMinion
 
 
 class AsAura (a :: ObjectType) where
     aura :: (Handle a -> Aura) -> Ability a
 
-instance AsAura 'Minion where
+instance AsAura 'Minion' where
     aura = AuraMinion
 
 
 class AuraElect (a :: *) where
-    ownerOf :: Handle o -> (Handle 'Player -> a) -> a
-    opponentOf :: Handle 'Player -> (Handle 'Player -> a) -> a
+    ownerOf :: Handle o -> (Handle 'Player' -> a) -> a
+    opponentOf :: Handle 'Player' -> (Handle 'Player' -> a) -> a
 
 instance AuraElect (Elect s) where
     ownerOf = OwnerOf
@@ -225,13 +225,13 @@ instance AsSequence Aura where
 class AsForEach (a :: ObjectType) where
     forEach :: HandleList a -> (Handle a -> Effect) -> Effect
 
-instance AsForEach 'Minion where
+instance AsForEach 'Minion' where
     forEach = ForEachMinion
 
-instance AsForEach 'Player where
+instance AsForEach 'Player' where
     forEach = ForEachPlayer
 
-instance AsForEach 'Character where
+instance AsForEach 'Character' where
     forEach = ForEachCharacter
 
 
@@ -239,10 +239,10 @@ instance AsForEach 'Character where
 class AsDestroy (a :: ObjectType) where
     destroy :: Handle a -> Effect
 
-instance AsDestroy 'Minion where
+instance AsDestroy 'Minion' where
     destroy = DestroyMinion
 
-instance AsDestroy 'Weapon where
+instance AsDestroy 'Weapon' where
     destroy = DestroyWeapon
 
 
@@ -252,19 +252,19 @@ class CharacterRequirment (a :: ObjectType) where
     damaged :: Requirement a
     undamaged :: Requirement a
 
-instance CharacterRequirment 'Character where
+instance CharacterRequirment 'Character' where
     withAttack = WithAttack
     withHealth = WithHealth
     damaged = Damaged
     undamaged = Undamaged
 
-instance CharacterRequirment 'Minion where
+instance CharacterRequirment 'Minion' where
     withAttack c = RequireMinion . WithAttack c
     withHealth c = RequireMinion . WithHealth c
     damaged = RequireMinion Damaged
     undamaged = RequireMinion Undamaged
 
-instance CharacterRequirment 'Player where
+instance CharacterRequirment 'Player' where
     withAttack c = RequirePlayer . WithAttack c
     withHealth c = RequirePlayer . WithHealth c
     damaged = RequirePlayer Damaged

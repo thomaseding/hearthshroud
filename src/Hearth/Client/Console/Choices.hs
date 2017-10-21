@@ -20,7 +20,7 @@ import Hearth.Model
 --------------------------------------------------------------------------------
 
 
-possibleAttacks :: (HearthMonad m) => Hearth m [(Handle 'Character, Handle 'Character)]
+possibleAttacks :: (HearthMonad m) => Hearth m [(Handle 'Character', Handle 'Character')]
 possibleAttacks = do
     activeHandle <- getActivePlayerHandle
     activeMinions' <- view $ getPlayer activeHandle.playerMinions
