@@ -42,6 +42,7 @@ import Data.Proxy
 import Hearth.Authored.Cards (cardName)
 import Hearth.Authored.CardSet.Basic.Cards (theCoin)
 import Hearth.Combinator.Authoring (toCard)
+import Hearth.Combinator.Runtime
 import Hearth.Engine.Data
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime

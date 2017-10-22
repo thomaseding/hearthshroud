@@ -53,6 +53,7 @@ import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
+import Hearth.Combinator.Runtime
 import Hearth.Engine hiding (scopedPhase)
 import Hearth.Model.Authoring hiding (And, Or)
 import Hearth.Model.Runtime

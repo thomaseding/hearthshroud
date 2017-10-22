@@ -106,7 +106,7 @@ rawReadHandle h = case getUserData h of
 
 
 readHandle :: Handle a -> ShowCard String
-readHandle = applyRawHandle rawReadHandle
+readHandle = rawReadHandle . getRawHandle
 
 
 --------------------------------------------------------------------------------

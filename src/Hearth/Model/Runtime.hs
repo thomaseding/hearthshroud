@@ -45,6 +45,18 @@ pattern MaxBoardMinionsPerPlayer = 7
 --------------------------------------------------------------------------------
 
 
+data Result = Success | Failure String
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+newtype Turn = Turn Int
+    deriving (Show, Eq, Ord, Data, Typeable)
+
+
+newtype BoardIndex = BoardIndex Int
+    deriving (Show, Eq, Ord, Enum, Data, Typeable)
+
+
 data Scoped :: * -> * where
     Begin :: a -> Scoped a
     End :: a -> Scoped a

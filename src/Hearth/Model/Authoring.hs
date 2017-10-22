@@ -41,18 +41,6 @@ import Hearth.Model.Authoring.HeroPowerName
 --------------------------------------------------------------------------------
 
 
-data Result = Success | Failure String
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-newtype Turn = Turn Int
-    deriving (Show, Eq, Ord, Data, Typeable)
-
-
-newtype BoardIndex = BoardIndex Int
-    deriving (Show, Eq, Ord, Enum, Data, Typeable)
-
-
 newtype Mana = Mana Int
     deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
 
@@ -103,6 +91,31 @@ data ObjectType
     deriving (Typeable)
 
 
+-- TODO:
+--
+-- Make [[Handle a]] much more opaque.
+--
+-- Put in [[Hearth.Model.Internal.Handle]].
+-- Here define [[Handle]] as it currently is and expose all its constructors.
+-- Do NOT instance any non-Data/Typeable classes here! (Intentionally orphan instance... see below.)
+--
+-- In this file, export [[Handle()]].
+-- In [[Hearth.Model.Runtime]], export [[Handle(..)]].
+--
+-- Intentionally orphan instance in [[Hearth.Model.Runtime]] the right classes.
+--
+-- The goal of this is to prevent pure data authoring from using language-level
+-- (Haskell, not the DSL) branching when defining cards to author. As an example,
+-- I don't want authoring code to enable the following:
+-- > ForEachCharacter characters $ \case
+-- >    MinionCharacter minion -> DealDamage you minion 1
+-- >    PlayerCharacter player -> DrawCards player 1
+-- Instead logic should be built directly into the DSL (if needed). Example:
+-- > ForEachCharacter rcharacters $ \character ->
+-- >     BranchCharacter character
+-- >         (\minion -> DealDamage you minion 1)
+-- >         (\player -> DrawCards player 1)
+--
 data Handle :: ObjectType -> * where
     SpellHandle :: RawHandle -> Handle 'Spell'
     WeaponHandle :: RawHandle -> Handle 'Weapon'
@@ -113,56 +126,26 @@ data Handle :: ObjectType -> * where
     deriving (Typeable)
 
 
-mapHandle :: (Handle 'Spell' -> b) -> (Handle 'Weapon' -> b) -> (Handle 'Minion' -> b) -> (Handle 'Player' -> b) -> (Handle 'Character' -> b) -> (Handle a -> b)
-mapHandle spell weapon minion player character = \case
-    h @ SpellHandle {} -> spell h
-    h @ WeaponHandle {} -> weapon h
-    h @ MinionHandle {} -> minion h
-    h @ PlayerHandle {} -> player h
-    h @ MinionCharacter {} -> character h
-    h @ PlayerCharacter {} -> character h
-
-
-applyRawHandle :: (RawHandle -> b) -> Handle a -> b
-applyRawHandle f = \case
-    SpellHandle h -> f h
-    WeaponHandle h -> f h
-    MinionHandle h -> f h
-    PlayerHandle h -> f h
-    MinionCharacter h -> applyRawHandle f h
-    PlayerCharacter h -> applyRawHandle f h
-
-
-class CastHandle (a :: ObjectType) where
-    castHandle :: Handle b -> Maybe (Handle a)
-
-
-instance CastHandle 'Spell' where
-    castHandle = \case
-        h @ SpellHandle {} -> Just h
-        _ -> Nothing
-
-
-instance CastHandle 'Character' where
-    castHandle = \case
-        SpellHandle {} -> Nothing
-        WeaponHandle {} -> Nothing
-        h @ MinionHandle {} -> Just $ MinionCharacter h
-        h @ PlayerHandle {} -> Just $ PlayerCharacter h
-        h @ MinionCharacter {} -> Just h
-        h @ PlayerCharacter {} -> Just h
+getRawHandle :: Handle a -> RawHandle
+getRawHandle = \case
+    SpellHandle h -> h
+    WeaponHandle h -> h
+    MinionHandle h -> h
+    PlayerHandle h -> h
+    MinionCharacter h -> getRawHandle h
+    PlayerCharacter h -> getRawHandle h
 
 
 instance Show (Handle a) where
-    show = applyRawHandle show
+    show = show . getRawHandle
 
 
 instance Eq (Handle a) where
-    (==) = on (==) $ applyRawHandle id
+    (==) = on (==) getRawHandle
 
 
 instance Ord (Handle a) where
-    (<=) = on (<=) $ applyRawHandle id
+    (<=) = on (<=) getRawHandle
 
 
 data HandleList :: ObjectType -> * where
@@ -184,7 +167,7 @@ instance HasUserData RawHandle where
 
 
 instance HasUserData (Handle a) where
-    getUserData = applyRawHandle getUserData
+    getUserData = getUserData . getRawHandle
     setUserData = \case
         SpellHandle h -> SpellHandle . setUserData h
         WeaponHandle h -> WeaponHandle . setUserData h
