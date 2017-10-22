@@ -354,7 +354,7 @@ drawCard handle = logCall 'drawCard $ getPlayer handle.playerDeck >>=. \case
     Deck [] -> do
         getPlayer handle.playerExcessDrawCount += 1
         excess <- view $ getPlayer handle.playerExcessDrawCount
-        enactDealDamage (PlayerCharacter handle) (Damage excess) Fatigue
+        enactDealDamage (PlayerCharacter handle) (toDamage excess) Fatigue
         return Nothing
     Deck (c:cs) -> do
         let c' = toHandCard c
@@ -1010,7 +1010,7 @@ enactRestoreHealth character (Health amount) = logCall 'enactRestoreHealth $ do
 
 enactRestoreToFullHealth :: (HearthMonad m) => Handle 'Character' -> Hearth m ()
 enactRestoreToFullHealth character = logCall 'enactRestoreToFullHealth $ do
-    enactRestoreHealth character $ Health maxBound
+    enactRestoreHealth character $ toHealth maxBound
 
 
 enactDestroyMinion :: (HearthMonad m) => Handle 'Minion' -> Hearth m ()
@@ -1157,7 +1157,7 @@ grantsFrozen = discoverEnchantment $ \case
 enactLoseDurability :: (HearthMonad m) => Int -> Handle 'Weapon' -> Hearth m ()
 enactLoseDurability n weapon = logCall 'enactLoseDurability $ do
     remaining <- zoom (getWeapon weapon) $ do
-        boardWeaponDurability %= max 0 . subtract (Durability n)
+        boardWeaponDurability %= max 0 . subtract (toDurability n)
         view boardWeaponDurability
     case remaining of
         0 -> enactDestroyWeapon weapon
@@ -1459,7 +1459,7 @@ enactRandomMissilesPrim reqs n spell = logCall 'enactRandomMissilesPrim $ case n
 
 enactDealDamage :: (HearthMonad m) => Handle 'Character' -> Damage -> DamageSource -> Hearth m ()
 enactDealDamage charHandle (Damage baseDamage) source = logCall 'enactDealDamage $ do
-    modifier <- case source of
+    modifier <- liftM (IdInt Nothing) $ case source of
         DamagingSpell spell -> ownerOf spell >>= dynamic . viewSpellDamage
         _ -> return 0
     let damage = Damage $ baseDamage + modifier
@@ -1799,10 +1799,11 @@ payManaCost who (Mana cost) = logCall 'payManaCost $ zoom (getPlayer who) $ do
     totalMana <- view playerTotalManaCrystals
     emptyMana <- view playerEmptyManaCrystals
     let availableMana = totalMana - emptyMana
-    case cost <= availableMana of
+        cost' = viewInt cost
+    case cost' <= availableMana of
         False -> return $ Failure "Not enough mana."
         True -> do
-            playerEmptyManaCrystals += cost
+            playerEmptyManaCrystals += cost'
             return Success
 
 

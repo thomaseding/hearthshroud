@@ -139,19 +139,19 @@ readAlgebraicInt n = case n < 0 of
 
 
 genAlgebraicDamage :: ShowCard Damage
-genAlgebraicDamage = liftM Damage genAlgebraicInt
+genAlgebraicDamage = liftM toDamage genAlgebraicInt
 
 
 readDamage :: Damage -> ShowCard String
-readDamage (Damage n) = readAlgebraicInt n
+readDamage (Damage n) = readAlgebraicInt $ viewInt n
 
 
 genAlgebraicHealth :: ShowCard Health
-genAlgebraicHealth = liftM Health genAlgebraicInt
+genAlgebraicHealth = liftM toHealth genAlgebraicInt
 
 
 readHealth :: Health -> ShowCard String
-readHealth (Health n) = readAlgebraicInt n
+readHealth (Health n) = readAlgebraicInt $ viewInt n
 
 
 --------------------------------------------------------------------------------
@@ -851,8 +851,8 @@ showTimePoint :: TimePoint -> ShowCard String
 showTimePoint = return . show
 
 
-showWithSign :: Int -> String
-showWithSign n = case n > 0 of
+showWithSign :: IdInt -> String
+showWithSign (IdInt _ n) = case n > 0 of
     True -> '+' : show n
     False -> show n
 

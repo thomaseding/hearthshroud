@@ -39,22 +39,25 @@ data ObjectType
     deriving (Typeable)
 
 
-newtype Mana = Mana Int
+data IdInt = IdInt (Maybe Int) Int
 
 
-newtype Attack = Attack { unAttack :: Int }
+newtype Mana = Mana IdInt
 
 
-newtype Armor = Armor { unArmor :: Int }
+newtype Attack = Attack { unAttack :: IdInt }
 
 
-newtype Health = Health { unHealth :: Int }
+newtype Armor = Armor { unArmor :: IdInt }
 
 
-newtype Damage = Damage { unDamage :: Int }
+newtype Health = Health { unHealth :: IdInt }
 
 
-newtype Durability = Durability { unDurability :: Int }
+newtype Damage = Damage { unDamage :: IdInt }
+
+
+newtype Durability = Durability { unDurability :: IdInt }
 
 
 data RawHandle :: * where

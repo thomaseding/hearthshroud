@@ -57,28 +57,28 @@ handleList :: [Handle a] -> HandleList a
 handleList = HandleList ()
 
 
-toDamage :: Int -> Damage
-toDamage = Damage
-
-
-toMana :: Int -> Mana
-toMana = Mana
-
-
-toHealth :: Int -> Health
-toHealth = Health
-
-
 toArmor :: Int -> Armor
-toArmor = Armor
+toArmor = Armor . IdInt Nothing
 
 
 toAttack :: Int -> Attack
-toAttack = Attack
+toAttack = Attack . IdInt Nothing
+
+
+toDamage :: Int -> Damage
+toDamage = Damage . IdInt Nothing
 
 
 toDurability :: Int -> Durability
-toDurability = Durability
+toDurability = Durability . IdInt Nothing
+
+
+toHealth :: Int -> Health
+toHealth = Health . IdInt Nothing
+
+
+toMana :: Int -> Mana
+toMana = Mana . IdInt Nothing
 
 
 data CrystalState :: * where
@@ -306,8 +306,7 @@ type SpellEffect
 data SpellCard = SpellCard {
     _spellCost :: Cost,
     _spellEffect :: SpellEffect,
-    _spellMeta :: CardMeta
-}
+    _spellMeta :: CardMeta }
 
 
 data WeaponCard = WeaponCard {
@@ -315,8 +314,7 @@ data WeaponCard = WeaponCard {
     _weaponAttack :: Attack,
     _weaponDurability :: Durability,
     _weaponAbilities :: [Ability 'Weapon'],
-    _weaponMeta :: CardMeta
-}
+    _weaponMeta :: CardMeta }
 
 
 data MinionCard = MinionCard {
@@ -325,8 +323,7 @@ data MinionCard = MinionCard {
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionAbilities :: [Ability 'Minion'],
-    _minionMeta :: CardMeta
-}
+    _minionMeta :: CardMeta }
 
 
 type HeroPowerEffect
@@ -336,16 +333,14 @@ type HeroPowerEffect
 data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffect :: HeroPowerEffect,
-    _heroPowerName :: HeroPowerName
-}
+    _heroPowerName :: HeroPowerName }
 
 
 data Hero = Hero {
     _heroAttack :: Attack,
     _heroHealth :: Health,
     _heroPower :: HeroPower,
-    _heroName :: HeroName
-}
+    _heroName :: HeroName }
 
 
 data Card :: * where
