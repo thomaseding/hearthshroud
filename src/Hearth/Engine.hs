@@ -51,7 +51,6 @@ import Hearth.Model.Runtime.GameEvent
 import Hearth.Model.Runtime.Prompt
 
 import qualified Data.NonEmpty as NonEmpty
-import qualified Data.Set as Set
 
 
 --------------------------------------------------------------------------------
@@ -1691,7 +1690,7 @@ instance CanSatisfy a (Requirement a) where
             view playerTotalManaCrystals >>= \case
                 MaxManaCrystals -> liftM (== 0) $ view playerTemporaryManaCrystals
                 _ -> return False
-        OfTribe tribe -> view $ getMinion candidate.boardMinion.minionTribes.to (Set.member tribe)
+        OfTribe tribe -> view $ getMinion candidate.boardMinion.minionTribes.to (member tribe)
         HasCharge -> dynamic $ viewCharge candidate
         HasMinion reqs -> do
             minions <- viewListOf $ getPlayer candidate.playerMinions.traversed.boardMinionHandle

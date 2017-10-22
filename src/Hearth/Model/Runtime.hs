@@ -14,7 +14,11 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
-module Hearth.Model.Runtime where
+module Hearth.Model.Runtime (
+    module Hearth.Model.Authoring.Internal,
+    module Hearth.Model.Authoring.Internal.Instances,
+    module Hearth.Model.Runtime,
+) where
 
 
 --------------------------------------------------------------------------------
@@ -25,6 +29,8 @@ import Data.Data
 import GHC.Generics -- XXX: Is this different than Data.Generics?
 import Hearth.Combinator.Authoring (ToCard(..))
 import Hearth.Model.Authoring
+import Hearth.Model.Authoring.Internal
+import Hearth.Model.Authoring.Internal.Instances
 
 
 --------------------------------------------------------------------------------

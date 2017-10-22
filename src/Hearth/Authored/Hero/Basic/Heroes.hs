@@ -20,6 +20,7 @@ module Hearth.Authored.Hero.Basic.Heroes (
 
 import Hearth.Authored.Hero.Basic.Names
 import Hearth.Authored.HeroPower.Basic.Powers
+import Hearth.Combinator.Authoring
 import Hearth.Model.Authoring
 
 
@@ -28,8 +29,8 @@ import Hearth.Model.Authoring
 
 mkSimpleHero :: BasicHeroName -> HeroPower -> Hero
 mkSimpleHero name power = Hero {
-    _heroAttack = 0,
-    _heroHealth = 30,
+    _heroAttack = _0,
+    _heroHealth = _30,
     _heroPower = power,
     _heroName = BasicHeroName name }
 

@@ -25,6 +25,7 @@ module Hearth.Combinator.Runtime where
 
 
 import Hearth.Model.Authoring
+import Hearth.Model.Runtime
 
 
 --------------------------------------------------------------------------------

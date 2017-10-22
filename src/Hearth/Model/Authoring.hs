@@ -1,12 +1,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
@@ -23,6 +20,15 @@ module Hearth.Model.Authoring (
     module Hearth.Model.Authoring.CardName,
     module Hearth.Model.Authoring.HeroName,
     module Hearth.Model.Authoring.HeroPowerName,
+    ObjectType(..),
+    Mana,
+    Attack,
+    Armor,
+    Health,
+    Damage,
+    Durability,
+    Handle,
+    HandleList,
 ) where
 
 
@@ -30,172 +36,59 @@ module Hearth.Model.Authoring (
 
 
 import Control.Lens hiding (Each)
-import Data.Data
-import Data.Function
-import Data.Set (Set)
 import Hearth.Model.Authoring.CardName
 import Hearth.Model.Authoring.HeroName
 import Hearth.Model.Authoring.HeroPowerName
+import Hearth.Model.Authoring.Internal
 
 
 --------------------------------------------------------------------------------
 
 
-newtype Mana = Mana Int
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
+asMinionCharacter :: Handle 'Minion' -> Handle 'Character'
+asMinionCharacter = MinionCharacter
 
 
-newtype Attack = Attack { unAttack :: Int }
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
-newtype Armor = Armor { unArmor :: Int }
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
-newtype Health = Health { unHealth :: Int }
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
-newtype Damage = Damage { unDamage :: Int }
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
-newtype Durability = Durability { unDurability :: Int }
-    deriving (Show, Eq, Ord, Data, Typeable, Enum, Num, Real, Integral)
-
-
-data RawHandle :: * where
-    RawHandle :: (Typeable userData) => userData -> Int -> RawHandle
-    deriving (Typeable)
-
-
-instance Show RawHandle where
-    show (RawHandle _ x) = show x
-
-
-instance Eq RawHandle where
-    (RawHandle _ x) == (RawHandle _ y) = x == y
-
-
-instance Ord RawHandle where
-    (RawHandle _ x) <= (RawHandle _ y) = x <= y
-
-
-data ObjectType
-    = Spell'
-    | Weapon'
-    | Minion'
-    | Player'
-    | Character'
-    deriving (Typeable)
-
-
--- TODO:
---
--- Make [[Handle a]] much more opaque.
---
--- Put in [[Hearth.Model.Authoring.Internal]] and define [[Handle]] as it
--- currently is and expose all its constructors.
--- Do NOT instance any non-Data/Typeable classes here!
--- (Intentionally orphan instance... see below.)
---
--- In this file, export [[Handle()]].
--- In [[Hearth.Model.Runtime]], export [[Handle(..)]].
---
--- Intentionally orphan instance in [[Hearth.Model.Runtime]] the right classes.
---
--- The goal of this is to prevent pure data authoring from using language-level
--- (Haskell, not the DSL) branching when defining cards to author. As an example,
--- I don't want authoring code to enable the following:
--- > ForEachCharacter characters $ \case
--- >    MinionCharacter minion -> DealDamage you minion 1
--- >    PlayerCharacter player -> DrawCards player 1
--- Instead logic should be built directly into the DSL (if needed). Example:
--- > ForEachCharacter rcharacters $ \character ->
--- >     BranchCharacter character
--- >         (\minion -> DealDamage you minion 1)
--- >         (\player -> DrawCards player 1)
---
--- Other data types currently defined in this file should get similar treatment.
--- Examples include: HandleList, Armor, Mana, Cost, etc.
---
-data Handle :: ObjectType -> * where
-    SpellHandle :: RawHandle -> Handle 'Spell'
-    WeaponHandle :: RawHandle -> Handle 'Weapon'
-    MinionHandle :: RawHandle -> Handle 'Minion'
-    PlayerHandle :: RawHandle -> Handle 'Player'
-    MinionCharacter :: Handle 'Minion' -> Handle 'Character'
-    PlayerCharacter :: Handle 'Player' -> Handle 'Character'
-    deriving (Typeable)
-
-
-getRawHandle :: Handle a -> RawHandle
-getRawHandle = \case
-    SpellHandle h -> h
-    WeaponHandle h -> h
-    MinionHandle h -> h
-    PlayerHandle h -> h
-    MinionCharacter h -> getRawHandle h
-    PlayerCharacter h -> getRawHandle h
-
-
-instance Show (Handle a) where
-    show = show . getRawHandle
-
-
-instance Eq (Handle a) where
-    (==) = on (==) getRawHandle
-
-
-instance Ord (Handle a) where
-    (<=) = on (<=) getRawHandle
-
-
-data HandleList :: ObjectType -> * where
-    HandleList :: (Typeable userData) => userData -> [Handle a] -> HandleList a
+asPlayerCharacter :: Handle 'Player' -> Handle 'Character'
+asPlayerCharacter = PlayerCharacter
 
 
 handleList :: [Handle a] -> HandleList a
 handleList = HandleList ()
 
 
-class HasUserData a where
-    getUserData :: (Typeable u) => a -> Maybe u
-    setUserData :: (Typeable u) => a -> u -> a
+toDamage :: Int -> Damage
+toDamage = Damage
 
 
-instance HasUserData RawHandle where
-    getUserData (RawHandle u _) = cast u
-    setUserData (RawHandle _ n) u = RawHandle u n
+toMana :: Int -> Mana
+toMana = Mana
 
 
-instance HasUserData (Handle a) where
-    getUserData = getUserData . getRawHandle
-    setUserData = \case
-        SpellHandle h -> SpellHandle . setUserData h
-        WeaponHandle h -> WeaponHandle . setUserData h
-        MinionHandle h -> MinionHandle . setUserData h
-        PlayerHandle h -> PlayerHandle . setUserData h
-        MinionCharacter h -> MinionCharacter . setUserData h
-        PlayerCharacter h -> PlayerCharacter . setUserData h
+toHealth :: Int -> Health
+toHealth = Health
 
 
-instance HasUserData (HandleList a) where
-    getUserData (HandleList u _) = cast u
-    setUserData (HandleList _ hs) u = HandleList u hs
+toArmor :: Int -> Armor
+toArmor = Armor
+
+
+toAttack :: Int -> Attack
+toAttack = Attack
+
+
+toDurability :: Int -> Durability
+toDurability = Durability
 
 
 data CrystalState :: * where
     CrystalFull :: CrystalState
     CrystalEmpty :: CrystalState
     CrystalTemporary :: CrystalState
-    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data Cost :: * where
     ManaCost :: Mana -> Cost
-    deriving (Show, Eq, Ord, Data, Typeable)
 
 
 data Selection = Targeted' | AtRandom'
@@ -239,7 +132,6 @@ data Comparison
     | Equal
     | GreaterEqual
     | Greater
-    deriving (Show, Eq, Ord)
 
 
 data Elect :: Selection -> * where
@@ -249,7 +141,6 @@ data Elect :: Selection -> * where
     All :: All s -> Elect s
     Effect :: Effect -> Elect s
     ChooseOne' :: [Elect s] -> Elect s
-    deriving (Typeable)
 
 
 data A :: Selection -> * where
@@ -304,7 +195,6 @@ data Effect :: * where
     RandomMissiles :: [Requirement 'Character'] -> Int -> Handle 'Spell' -> Effect
     DiscardAtRandom :: Handle 'Player' -> Effect
     TakeControl :: Handle 'Player' -> Handle 'Minion' -> Effect
-    deriving (Typeable)
 
 
 data EventListener :: * where
@@ -338,14 +228,12 @@ data Ability :: ObjectType -> * where
     SpellDamage :: Int -> Ability 'Minion'
     Windfury :: Ability 'Minion'
     Can'tAttack :: Ability 'Minion'
-    deriving (Typeable)
 
 
 data TimePoint :: * where
     Delay :: Int -> TimePoint -> TimePoint
     BeginOfTurn :: TimePoint
     EndOfTurn :: TimePoint
-    deriving (Show, Typeable, Eq, Ord)
 
 
 data Enchantment :: Timeline -> ObjectType -> * where
@@ -361,13 +249,11 @@ data Enchantment :: Timeline -> ObjectType -> * where
     Grant :: Ability a -> Enchantment 'Continuous' a
     Frozen :: Enchantment 'Continuous' 'Character'
     AttackDelta :: Attack -> Enchantment 'Continuous' 'Weapon'
-    deriving (Typeable)
 
 
 data AnyEnchantment :: ObjectType -> * where
     ContinuousEnchantment :: Enchantment 'Continuous' a -> AnyEnchantment a
     LimitedEnchantment :: Enchantment 'Limited' a -> AnyEnchantment a
-    deriving (Typeable)
 
 
 data Tribe :: * where
@@ -378,7 +264,6 @@ data Tribe :: * where
     Murloc :: Tribe
     Pirate :: Tribe
     Totem :: Tribe
-    deriving (Show, Eq, Ord)
 
 
 data Rarity :: * where
@@ -387,7 +272,6 @@ data Rarity :: * where
     Rare :: Rarity
     Epic :: Rarity
     Legendary :: Rarity
-    deriving (Show, Eq, Ord)
 
 
 data Class :: * where
@@ -401,13 +285,11 @@ data Class :: * where
     Mage :: Class
     Warlock :: Class
     Rogue :: Class
-    deriving (Show, Eq, Ord)
 
 
 data Collectibility :: * where
     Collectible :: Collectibility
     Uncollectible :: Collectibility
-    deriving (Show, Eq, Ord)
 
 
 data CardMeta = CardMeta {
@@ -415,7 +297,6 @@ data CardMeta = CardMeta {
     _cardMetaClass :: Class,
     _cardMetaRarity :: Rarity,
     _cardMetaCollectibility :: Collectibility }
-    deriving (Typeable)
 
 
 type SpellEffect
@@ -426,7 +307,7 @@ data SpellCard = SpellCard {
     _spellCost :: Cost,
     _spellEffect :: SpellEffect,
     _spellMeta :: CardMeta
-} deriving (Typeable)
+}
 
 
 data WeaponCard = WeaponCard {
@@ -435,17 +316,17 @@ data WeaponCard = WeaponCard {
     _weaponDurability :: Durability,
     _weaponAbilities :: [Ability 'Weapon'],
     _weaponMeta :: CardMeta
-} deriving (Typeable)
+}
 
 
 data MinionCard = MinionCard {
     _minionCost :: Cost,
-    _minionTribes :: Set Tribe,
+    _minionTribes :: [Tribe],
     _minionAttack :: Attack,
     _minionHealth :: Health,
     _minionAbilities :: [Ability 'Minion'],
     _minionMeta :: CardMeta
-} deriving (Typeable)
+}
 
 
 type HeroPowerEffect
@@ -456,7 +337,7 @@ data HeroPower = HeroPower {
     _heroPowerCost :: Cost,
     _heroPowerEffect :: HeroPowerEffect,
     _heroPowerName :: HeroPowerName
-} deriving (Typeable)
+}
 
 
 data Hero = Hero {
@@ -464,14 +345,13 @@ data Hero = Hero {
     _heroHealth :: Health,
     _heroPower :: HeroPower,
     _heroName :: HeroName
-} deriving (Typeable)
+}
 
 
 data Card :: * where
     CardMinion :: MinionCard -> Card
     CardSpell :: SpellCard -> Card
     CardWeapon :: WeaponCard -> Card
-    deriving (Typeable)
 
 
 data Universe :: * where
