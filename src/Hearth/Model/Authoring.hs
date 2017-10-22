@@ -95,9 +95,10 @@ data ObjectType
 --
 -- Make [[Handle a]] much more opaque.
 --
--- Put in [[Hearth.Model.Internal.Handle]].
--- Here define [[Handle]] as it currently is and expose all its constructors.
--- Do NOT instance any non-Data/Typeable classes here! (Intentionally orphan instance... see below.)
+-- Put in [[Hearth.Model.Authoring.Internal]] and define [[Handle]] as it
+-- currently is and expose all its constructors.
+-- Do NOT instance any non-Data/Typeable classes here!
+-- (Intentionally orphan instance... see below.)
 --
 -- In this file, export [[Handle()]].
 -- In [[Hearth.Model.Runtime]], export [[Handle(..)]].
@@ -115,6 +116,9 @@ data ObjectType
 -- >     BranchCharacter character
 -- >         (\minion -> DealDamage you minion 1)
 -- >         (\player -> DrawCards player 1)
+--
+-- Other data types currently defined in this file should get similar treatment.
+-- Examples include: HandleList, Armor, Mana, Cost, etc.
 --
 data Handle :: ObjectType -> * where
     SpellHandle :: RawHandle -> Handle 'Spell'
