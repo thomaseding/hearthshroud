@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RebindableSyntax #-}
 
 
 module Hearth.Authored.Hero.Basic.Heroes (
@@ -20,8 +21,9 @@ module Hearth.Authored.Hero.Basic.Heroes (
 
 import Hearth.Authored.Hero.Basic.Names
 import Hearth.Authored.HeroPower.Basic.Powers
-import Hearth.Combinator.Authoring
+import Hearth.Combinator.Authoring.RebindableSyntax
 import Hearth.Model.Authoring
+import Prelude hiding (fromInteger)
 
 
 --------------------------------------------------------------------------------
@@ -29,8 +31,8 @@ import Hearth.Model.Authoring
 
 mkSimpleHero :: BasicHeroName -> HeroPower -> Hero
 mkSimpleHero name power = Hero {
-    _heroAttack = _0,
-    _heroHealth = _30,
+    _heroAttack = 0,
+    _heroHealth = 30,
     _heroPower = power,
     _heroName = BasicHeroName name }
 

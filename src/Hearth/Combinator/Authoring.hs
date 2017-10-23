@@ -7,7 +7,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Hearth.Combinator.Authoring (
-    module Data.FromInt,
     module Hearth.Combinator.Authoring,
 ) where
 

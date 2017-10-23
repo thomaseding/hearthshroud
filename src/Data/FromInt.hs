@@ -41,6 +41,14 @@ class FromInt a where
     fromInt :: Int -> a
 
 
+instance FromInt Int where
+    fromInt = id
+
+
+instance FromInt Integer where
+    fromInt = toInteger
+
+
 _0 :: (FromInt a) => a
 _0 = fromInt 0
 
