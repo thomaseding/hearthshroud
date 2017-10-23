@@ -13,7 +13,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 
-module Hearth.ShowCard (
+module Hearth.Reflection.ShowCard (
     showCard,
     GenHandle,
 ) where
@@ -207,13 +207,13 @@ replace old new (items @ (_ : rest)) = case old `isPrefixOf` items of
     True -> new ++ replace old new (drop (length old) items)
 
 
-showCard :: HandCard -> String
+showCard :: Card -> String
 showCard card = let
     name = showCardName $ cardName card
     cost = showCost card
     bt = boxText card
     mStats = case card of
-        HandCardMinion minion -> let
+        CardMinion minion -> let
             Attack atk = _minionAttack minion
             Health hlt = _minionHealth minion
             in Just (atk, hlt)
@@ -232,21 +232,21 @@ showCard card = let
         $ [ name ++ " " ++ cost, bt, stats ]
 
 
-showCost :: HandCard -> String
+showCost :: Card -> String
 showCost card = let
     cost = case card of
-        HandCardMinion minion -> _minionCost minion
-        HandCardSpell spell -> _spellCost spell
-        HandCardWeapon weapon -> _weaponCost weapon
+        CardMinion minion -> _minionCost minion
+        CardSpell spell -> _spellCost spell
+        CardWeapon weapon -> _weaponCost weapon
     in case cost of
         ManaCost (Mana mana) -> "(" ++ show mana ++ ")"
 
 
-boxText :: HandCard -> String
+boxText :: Card -> String
 boxText = runShowCard . liftM (unlines . filter (not . null) . lines) . \case
-    HandCardMinion minion -> showAbilities $ _minionAbilities minion
-    HandCardSpell spell -> genHandle this >>= showElect . _spellEffect spell
-    HandCardWeapon weapon -> showAbilities $ _weaponAbilities weapon
+    CardMinion minion -> showAbilities $ _minionAbilities minion
+    CardSpell spell -> genHandle this >>= showElect . _spellEffect spell
+    CardWeapon weapon -> showAbilities $ _weaponAbilities weapon
 
 
 --------------------------------------------------------------------------------
@@ -540,7 +540,7 @@ showUnreferenced handle = do
 showTransform :: Handle 'Minion' -> MinionCard -> ShowCard String
 showTransform oldMinionHandle newMinion = do
     oldMinionStr <- readHandle oldMinionHandle
-    let newCardStr = showCard $ HandCardMinion newMinion
+    let newCardStr = showCard $ CardMinion newMinion
     return $ "Transform " ++ oldMinionStr ++ " to " ++ newCardStr
 
 

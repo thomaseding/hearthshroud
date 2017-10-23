@@ -53,6 +53,7 @@ import Hearth.Client.Console.Render.BoardMinionsColumn
 import Hearth.Client.Console.Render.HandColumn
 import Hearth.Client.Console.Render.PlayerColumn
 import Hearth.Client.Console.SGRString
+import Hearth.Combinator.Authoring (toCard)
 import Hearth.Combinator.Runtime
 import Hearth.Engine hiding (scopedPhase)
 import Hearth.Model.Authoring hiding (And, Or)
@@ -61,7 +62,7 @@ import Hearth.Model.Runtime.Action
 import Hearth.Model.Runtime.DebugEvent
 import Hearth.Model.Runtime.GameEvent
 import Hearth.Model.Runtime.Prompt
-import Hearth.ShowCard
+import Hearth.Reflection.ShowCard
 import Language.Haskell.TH.Syntax (nameBase)
 import Prelude hiding (pi, log)
 import System.Console.ANSI
@@ -1054,7 +1055,7 @@ readCardInHandAction (SignedInt sign handIdx) = do
         Positive -> getActivePlayerHandle
         Negative -> getNonActivePlayerHandle
     cards <- view $ getPlayer handle.playerHand.handCards
-    let mCard = lookupIndex cards $ length cards - handIdx
+    let mCard = fmap toCard . lookupIndex cards $ length cards - handIdx
     case mCard of
         Nothing -> return $ ComplainRetryAction "Invalid hand card index"
         Just card -> do
