@@ -11,7 +11,7 @@ Hearthshroud is one of two things:
 Library uses a monadic API which drives the game engine for any `HearthMonad`:
 ```haskell
 -- MonadPrompt @ https://hackage.haskell.org/package/MonadPrompt
-type HearthMonad m = MonadPrompt HeartPrompt m
+type HearthMonad m = MonadPrompt HearthPrompt m
 Hearth.Engine.runHearth :: (HearthMonad m) => Pair PlayerData -> m GameResult
 ```
 
