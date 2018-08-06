@@ -6,8 +6,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 
-module Hearth.Client.Console.Render.BoardHeroColumn (
-    boardHeroColumn
+module Hearth.Client.Console.Doc.BoardHeroColumn (
+    boardHeroColumn,
 ) where
 
 
@@ -15,45 +15,32 @@ module Hearth.Client.Console.Render.BoardHeroColumn (
 
 
 import Control.Lens
-import Hearth.Client.Console.SGRString
+import Hearth.Client.Console.Doc.Display
 import Hearth.Engine
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime
-import System.Console.ANSI
 
 
 --------------------------------------------------------------------------------
 
 
-boardHeroColumn :: (HearthMonad m) => Handle 'Player' -> Hearth m [SGRString]
+boardHeroColumn :: (HearthMonad m) => Handle 'Player' -> Hearth m (Doc Display)
 boardHeroColumn player = dynamic $ do
     Attack attack <- viewAttack player
     Health health <- viewRemainingHealth $ PlayerCharacter player
     Armor armor <- view $ getPlayer player.playerHero.boardHeroArmor
-    return $ concat [
-        txt "Attack",
-        txt "------",
-        toTxt attack,
-        txt "",
-        txt "Health",
-        txt "------",
-        toTxt health,
-        txt "",
-        txt "Armor",
-        txt "-----",
-        toTxt armor ]
-    where
-        txt str = [sgrColor (Dull, Green) +++ str]
-        toTxt x = [sgrColor (Vivid, Green) +++ sgrShow x]
 
-
-
-
-
-
-
-
-
-
+    return $ vcat [
+        labelColor "Attack",
+        dashSeparator,
+        valueColor attack,
+        dashSeparator,
+        labelColor "Health",
+        dashSeparator,
+        valueColor health,
+        dashSeparator,
+        labelColor "Armor",
+        dashSeparator,
+        valueColor armor ]
 
 

@@ -26,7 +26,7 @@ boardColumn :: Player -> [String]
 boardColumn = boardMinionsColumn . _playerMinions
 
 
-
+xxxxxx this is a stale file ?
 
 
 

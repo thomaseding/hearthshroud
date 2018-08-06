@@ -7,7 +7,7 @@
 
 
 module Hearth.Client.Console.Render.BoardMinionsColumn (
-    boardMinionsColumn
+    boardMinionsColumn,
 ) where
 
 
@@ -17,56 +17,52 @@ module Hearth.Client.Console.Render.BoardMinionsColumn (
 import Control.Lens hiding (index)
 import Control.Monad
 import Data.List
-import Data.String
 import Hearth.Authored.Cards
-import Hearth.Client.Console.SGRString
+import Hearth.Client.Doc.
 import Hearth.Engine
 import Hearth.Model.Authoring
 import Hearth.Model.Runtime
-import System.Console.ANSI
 
 
 --------------------------------------------------------------------------------
 
 
-boardMinionsColumn :: (HearthMonad m) => [BoardMinion] -> Hearth m [SGRString]
-boardMinionsColumn = liftM (concat . reverse . foldl' f [label 0] . zip [1..]) . mapM boardMinionColumn . zip [1..]
+boardMinionsColumn :: (HearthMonad m) => [BoardMinion] -> Hearth m (Doc Display)
+boardMinionsColumn = liftM
+    (concat . reverse . foldl' reducer [label 0] . zip [1..])
+    . mapM boardMinionColumn
+    . zip [1..]
     where
         label' idx = "<" +++ sgrShow (idx + 1 :: Int) +++ ">"
         label idx = [sgrColor (Dull, Magenta) +++ label' idx]
-        f sss (idx, ss) = (ss ++ label idx) : sss
+        reducer sss (idx, ss) = (ss ++ label idx) : sss
 
 
-boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m [SGRString]
+boardMinionColumn :: (HearthMonad m) => (Int, BoardMinion) -> Hearth m (Doc Display)
 boardMinionColumn (idx, bm) = do
     let bmHandle = bm^.boardMinionHandle
     dynDamage <- liftM unDamage $ dynamic $ viewDamage bmHandle
     dynAttack <- liftM unAttack $ dynamic $ viewAttack bmHandle
     dynHealth <- liftM unHealth $ dynamic $ viewMaxHealth bmHandle
     let minion = _boardMinion bm
-        nameColor = case hasDivineShield bm of
-            True -> sgrColor (Vivid, Red) +++ sgr [SetColor Background Vivid Yellow]
-            False -> sgrColor (Vivid, Green)
-        (tauntL, tauntR) = case hasTaunt bm of
-            True -> ("[", ">")
-            False -> ("", "")
-        name = nameColor +++ tauntL +++ getMinionName minion +++ tauntR +++ sgr [SetColor Background Dull Black]
-        attack = sgrColor (Vivid, Black) +++ sgrShow dynAttack
-        healthColor = case dynDamage > 0 of
-            True -> (Vivid, Red)
-            False -> (Vivid, Black)
+        tauntApply doc = let
+            (tauntL, tauntR) = case hasTaunt bm of
+                True -> "[" <> doc <> ">"
+                False -> doc
+        name = annotate (MinionName $ hasDivineShield bm) $ tauntApply $ getMinionName minion
+        attack = annotate DocAttack sgrColor (Vivid, Black) +++ sgrShow dynAttack
+        remainingHealth = annotate (DocHealth $ dynDamage > 0) $ show $ dynHealth - dynDamage
         index = let
-            pad = if idx < 10 then " " else ""
-            in sgrColor (Dull, Green) +++ sgrShow idx +++ "." +++ pad
-        header = index +++ name
-        remainingHealth = sgrColor healthColor +++ sgrShow (dynHealth - dynDamage)
-        stats = let
-            c = sgrColor (Dull, White)
-            in attack +++ c +++ "/" +++ remainingHealth
-    return $ map ("   " +++) [header, "    " +++ stats]
+            pad = case idx < 10 of
+                True -> " "
+                False -> ""
+            in annotate MinionIndex $ show idx <> "." <> pad
+        header = index <> name
+        stats = annotate MinionStats $ attack <> "/" <> remainingHealth
+    return $ map ("   " <> [header, "    " <> stats]
 
 
-getMinionName :: MinionCard -> SGRString
+getMinionName :: MinionCard -> Doc Display
 getMinionName = fromString . showCardName . cardName
 
 
