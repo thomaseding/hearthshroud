@@ -1988,14 +1988,27 @@ loseDivineShield bm = let
 
 viewEventListeners :: (HearthMonad m) => Hearth m [EventListener]
 viewEventListeners = logCall 'viewEventListeners $ do
+
+    -- collect listeners from minion abilities
     minions <- viewListOf $ gamePlayers.traversed.playerMinions.traversed.boardMinionHandle
     minionListeners <- liftM concat $ forM minions $ \minion -> do
         abilities <- viewMinionAbilities minion
         return $ flip mapMaybe abilities $ \case
             ObserverMinion listener -> Just $ listener minion
             _ -> Nothing
+
+    -- collect listeners from weapon abilities
+    weapons <- viewListOf $ gamePlayers.traversed.playerWeapon.traversed.boardWeaponHandle
+    weaponListeners <- liftM concat $ forM weapons $ \weapon -> do
+        abilities <- viewWeaponAbilities weapon
+        return $ flip mapMaybe abilities $ \case
+            ObserverWeapon listener -> Just $ listener weapon
+            --_ -> Nothing
+
+    -- collect listeners from dynamic effects
     effectObservers <- view gameEffectObservers
-    return $ effectObservers ++ minionListeners
+
+    return $ effectObservers ++ minionListeners ++ weaponListeners
 
 
 processEvent :: (HearthMonad m) => (EventListener -> Hearth m ()) -> Hearth m ()

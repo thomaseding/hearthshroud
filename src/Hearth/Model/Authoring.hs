@@ -202,6 +202,7 @@ data EventListener :: * where
     DamageIsDealt :: (Handle 'Character' -> Damage -> DamageSource -> Elect 'AtRandom') -> EventListener
     HealthIsRestored :: (Handle 'Character' -> Health -> Elect 'AtRandom') -> EventListener
     AtEndOfTurn :: (Handle 'Player' -> Elect 'AtRandom') -> EventListener
+    Attacks :: (Handle 'Character' -> Handle 'Character' -> Elect 'AtRandom') -> EventListener
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)
@@ -217,6 +218,7 @@ data Aura :: * where
 
 data Ability :: ObjectType -> * where
     ObserverMinion :: (Handle 'Minion' -> EventListener) -> Ability 'Minion'
+    ObserverWeapon :: (Handle 'Weapon' -> EventListener) -> Ability 'Weapon'
     AuraMinion :: (Handle 'Minion' -> Aura) -> Ability 'Minion'
     Battlecry :: (Handle 'Minion' -> Elect 'Targeted') -> Ability 'Minion'
     Deathrattle :: (Handle 'Minion' -> Elect 'AtRandom') -> Ability 'Minion'

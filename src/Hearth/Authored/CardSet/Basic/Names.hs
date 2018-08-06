@@ -146,6 +146,7 @@ data BasicCardName
     | TheCoin
     | TimberWolf
     | TotemicMight
+    | TruesilverChampion
     | TundraRhino
     | Voidwalker
     | VoodooDoctor

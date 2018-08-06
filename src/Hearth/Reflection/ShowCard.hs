@@ -259,6 +259,7 @@ showAbilities = liftM unlines . mapM showAbility
 showAbility :: (GenHandle a) => Ability a -> ShowCard String
 showAbility = \case
     ObserverMinion cont -> showObserver cont
+    ObserverWeapon cont -> showObserver cont
     AuraMinion aura -> showAuraAbility aura
     Battlecry cont -> showBattlecry cont
     Deathrattle cont -> showDeathrattle cont
@@ -345,6 +346,14 @@ showEventListener = \case
     DamageIsDealt listener -> showDamageIsDealt listener
     HealthIsRestored listener -> showHealthIsRestored listener
     AtEndOfTurn listener -> showAtEndOfTurn listener
+    Attacks listener -> showAttacks listener
+
+
+showAttacks :: (Handle 'Character' -> Handle 'Character' -> Elect 'AtRandom') -> ShowCard String
+showAttacks listener = do
+    attacker <- genHandle "ATTACKER"
+    defender <- genHandle "DEFENDER"
+    liftM ("attack: " ++) $ showElect $ listener attacker defender
 
 
 showAtEndOfTurn :: (Handle 'Player' -> Elect 'AtRandom') -> ShowCard String

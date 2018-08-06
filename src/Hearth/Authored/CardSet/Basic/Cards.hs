@@ -163,6 +163,7 @@ cards = let x = toCard in [
     x theCoin,
     x timberWolf,
     x totemicMight,
+    x truesilverChampion,
     x tundraRhino,
     x voidwalker,
     x voodooDoctor,
@@ -1082,6 +1083,14 @@ totemicMight = mkSpell Shaman TotemicMight 0 $ \this ->
         All $ Minions [OwnedBy you, OfTribe Totem] $ \totems ->
             Effect $ forEach totems $ \totem ->
                 enchant totem $ GainHealth 2
+
+
+truesilverChampion :: WeaponCard
+truesilverChampion = mkWeapon Warrior ArcaniteReaper 4 4 2 [
+    observer $ \this ->
+        Attacks $ \attacker _ ->
+            ownerOf this $ \you ->
+                Effect $ when (attacker `Satisfies` [is you]) $ RestoreHealth (asCharacter you) 2 ]
 
 
 tundraRhino :: MinionCard

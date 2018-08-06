@@ -197,6 +197,10 @@ gainAttack :: (CharacterLike a) => Attack -> Enchantment 'Continuous' a
 gainAttack = fromCharacterEnchantment . GainAttack
 
 
+is :: (CharacterLike a) => Handle a -> Requirement 'Character'
+is = Is . asCharacter
+
+
 freeze :: (CharacterLike a) => Handle a -> Effect
 freeze = Freeze . asCharacter
 
@@ -206,6 +210,9 @@ class AsObserver (a :: ObjectType) where
 
 instance AsObserver 'Minion' where
     observer = ObserverMinion
+
+instance AsObserver 'Weapon' where
+    observer = ObserverWeapon
 
 
 class AsAura (a :: ObjectType) where
