@@ -197,6 +197,11 @@ data Effect :: * where
     TakeControl :: Handle 'Player' -> Handle 'Minion' -> Effect
 
 
+-- TODO: This should leverage GameEvent
+--
+--  data EventListener :: * where
+--      On :: (GameEvent -> Elect 'AtRandom) -> EventListener
+--
 data EventListener :: * where
     SpellIsCast :: (Handle 'Spell' -> Elect 'AtRandom') -> EventListener
     DamageIsDealt :: (Handle 'Character' -> Damage -> DamageSource -> Elect 'AtRandom') -> EventListener
