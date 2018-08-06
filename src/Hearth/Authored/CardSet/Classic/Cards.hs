@@ -226,7 +226,7 @@ azureDrake = mkMinion Rare Neutral AzureDrake [Dragon] 5 4 4 [
 baronGeddon :: MinionCard
 baronGeddon = mkMinion Legendary Neutral BaronGeddon [] 7 7 5 [
     observer $ \this ->
-        EndOfTurnEvent $ \player ->
+        AtEndOfTurn $ \player ->
             ownerOf this $ \you ->
                 Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Characters [Not $ asCharacter this] $ \characters ->
                     Effect $ forEach characters $ \character ->
@@ -404,7 +404,7 @@ grommashHellscream = mkMinion Legendary Warrior GrommashHellscream [] 8 4 9 [
 gruul :: MinionCard
 gruul = mkMinion Legendary Neutral Gruul [] 8 7 7 [
     observer $ \this ->
-        EndOfTurnEvent $ \_ ->
+        AtEndOfTurn $ \_ ->
             Effect $ sequence [
                 enchant this $ gainAttack 1,
                 enchant this $ GainHealth 1 ]]
@@ -413,7 +413,7 @@ gruul = mkMinion Legendary Neutral Gruul [] 8 7 7 [
 hogger :: MinionCard
 hogger = mkMinion Legendary Neutral Hogger [] 6 4 4 [
     observer $ \this ->
-        EndOfTurnEvent $ \player ->
+        AtEndOfTurn $ \player ->
             ownerOf this $ \you ->
                 Effect $ when (player `Satisfies` [Is you]) $ (Summon gnoll) $ Rightmost you ]
 
@@ -550,7 +550,7 @@ ragnarosTheFirelord :: MinionCard
 ragnarosTheFirelord = mkMinion Legendary Neutral RagnarosTheFirelord [] 8 8 8 [
     Can'tAttack,
     observer $ \this ->
-        EndOfTurnEvent $ \player ->
+        AtEndOfTurn $ \player ->
             ownerOf this $ \you ->
                 opponentOf you $ \opponent ->
                     Effect $ when (player `Satisfies` [Is you]) $ Get $ A $ Character [OwnedBy opponent] $ \enemy ->

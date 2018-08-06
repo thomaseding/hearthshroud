@@ -369,7 +369,7 @@ corruption = mkSpell Warlock Corruption 1 $ \this ->
         opponentOf you $ \opponent ->
             A $ Minion [OwnedBy opponent] $ \target ->
                 Effect $ enchant target $ DelayedEffect (Delay 1 BeginOfTurn) $ destroy target
-    
+
 
 
 dalaranMage :: MinionCard
@@ -586,7 +586,7 @@ handOfProtection = mkSpell Paladin HandOfProtection 1 $ \_ ->
 healingTotem :: MinionCard
 healingTotem = uncollectible $ mkMinion Shaman HealingTotem [Totem] 1 0 2 [
     observer $ \this ->
-        EndOfTurnEvent $ \player ->
+        AtEndOfTurn $ \player ->
             ownerOf this $ \you ->
                 Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Minions [OwnedBy you] $ \minions ->
                     Effect $ forEach minions $ \minion ->

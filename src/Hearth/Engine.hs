@@ -1973,7 +1973,7 @@ replaceMinionByHandle bm' = logCall 'replaceMinionByHandle $ do
     getPlayer owner.playerMinions %= \bms -> let
         (front, _ : end) = span (\bm -> bm^.boardMinionHandle /= bm'^.boardMinionHandle) bms
         in front ++ [bm'] ++ end
-    
+
 
 loseDivineShield :: BoardMinion -> Maybe BoardMinion
 loseDivineShield bm = let
@@ -2014,7 +2014,7 @@ handleGameEvent = \case
         HealthIsRestored listener -> run $ listener recipient health
         _ -> return ()
     PhaseEvent (Begin EndTurnPhase) -> processEvent $ \case
-        EndOfTurnEvent listener -> getActivePlayerHandle >>= run . listener
+        AtEndOfTurn listener -> getActivePlayerHandle >>= run . listener
         _ -> return ()
     _ -> return ()
     where
