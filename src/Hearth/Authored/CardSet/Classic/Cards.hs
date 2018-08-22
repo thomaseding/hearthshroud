@@ -205,10 +205,9 @@ argentSquire = mkMinion Common Neutral ArgentSquire [] 1 1 1 [
 
 armorsmith :: MinionCard
 armorsmith = mkMinion Rare Warrior Armorsmith [] 2 1 4 [
-    observer $ \this ->
-        DamageIsDealt $ \victim _ _ ->
-            ownerOf this $ \you ->
-                Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
+    listener $ \this (DealtDamage victim _ _) ->
+        ownerOf this $ \you ->
+            Effect $ when (victim `Satisfies` [OwnedBy you, IsMinion]) $ GainArmor you 1 ]
 
 
 ashbringer :: WeaponCard
@@ -225,12 +224,11 @@ azureDrake = mkMinion Rare Neutral AzureDrake [Dragon] 5 4 4 [
 
 baronGeddon :: MinionCard
 baronGeddon = mkMinion Legendary Neutral BaronGeddon [] 7 7 5 [
-    observer $ \this ->
-        AtEndOfTurn $ \player ->
-            ownerOf this $ \you ->
-                Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Characters [Not $ asCharacter this] $ \characters ->
-                    Effect $ forEach characters $ \character ->
-                        (this `damages` character) 2 ]
+    listener $ \this (AtEndOfTurn player) ->
+        ownerOf this $ \you ->
+            Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Characters [Not $ asCharacter this] $ \characters ->
+                Effect $ forEach characters $ \character ->
+                    (this `damages` character) 2 ]
 
 
 battleRage :: SpellCard

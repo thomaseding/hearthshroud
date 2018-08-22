@@ -220,25 +220,25 @@ data Phase :: * where
 data GameEvent :: * where
     --GameBegins :: GameEvent
     --GameEnds :: GameResult -> GameEvent
-    PhaseEvent :: Scoped Phase -> GameEvent
-    DeckShuffled :: Handle 'Player' {- -> Deck -} -> GameEvent
+    AttackFailed :: AttackFailedReason -> GameEvent
     CardDrawn :: Handle 'Player' -> Either Card Card {- -> Deck -} -> GameEvent
-    UsedHeroPower :: Handle 'Player' -> HeroPower -> GameEvent
+    DealtDamage :: Handle 'Character' -> Damage -> DamageSource -> GameEvent
+    DeckShuffled :: Handle 'Player' {- -> Deck -} -> GameEvent
+    EnactAttack :: Handle 'Character' -> Handle 'Character' -> GameEvent
+    GainedArmor :: Handle 'Player' -> Armor -> GameEvent
+    GainsManaCrystal :: Handle 'Player' -> Maybe CrystalState -> GameEvent
+    HealthRestored :: Handle 'Character' -> Health -> GameEvent
+    LostDivineShield :: Handle 'Minion' -> GameEvent
+    ManaCrystalsEmpty :: Handle 'Player' -> Int -> GameEvent
+    ManaCrystalsRefill :: Handle 'Player' -> Int -> GameEvent
+    MinionDestroyed :: Handle 'Minion' -> GameEvent
+    MinionDied :: Handle 'Minion' -> GameEvent
+    PhaseEvent :: Handle 'Player' -> Scoped Phase -> GameEvent -- IDeally this is scoped for the client and not scoped for listeners... add a type param I guess
     PlayedMinion :: Handle 'Player' -> Handle 'Minion' -> GameEvent
     PlayedSpell :: Handle 'Player' -> Handle 'Spell' -> GameEvent
     PlayedWeapon :: Handle 'Player' -> Handle 'Weapon' -> GameEvent
-    DealtDamage :: Handle 'Character' -> Damage -> DamageSource -> GameEvent
-    HealthRestored :: Handle 'Character' -> Health -> GameEvent
-    GainedArmor :: Handle 'Player' -> Armor -> GameEvent
-    MinionDestroyed :: Handle 'Minion' -> GameEvent
-    MinionDied :: Handle 'Minion' -> GameEvent
-    EnactAttack :: Handle 'Character' -> Handle 'Character' -> GameEvent
-    GainsManaCrystal :: Handle 'Player' -> Maybe CrystalState -> GameEvent
-    ManaCrystalsRefill :: Handle 'Player' -> Int -> GameEvent
-    ManaCrystalsEmpty :: Handle 'Player' -> Int -> GameEvent
-    LostDivineShield :: Handle 'Minion' -> GameEvent
+    UsedHeroPower :: Handle 'Player' -> HeroPower -> GameEvent
     Silenced :: Handle 'Minion' -> GameEvent
-    AttackFailed :: AttackFailedReason -> GameEvent
     Transformed :: Handle 'Minion' -> MinionCard -> GameEvent
     deriving (Typeable)
 
@@ -256,7 +256,7 @@ data AttackFailedReason :: * where
 
 
 data EventListener :: * where
-    On :: (GameEvent -> Elect 'AtRandom') -> EventListener
+    Listens :: (GameEvent -> Elect 'AtRandom') -> EventListener
     --SpellIsCast :: (Handle 'Spell' -> Elect 'AtRandom') -> EventListener
     --DamageIsDealt :: (Handle 'Character' -> Damage -> DamageSource -> Elect 'AtRandom') -> EventListener
     --HealthIsRestored :: (Handle 'Character' -> Health -> Elect 'AtRandom') -> EventListener

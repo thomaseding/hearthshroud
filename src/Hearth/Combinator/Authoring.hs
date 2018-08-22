@@ -215,6 +215,12 @@ instance AsObserver 'Weapon' where
     observer = ObserverWeapon
 
 
+listener :: (AsObserver a) => (Handle a -> GameEvent -> Elect 'AtRandom') -> Ability a
+listener f = observer $ \this ->
+    Listens $ \event ->
+        f this event
+
+
 class AsAura (a :: ObjectType) where
     aura :: (Handle a -> Aura) -> Ability a
 
