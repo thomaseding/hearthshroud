@@ -36,6 +36,7 @@ module Hearth.Model.Authoring (
 
 
 import Control.Lens hiding (Each)
+import Data.Data
 import Hearth.Model.Authoring.CardName
 import Hearth.Model.Authoring.HeroName
 import Hearth.Model.Authoring.HeroPowerName
@@ -197,17 +198,70 @@ data Effect :: * where
     TakeControl :: Handle 'Player' -> Handle 'Minion' -> Effect
 
 
--- TODO: This should leverage GameEvent
---
---  data EventListener :: * where
---      On :: (GameEvent -> Elect 'AtRandom) -> EventListener
---
+data Scoped :: * -> * where
+    Begin :: a -> Scoped a
+    End :: a -> Scoped a
+    deriving (Eq, Ord)
+
+
+data Phase :: * where
+    BeginTurnPhase :: Phase
+    EndTurnPhase :: Phase
+    BattlecryPhase :: Phase
+    DeathrattlePhase :: Phase
+    ChooseOnePhase :: Phase
+    SpellPhase :: Phase
+    HeroPowerPhase :: Phase
+    AttackResolutionPhase :: Phase
+    TriggeredEffectPhase :: Phase
+    deriving (Show, Typeable)
+
+
+data GameEvent :: * where
+    --GameBegins :: GameEvent
+    --GameEnds :: GameResult -> GameEvent
+    PhaseEvent :: Scoped Phase -> GameEvent
+    DeckShuffled :: Handle 'Player' {- -> Deck -} -> GameEvent
+    CardDrawn :: Handle 'Player' -> Either Card Card {- -> Deck -} -> GameEvent
+    UsedHeroPower :: Handle 'Player' -> HeroPower -> GameEvent
+    PlayedMinion :: Handle 'Player' -> Handle 'Minion' -> GameEvent
+    PlayedSpell :: Handle 'Player' -> Handle 'Spell' -> GameEvent
+    PlayedWeapon :: Handle 'Player' -> Handle 'Weapon' -> GameEvent
+    DealtDamage :: Handle 'Character' -> Damage -> DamageSource -> GameEvent
+    HealthRestored :: Handle 'Character' -> Health -> GameEvent
+    GainedArmor :: Handle 'Player' -> Armor -> GameEvent
+    MinionDestroyed :: Handle 'Minion' -> GameEvent
+    MinionDied :: Handle 'Minion' -> GameEvent
+    EnactAttack :: Handle 'Character' -> Handle 'Character' -> GameEvent
+    GainsManaCrystal :: Handle 'Player' -> Maybe CrystalState -> GameEvent
+    ManaCrystalsRefill :: Handle 'Player' -> Int -> GameEvent
+    ManaCrystalsEmpty :: Handle 'Player' -> Int -> GameEvent
+    LostDivineShield :: Handle 'Minion' -> GameEvent
+    Silenced :: Handle 'Minion' -> GameEvent
+    AttackFailed :: AttackFailedReason -> GameEvent
+    Transformed :: Handle 'Minion' -> MinionCard -> GameEvent
+    deriving (Typeable)
+
+
+data AttackFailedReason :: * where
+    AttackWithEnemy :: AttackFailedReason
+    DefendWithFriendly :: AttackFailedReason
+    ZeroAttack :: AttackFailedReason
+    DoesNotHaveCharge :: AttackFailedReason
+    OutOfAttacks :: AttackFailedReason
+    TauntsExist :: AttackFailedReason
+    AttackerIsFrozen :: AttackFailedReason
+    AttackerCan'tAttack :: AttackFailedReason
+    deriving (Show, Typeable)
+
+
 data EventListener :: * where
-    SpellIsCast :: (Handle 'Spell' -> Elect 'AtRandom') -> EventListener
-    DamageIsDealt :: (Handle 'Character' -> Damage -> DamageSource -> Elect 'AtRandom') -> EventListener
-    HealthIsRestored :: (Handle 'Character' -> Health -> Elect 'AtRandom') -> EventListener
-    AtEndOfTurn :: (Handle 'Player' -> Elect 'AtRandom') -> EventListener
-    Attacks :: (Handle 'Character' -> Handle 'Character' -> Elect 'AtRandom') -> EventListener
+    On :: (GameEvent -> Elect 'AtRandom') -> EventListener
+    --SpellIsCast :: (Handle 'Spell' -> Elect 'AtRandom') -> EventListener
+    --DamageIsDealt :: (Handle 'Character' -> Damage -> DamageSource -> Elect 'AtRandom') -> EventListener
+    --HealthIsRestored :: (Handle 'Character' -> Health -> Elect 'AtRandom') -> EventListener
+    --AtEndOfTurn :: (Handle 'Player' -> Elect 'AtRandom') -> EventListener
+    --  Attacks :: (Handle 'Character' -> Handle 'Character' -> Elect 'AtRandom') -> EventListener
 
 
 -- TODO: Need to adjust damage of minions when auras disappear (and also when they appear?)

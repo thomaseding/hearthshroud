@@ -2005,6 +2005,7 @@ viewEventListeners = logCall 'viewEventListeners $ do
             ObserverWeapon listener -> Just $ listener weapon
             --_ -> Nothing
 
+    -- collect listeners from dynamic effects
     effectObservers <- view gameEffectObservers
 
     return $ effectObservers ++ minionListeners ++ weaponListeners

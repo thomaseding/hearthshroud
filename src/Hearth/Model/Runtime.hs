@@ -64,25 +64,6 @@ newtype BoardIndex = BoardIndex Int
     deriving (Show, Eq, Ord, Enum, Data, Typeable)
 
 
-data Scoped :: * -> * where
-    Begin :: a -> Scoped a
-    End :: a -> Scoped a
-    deriving (Eq, Ord)
-
-
-data Phase :: * where
-    BeginTurnPhase :: Phase
-    EndTurnPhase :: Phase
-    BattlecryPhase :: Phase
-    DeathrattlePhase :: Phase
-    ChooseOnePhase :: Phase
-    SpellPhase :: Phase
-    HeroPowerPhase :: Phase
-    AttackResolutionPhase :: Phase
-    TriggeredEffectPhase :: Phase
-    deriving (Show, Typeable)
-
-
 data CastSpell = CastSpell {
     _castSpellHandle :: Handle 'Spell',
     _castSpell :: SpellCard
