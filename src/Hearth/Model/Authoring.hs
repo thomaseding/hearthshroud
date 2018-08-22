@@ -198,6 +198,8 @@ data Effect :: * where
     TakeControl :: Handle 'Player' -> Handle 'Minion' -> Effect
 
 
+-- I think this should be changed to not take a parameter and use (Scope, a) instead of (Scoped a)
+-- This is just as expressive, but allows for cleaner pattern matching. It also seems more practical.
 data Scoped :: * -> * where
     Begin :: a -> Scoped a
     End :: a -> Scoped a
@@ -233,7 +235,7 @@ data GameEvent :: * where
     ManaCrystalsRefill :: Handle 'Player' -> Int -> GameEvent
     MinionDestroyed :: Handle 'Minion' -> GameEvent
     MinionDied :: Handle 'Minion' -> GameEvent
-    PhaseEvent :: Handle 'Player' -> Scoped Phase -> GameEvent -- IDeally this is scoped for the client and not scoped for listeners... add a type param I guess
+    PhaseEvent :: Handle 'Player' -> Scoped Phase -> GameEvent
     PlayedMinion :: Handle 'Player' -> Handle 'Minion' -> GameEvent
     PlayedSpell :: Handle 'Player' -> Handle 'Spell' -> GameEvent
     PlayedWeapon :: Handle 'Player' -> Handle 'Weapon' -> GameEvent

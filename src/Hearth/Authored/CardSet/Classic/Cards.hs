@@ -224,7 +224,7 @@ azureDrake = mkMinion Rare Neutral AzureDrake [Dragon] 5 4 4 [
 
 baronGeddon :: MinionCard
 baronGeddon = mkMinion Legendary Neutral BaronGeddon [] 7 7 5 [
-    listener $ \this (AtEndOfTurn player) ->
+    listener $ \this (PhaseEvent player (Begin EndTurnPhase)) ->
         ownerOf this $ \you ->
             Effect $ when (player `Satisfies` [Is you]) $ Get $ All $ Characters [Not $ asCharacter this] $ \characters ->
                 Effect $ forEach characters $ \character ->
