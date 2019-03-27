@@ -1194,7 +1194,6 @@ instance IsCharacterHandle BoardMinion where
     characterHandle = characterHandle . _boardMinionHandle
 
 
--- TODO: Make CharacterTraits not a class and just make it a constraint over a bunch of modular classes
 instance IsCharacterHandle PlayerObject where
     characterHandle = characterHandle . _playerHandle
 
@@ -1241,7 +1240,9 @@ auraAbilitiesOf = mapMaybe $ \case
 
 dynamic :: (HearthMonad m) => Hearth m a -> Hearth m a
 dynamic action = logCall 'dynamic $ local id $ do
-    -- TODO: This function should not be use recursively. There should be a $logicError guard.
+    -- TODO:
+    -- This function should not be use recursively. There should be a $logicError guard.
+    -- Or if it isn't too troublesome, this can be enforced through a phantom type.
     enactMinionAuras
     applyMinionEnchantments
     applyPlayerEnchantments
