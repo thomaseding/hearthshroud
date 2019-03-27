@@ -610,23 +610,25 @@ printProgramHelp = do
     printBanner 75
 
 
-consoleOptions :: Options Console () ()
+consoleOptions :: Options (Console ()) ()
 consoleOptions = do
+    let done = return () :: Console ()
     addOption (kw ["-h", "--help"] `text` "Display this help text.") $ do
         exitWithoutMessage .= True
         liftIO printProgramHelp
-    addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity])))
-        (logState.verbosity .=)
+        done
+    addOption (kw ["--verbosity"] `argText` "VERBOSITY" `text` ("One of: " ++ itemize Or (enums :: [Verbosity]))) $
+        \v -> logState.verbosity .= v >> done
     addOption (kw ["-s", "--seed"] `argText` "INT" `text` "Sets the game seed to INT.") $
-        \seed -> gameSeed %= (seed :)
+        \seed -> gameSeed %= (seed :) >> done
     addOption (kw ["-S", "--seed-random"] `text` "Sets the game seed to a random value.") $
-        liftIO randomIO >>= \seed -> gameSeed %= (seed :)
-    addOption (kw ["-C", "--no-class-restriction"] `text` "Deck cards are not restricted by class.")
-        (classRestriction .= False)
+        liftIO randomIO >>= \seed -> gameSeed %= (seed :) >> done
+    addOption (kw ["-C", "--no-class-restriction"] `text` "Deck cards are not restricted by class.") $
+        classRestriction .= False >> done
     addOption (kw ["-c", "--card"] `argText` "[CARD]" `text` "Stacks PLAYER's deck with [CARD]. PLAYER must be 1 or 2.") $
         \(List cs) -> let
             cs' = map (cardByName entireUniverse) cs
-            in stackedCards %= (cs' ++)
+            in stackedCards %= (cs' ++) >> done
 
 
 main :: IO ()
@@ -811,8 +813,9 @@ data ConsoleAction :: * where
     ComplainRetryAction :: String -> ConsoleAction
 
 
-actionOptions :: Options (Hearth Console) ConsoleAction ()
+actionOptions :: Options (Hearth Console ConsoleAction) ()
 actionOptions = do
+    let nonParseable' = nonParseable :: NonParseable -> Hearth Console ConsoleAction
     addOption (kw "" `argText` "" `text` "Autoplay.")
         autoplayAction
     addOption (kw "Q" `text` "Concede and quit.")
@@ -820,7 +823,7 @@ actionOptions = do
     addOption (kw "0" `text` "Ends the active player's turn.")
         endTurnAction
     addOption (kw "1" `argText` "MINION POS TARGETS*" `text` "Plays MINION from your hand to board POS.")
-        nonParseable
+        nonParseable'
     addOption (kw "1" `argText` "SPELL TARGETS*" `text` "Plays SPELL from your hand.")
         playCardAction
     addOption (kw "2" `argText` "ATTACKER DEFENDER" `text` "Attack DEFENDER with ATTACKER.")
@@ -832,7 +835,7 @@ actionOptions = do
     addOption (kw "?" `text` "Display detailed help text.")
         helpAction
     addOption (kw "." `text` "An alias for (?).")
-        nonParseable
+        nonParseable'
 
 
 enterToContinue :: IO ()

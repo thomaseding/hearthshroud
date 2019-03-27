@@ -39,6 +39,7 @@ import Data.List.Ordered
 import Data.Maybe
 import Data.NonEmpty (NonEmpty)
 import Data.Proxy
+import Data.Stream (Stream(Cons))
 import Hearth.Authored.Cards (cardName)
 import Hearth.Authored.CardSet.Basic.Cards (theCoin)
 import Hearth.Combinator.Authoring (toCard)
@@ -51,6 +52,7 @@ import Hearth.Model.Runtime.GameEvent
 import Hearth.Model.Runtime.Prompt
 
 import qualified Data.NonEmpty as NonEmpty
+import qualified Data.Stream as Stream
 
 
 --------------------------------------------------------------------------------
@@ -93,15 +95,17 @@ runHearth u = evalStateT (unHearth runHearth') . mkGameState u
 
 mkGameState :: Universe -> Pair PlayerData -> GameState
 mkGameState u (p1, p2) = let
-    ps = [p1, p2]
+    playerDatas = [p1, p2]
+    playerHandles = map (PlayerHandle . RawHandle ()) [0..]
+    players = zipWith mkPlayer playerHandles playerDatas
     in GameState {
         _gameUniverse = u,
         _gameTurn = Turn 1,
-        _gameHandleSeed = length ps,
-        _gamePlayerTurnOrder = [],
+        _gameHandleSeed = length playerHandles,
+        _gamePlayerTurnOrder = Stream.cycle playerHandles,
         _gameEffectObservers = [],
         _gameRootMinion = Nothing,
-        _gamePlayers = zipWith mkPlayer (map (PlayerHandle . RawHandle ()) [0..]) ps }
+        _gamePlayers = players }
 
 
 mkPlayer :: Handle 'Player' -> PlayerData -> PlayerObject
@@ -189,13 +193,13 @@ getSpell sHandle = lens getter setter
 
 getActivePlayerHandle :: (HearthMonad m) => Hearth m (Handle 'Player')
 getActivePlayerHandle = logCall 'getActivePlayerHandle $ do
-    (h : _) <- view gamePlayerTurnOrder
+    (h `Cons` _) <- view gamePlayerTurnOrder
     return h
 
 
 getNonActivePlayerHandle :: (HearthMonad m) => Hearth m (Handle 'Player')
 getNonActivePlayerHandle = logCall 'getNonActivePlayerHandle $ do
-    (_ : h : _) <- view gamePlayerTurnOrder
+    (_ `Cons` h `Cons` _) <- view gamePlayerTurnOrder
     return h
 
 
@@ -294,7 +298,7 @@ flipCoin = logCall 'flipCoin $ getPlayerHandles >>= \handles -> do
     snap <- gets GameSnapshot
     AtRandomPick handle <- prompt $ PromptPickAtRandom snap $ PickPlayer $ NonEmpty.fromList handles
     let handles' = dropWhile (/= handle) $ cycle handles
-    gamePlayerTurnOrder .= handles'
+    gamePlayerTurnOrder .= Stream.cycle handles'
 
 
 initPlayer :: (HearthMonad m) => Handle 'Player' -> Hearth m ()
@@ -527,7 +531,7 @@ endTurn = logCall 'endTurn $ scopedPhase EndTurnPhase $ do
         playerTotalManaCrystals %= max 0 . subtract tempCount
         playerEmptyManaCrystals %= max 0 . subtract tempCount
         playerTemporaryManaCrystals .= 0
-    gamePlayerTurnOrder %= tail
+    gamePlayerTurnOrder %= Stream.tail
 
 
 data EndTurn = EndTurn

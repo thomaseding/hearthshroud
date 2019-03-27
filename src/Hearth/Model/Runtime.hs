@@ -26,6 +26,7 @@ module Hearth.Model.Runtime (
 
 import Control.Lens
 import Data.Data
+import Data.Stream
 import GHC.Generics -- XXX: Is this different than Data.Generics?
 import Hearth.Combinator.Authoring (ToCard(..))
 import Hearth.Model.Authoring
@@ -150,12 +151,12 @@ instance ToCard DeckCard where
 
 newtype Hand = Hand {
     _handCards :: [HandCard]
-} deriving (Monoid, Generic, Typeable)
+} deriving (Semigroup, Monoid, Generic, Typeable)
 
 
 newtype Deck = Deck {
     _deckCards :: [DeckCard]
-} deriving (Monoid, Generic, Typeable)
+} deriving (Semigroup, Monoid, Generic, Typeable)
 
 
 data PlayerObject = PlayerObject {
@@ -178,7 +179,7 @@ data GameState = GameState {
     _gameUniverse :: Universe,
     _gameTurn :: Turn,
     _gameHandleSeed :: Int,
-    _gamePlayerTurnOrder :: [Handle 'Player'],
+    _gamePlayerTurnOrder :: Stream (Handle 'Player'),
     _gameEffectObservers :: [EventListener],
     _gameRootMinion :: Maybe (Handle 'Minion'), -- Used to disable targeting the battlecry/choose-one minion.
     _gamePlayers :: [PlayerObject]
